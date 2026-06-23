@@ -34,11 +34,11 @@ const Login = () => {
       <Row className="w-100">
         <Col md={{ span: 6, offset: 3 }} lg={{ span: 4, offset: 4 }}>
           <Card className="dashboard-card border-0 rounded-4 overflow-hidden">
-            <div style={{ height: '6px', background: 'linear-gradient(90deg, #4f46e5, #818cf8)' }}></div>
             <Card.Body className="p-5">
               <div className="text-center mb-5">
-                <h3 className="fw-bold text-dark mb-2 tracking-tight">Welcome Back</h3>
-                <p className="text-muted">Sign in to your Saap account</p>
+                <h2 className="fw-bold text-primary mb-4" style={{ letterSpacing: '-0.5px' }}>Saap Management</h2>
+                <h4 className="fw-bold text-dark mb-2 tracking-tight">Welcome Back</h4>
+                <p className="text-muted">Sign in to your account</p>
               </div>
               {error && <Alert variant="danger" className="border-0 bg-danger bg-opacity-10 text-danger">{error}</Alert>}
               <Form onSubmit={handleSubmit}>
