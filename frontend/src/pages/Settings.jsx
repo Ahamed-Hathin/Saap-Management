@@ -3,7 +3,7 @@ import Layout from '../components/Layout';
 import { Card, Form, Button, Alert, ListGroup, InputGroup } from 'react-bootstrap';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
-import { Save, User, LogOut, Briefcase, Plus, Trash2 } from 'lucide-react';
+import { Save, User, LogOut, Briefcase, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Settings = () => {
@@ -30,6 +30,8 @@ const Settings = () => {
   const [settingsMessage, setSettingsMessage] = useState('');
   const [settingsError, setSettingsError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -187,26 +189,46 @@ const Settings = () => {
 
                 <Form.Group className="mb-3">
                   <Form.Label>New Password</Form.Label>
-                  <Form.Control 
-                    type="password" 
-                    name="password"
-                    value={formData.password} 
-                    onChange={handleChange} 
-                    placeholder="Enter new password"
-                    className="bg-light"
-                  />
+                  <InputGroup>
+                    <Form.Control 
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      value={formData.password} 
+                      onChange={handleChange} 
+                      placeholder="Enter new password"
+                      className="bg-light"
+                    />
+                    <Button 
+                      variant="outline-secondary" 
+                      className="bg-light border" 
+                      onClick={() => setShowPassword(!showPassword)}
+                      tabIndex="-1"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </Button>
+                  </InputGroup>
                 </Form.Group>
 
                 <Form.Group className="mb-4">
                   <Form.Label>Confirm Password</Form.Label>
-                  <Form.Control 
-                    type="password" 
-                    name="confirmPassword"
-                    value={formData.confirmPassword} 
-                    onChange={handleChange} 
-                    placeholder="Confirm new password"
-                    className="bg-light"
-                  />
+                  <InputGroup>
+                    <Form.Control 
+                      type={showConfirmPassword ? "text" : "password"}
+                      name="confirmPassword"
+                      value={formData.confirmPassword} 
+                      onChange={handleChange} 
+                      placeholder="Confirm new password"
+                      className="bg-light"
+                    />
+                    <Button 
+                      variant="outline-secondary" 
+                      className="bg-light border" 
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      tabIndex="-1"
+                    >
+                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </Button>
+                  </InputGroup>
                 </Form.Group>
 
                 <div className="pt-2">

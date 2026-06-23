@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import { Card, Table, Button, Modal, Form, Alert } from 'react-bootstrap';
+import { Card, Table, Button, Modal, Form, Alert, InputGroup } from 'react-bootstrap';
 import api from '../services/api';
-import { Edit2, Trash2, UserPlus } from 'lucide-react';
+import { Edit2, Trash2, UserPlus, Eye, EyeOff } from 'lucide-react';
 
 const ManageEmployees = () => {
   const [employees, setEmployees] = useState([]);
@@ -11,6 +11,7 @@ const ManageEmployees = () => {
   const [formData, setFormData] = useState({ id: '', name: '', username: '', password: '' });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const fetchEmployees = async () => {
     try {
@@ -29,6 +30,7 @@ const ManageEmployees = () => {
     setEditMode(false);
     setFormData({ id: '', name: '', username: '', password: '' });
     setError('');
+    setShowPassword(false);
     setShowModal(true);
   };
 
@@ -36,6 +38,7 @@ const ManageEmployees = () => {
     setEditMode(true);
     setFormData({ id: emp._id, name: emp.name, username: emp.username, password: '' });
     setError('');
+    setShowPassword(false);
     setShowModal(true);
   };
 
@@ -168,7 +171,17 @@ const ManageEmployees = () => {
             </Form.Group>
             <Form.Group className="mb-4">
               <Form.Label>Password {editMode && <span className="text-muted fw-normal" style={{fontSize: '0.8rem'}}>(leave blank to keep current)</span>}</Form.Label>
-              <Form.Control type="password" required={!editMode} value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="bg-light" />
+              <InputGroup>
+                <Form.Control type={showPassword ? "text" : "password"} required={!editMode} value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="bg-light" />
+                <Button 
+                  variant="outline-secondary" 
+                  className="bg-light border" 
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex="-1"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </Button>
+              </InputGroup>
             </Form.Group>
           </Modal.Body>
           <Modal.Footer className="border-0 px-4 pb-4">
