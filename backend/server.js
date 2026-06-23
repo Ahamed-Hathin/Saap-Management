@@ -7,6 +7,27 @@ const connectDB = require('./config/db');
 dotenv.config();
 connectDB();
 
+const User = require('./models/User');
+
+const seedAdmin = async () => {
+  try {
+    const adminExists = await User.findOne({ username: 'admin' });
+    if (!adminExists) {
+      const adminUser = new User({
+        name: 'Admin User',
+        username: 'admin',
+        password: 'password123',
+        role: 'Admin',
+      });
+      await adminUser.save();
+      console.log('✅ Admin user automatically seeded: username: admin, password: password123');
+    }
+  } catch (err) {
+    console.error('Error seeding admin:', err);
+  }
+};
+
+seedAdmin();
 const app = express();
 
 app.use(cors());
