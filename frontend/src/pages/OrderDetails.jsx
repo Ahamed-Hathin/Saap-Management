@@ -136,7 +136,7 @@ const OrderDetails = () => {
               {order.designImage ? (
                 <div>
                   <img 
-                    src={order.designImage.startsWith('http') ? order.designImage : `http://localhost:5000/${order.designImage.replace(/\\/g, '/').replace(/^\//, '')}`} 
+                    src={order.designImage.startsWith('http') ? order.designImage : `https://saap-management.onrender.com/${order.designImage.replace(/\\/g, '/').replace(/^\//, '')}`} 
                     alt="Design" 
                     className="img-fluid rounded" 
                     style={{ maxHeight: '400px' }} 
