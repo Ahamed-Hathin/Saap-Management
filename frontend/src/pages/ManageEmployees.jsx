@@ -10,6 +10,7 @@ const ManageEmployees = () => {
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({ id: '', name: '', username: '', password: '' });
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchEmployees = async () => {
     try {
@@ -51,6 +52,7 @@ const ManageEmployees = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
       if (editMode) {
         await api.put(`/users/${formData.id}`, {
@@ -65,6 +67,8 @@ const ManageEmployees = () => {
       fetchEmployees();
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -168,8 +172,10 @@ const ManageEmployees = () => {
             </Form.Group>
           </Modal.Body>
           <Modal.Footer className="border-0 px-4 pb-4">
-            <Button variant="light" onClick={() => setShowModal(false)} className="fw-medium">Cancel</Button>
-            <Button variant="primary" type="submit" className="fw-medium px-4">Save Employee</Button>
+            <Button variant="light" onClick={() => setShowModal(false)} className="fw-medium" disabled={isLoading}>Cancel</Button>
+            <Button variant="primary" type="submit" className="fw-medium px-4" disabled={isLoading}>
+              {isLoading ? (editMode ? 'Saving...' : 'Creating...') : (editMode ? 'Save Employee' : 'Create Employee')}
+            </Button>
           </Modal.Footer>
         </Form>
       </Modal>

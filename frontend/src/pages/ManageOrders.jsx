@@ -12,6 +12,7 @@ const ManageOrders = () => {
   const [showModal, setShowModal] = useState(false);
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     clientName: '',
@@ -78,6 +79,7 @@ const ManageOrders = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
       const { data: newOrder } = await api.post('/orders', formData);
 
@@ -93,6 +95,8 @@ const ManageOrders = () => {
       fetchData();
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -299,8 +303,10 @@ const ManageOrders = () => {
             </div>
           </Modal.Body>
           <Modal.Footer className="border-0 px-4 pb-4">
-            <Button variant="light" onClick={() => setShowModal(false)} className="fw-medium">Cancel</Button>
-            <Button variant="primary" type="submit" className="fw-medium px-4">Create Order</Button>
+            <Button variant="light" onClick={() => setShowModal(false)} className="fw-medium" disabled={isLoading}>Cancel</Button>
+            <Button variant="primary" type="submit" className="fw-medium px-4" disabled={isLoading}>
+              {isLoading ? 'Creating...' : 'Create Order'}
+            </Button>
           </Modal.Footer>
         </Form>
       </Modal>

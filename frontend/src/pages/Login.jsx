@@ -7,11 +7,13 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
       const userData = await login(username, password);
       if (userData.role === 'Admin') {
@@ -21,6 +23,7 @@ const Login = () => {
       }
     } catch (err) {
       setError(err);
+      setIsLoading(false);
     }
   };
 
@@ -46,6 +49,7 @@ const Login = () => {
                     required
                     placeholder="Enter your username"
                     className="bg-light"
+                    disabled={isLoading}
                   />
                 </Form.Group>
                 <Form.Group className="mb-5">
@@ -57,10 +61,11 @@ const Login = () => {
                     required
                     placeholder="Enter your password"
                     className="bg-light"
+                    disabled={isLoading}
                   />
                 </Form.Group>
-                <Button variant="primary" type="submit" className="w-100 py-3 fw-bold fs-6">
-                  Sign In
+                <Button variant="primary" type="submit" className="w-100 py-3 fw-bold fs-6" disabled={isLoading}>
+                  {isLoading ? 'Logging In...' : 'Sign In'}
                 </Button>
               </Form>
             </Card.Body>
