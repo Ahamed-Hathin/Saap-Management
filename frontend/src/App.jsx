@@ -7,8 +7,7 @@ import EmployeeDashboard from './pages/EmployeeDashboard';
 import ManageEmployees from './pages/ManageEmployees';
 import ManageOrders from './pages/ManageOrders';
 import OrderDetails from './pages/OrderDetails';
-import AdminSettings from './pages/AdminSettings';
-
+import Settings from './pages/Settings';
 const PrivateRoute = ({ children, role }) => {
   const { user, loading, logout } = useContext(AuthContext);
 
@@ -49,10 +48,11 @@ function App() {
         <Route path="/admin/dashboard" element={<PrivateRoute role="Admin"><AdminDashboard /></PrivateRoute>} />
         <Route path="/admin/employees" element={<PrivateRoute role="Admin"><ManageEmployees /></PrivateRoute>} />
         <Route path="/admin/orders" element={<PrivateRoute role="Admin"><ManageOrders /></PrivateRoute>} />
-        <Route path="/admin/settings" element={<PrivateRoute role="Admin"><AdminSettings /></PrivateRoute>} />
+        <Route path="/admin/settings" element={<PrivateRoute role="Admin"><Settings /></PrivateRoute>} />
 
         {/* Employee Routes */}
         <Route path="/employee/orders" element={<PrivateRoute role="Employee"><EmployeeDashboard /></PrivateRoute>} />
+        <Route path="/employee/settings" element={<PrivateRoute role="Employee"><Settings /></PrivateRoute>} />
         
         {/* Shared Routes */}
         <Route path="/orders/:id" element={<PrivateRoute><OrderDetails /></PrivateRoute>} />

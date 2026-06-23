@@ -3,11 +3,11 @@ import Layout from '../components/Layout';
 import { Card, Form, Button, Alert, ListGroup, InputGroup } from 'react-bootstrap';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
-import { Save, User, LogOut, Briefcase, Printer, Plus, Trash2 } from 'lucide-react';
+import { Save, User, LogOut, Briefcase, Plus, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const AdminSettings = () => {
-  const { user, login, logout } = useContext(AuthContext);
+const Settings = () => {
+  const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
@@ -38,8 +38,11 @@ const AdminSettings = () => {
         name: user.name || '',
         username: user.username || ''
       }));
+      
+      if (user.role === 'Admin') {
+        fetchSettings();
+      }
     }
-    fetchSettings();
   }, [user]);
 
   const fetchSettings = async () => {
@@ -133,8 +136,8 @@ const AdminSettings = () => {
   return (
     <Layout>
       <div className="mb-4">
-        <h3 className="mb-1 fw-bold">Admin Settings</h3>
-        <p className="text-muted mb-0 small">Update your profile details and application settings</p>
+        <h3 className="mb-1 fw-bold">Settings</h3>
+        <p className="text-muted mb-0 small">Update your profile details {user?.role === 'Admin' && 'and application settings'}</p>
       </div>
 
       <div className="row">
@@ -221,85 +224,87 @@ const AdminSettings = () => {
         </div>
 
         <div className="col-12 col-md-6 mb-4">
-          <Card className="dashboard-card border-0 mb-4">
-            <Card.Body className="p-4 p-md-5">
-              <div className="d-flex align-items-center mb-4 pb-3 border-bottom">
-                <div className="bg-success bg-opacity-10 text-success p-3 rounded-circle me-3">
-                  <Briefcase size={24} />
+          {user?.role === 'Admin' && (
+            <Card className="dashboard-card border-0 mb-4">
+              <Card.Body className="p-4 p-md-5">
+                <div className="d-flex align-items-center mb-4 pb-3 border-bottom">
+                  <div className="bg-success bg-opacity-10 text-success p-3 rounded-circle me-3">
+                    <Briefcase size={24} />
+                  </div>
+                  <div>
+                    <h5 className="fw-bold mb-1">Application Settings</h5>
+                    <p className="text-muted small mb-0">Configure global order options</p>
+                  </div>
                 </div>
-                <div>
-                  <h5 className="fw-bold mb-1">Application Settings</h5>
-                  <p className="text-muted small mb-0">Configure global order options</p>
-                </div>
-              </div>
 
-              {settingsMessage && <Alert variant="success" className="border-0 bg-success bg-opacity-10 text-success fw-medium">{settingsMessage}</Alert>}
-              {settingsError && <Alert variant="danger" className="border-0 bg-danger bg-opacity-10 text-danger fw-medium">{settingsError}</Alert>}
+                {settingsMessage && <Alert variant="success" className="border-0 bg-success bg-opacity-10 text-success fw-medium">{settingsMessage}</Alert>}
+                {settingsError && <Alert variant="danger" className="border-0 bg-danger bg-opacity-10 text-danger fw-medium">{settingsError}</Alert>}
 
-              {/* Job Types */}
-              <h6 className="fw-bold mb-3">Job Types</h6>
-              <InputGroup className="mb-3">
-                <Form.Control
-                  placeholder="New job type..."
-                  value={newJobType}
-                  onChange={(e) => setNewJobType(e.target.value)}
-                  className="bg-light"
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddJobType()}
-                />
-                <Button variant="outline-primary" onClick={handleAddJobType} className="d-flex align-items-center">
-                  <Plus size={18} />
-                </Button>
-              </InputGroup>
-              <ListGroup className="mb-5 shadow-sm rounded-3">
-                {settings.jobTypes.map((job, index) => (
-                  <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center border-light">
-                    {job}
-                    <Button variant="link" className="text-danger p-0 m-0" onClick={() => handleRemoveJobType(job)}>
-                      <Trash2 size={16} />
-                    </Button>
-                  </ListGroup.Item>
-                ))}
-                {settings.jobTypes.length === 0 && (
-                  <ListGroup.Item className="text-muted text-center border-light">No job types configured.</ListGroup.Item>
-                )}
-              </ListGroup>
+                {/* Job Types */}
+                <h6 className="fw-bold mb-3">Job Types</h6>
+                <InputGroup className="mb-3">
+                  <Form.Control
+                    placeholder="New job type..."
+                    value={newJobType}
+                    onChange={(e) => setNewJobType(e.target.value)}
+                    className="bg-light"
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddJobType()}
+                  />
+                  <Button variant="outline-primary" onClick={handleAddJobType} className="d-flex align-items-center">
+                    <Plus size={18} />
+                  </Button>
+                </InputGroup>
+                <ListGroup className="mb-5 shadow-sm rounded-3">
+                  {settings.jobTypes.map((job, index) => (
+                    <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center border-light">
+                      {job}
+                      <Button variant="link" className="text-danger p-0 m-0" onClick={() => handleRemoveJobType(job)}>
+                        <Trash2 size={16} />
+                      </Button>
+                    </ListGroup.Item>
+                  ))}
+                  {settings.jobTypes.length === 0 && (
+                    <ListGroup.Item className="text-muted text-center border-light">No job types configured.</ListGroup.Item>
+                  )}
+                </ListGroup>
 
-              {/* Printing Companies */}
-              <h6 className="fw-bold mb-3">Printing Companies</h6>
-              <InputGroup className="mb-3">
-                <Form.Control
-                  placeholder="New printing company..."
-                  value={newPrintingCompany}
-                  onChange={(e) => setNewPrintingCompany(e.target.value)}
-                  className="bg-light"
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddPrintingCompany()}
-                />
-                <Button variant="outline-primary" onClick={handleAddPrintingCompany} className="d-flex align-items-center">
-                  <Plus size={18} />
-                </Button>
-              </InputGroup>
-              <ListGroup className="shadow-sm rounded-3">
-                {settings.printingCompanies.map((company, index) => (
-                  <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center border-light">
-                    {company}
-                    <Button variant="link" className="text-danger p-0 m-0" onClick={() => handleRemovePrintingCompany(company)}>
-                      <Trash2 size={16} />
-                    </Button>
-                  </ListGroup.Item>
-                ))}
-                {settings.printingCompanies.length === 0 && (
-                  <ListGroup.Item className="text-muted text-center border-light">No printing companies configured.</ListGroup.Item>
-                )}
-              </ListGroup>
-            </Card.Body>
-          </Card>
+                {/* Printing Companies */}
+                <h6 className="fw-bold mb-3">Printing Companies</h6>
+                <InputGroup className="mb-3">
+                  <Form.Control
+                    placeholder="New printing company..."
+                    value={newPrintingCompany}
+                    onChange={(e) => setNewPrintingCompany(e.target.value)}
+                    className="bg-light"
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddPrintingCompany()}
+                  />
+                  <Button variant="outline-primary" onClick={handleAddPrintingCompany} className="d-flex align-items-center">
+                    <Plus size={18} />
+                  </Button>
+                </InputGroup>
+                <ListGroup className="shadow-sm rounded-3">
+                  {settings.printingCompanies.map((company, index) => (
+                    <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center border-light">
+                      {company}
+                      <Button variant="link" className="text-danger p-0 m-0" onClick={() => handleRemovePrintingCompany(company)}>
+                        <Trash2 size={16} />
+                      </Button>
+                    </ListGroup.Item>
+                  ))}
+                  {settings.printingCompanies.length === 0 && (
+                    <ListGroup.Item className="text-muted text-center border-light">No printing companies configured.</ListGroup.Item>
+                  )}
+                </ListGroup>
+              </Card.Body>
+            </Card>
+          )}
 
           <Card className="dashboard-card border-0 mb-4">
             <Card.Body className="p-4 p-md-5">
               <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
                 <div>
                   <h6 className="fw-bold text-danger mb-1">Sign Out</h6>
-                  <p className="text-muted small mb-0">Securely sign out of your admin account.</p>
+                  <p className="text-muted small mb-0">Securely sign out of your account.</p>
                 </div>
                 <Button variant="outline-danger" className="fw-medium d-flex align-items-center" onClick={handleLogout}>
                   <LogOut size={18} className="me-2" /> Logout
@@ -313,4 +318,4 @@ const AdminSettings = () => {
   );
 };
 
-export default AdminSettings;
+export default Settings;

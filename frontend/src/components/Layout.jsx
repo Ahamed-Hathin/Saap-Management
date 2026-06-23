@@ -45,21 +45,16 @@ const Layout = ({ children }) => {
                 <NavLink to="/employee/orders" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                   <ShoppingCart className="me-3" size={20} /> My Orders
                 </NavLink>
+                <NavLink to="/employee/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                  <Settings className="me-3" size={20} /> Settings
+                </NavLink>
               </>
-            )}
-            {user?.role !== 'Admin' && (
-              <Button variant="link" className="nav-link text-start mt-auto pt-4 border-top text-danger" style={{ borderColor: 'var(--border-color)' }} onClick={handleLogoutClick}>
-                <LogOut className="me-3" size={20} /> Logout
-              </Button>
             )}
           </Nav>
         </Col>
         <Col md={10} className="d-flex flex-column vh-100">
           <Navbar className="glass-navbar px-4 py-3 d-md-none sticky-top">
             <Navbar.Brand className="brand fw-bold">Saap Management</Navbar.Brand>
-            {user?.role !== 'Admin' && (
-              <Button variant="outline-danger" size="sm" onClick={handleLogoutClick}>Logout</Button>
-            )}
           </Navbar>
           <div className="p-3 p-md-5 flex-grow-1 overflow-auto fade-in pb-5" style={{ backgroundColor: 'var(--bg-color)', paddingBottom: '80px' }}>
             {children}
@@ -91,6 +86,10 @@ const Layout = ({ children }) => {
                 <NavLink to="/employee/orders" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
                   <ShoppingCart size={24} className="d-block mx-auto mb-1" />
                   <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>My Orders</span>
+                </NavLink>
+                <NavLink to="/employee/settings" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
+                  <Settings size={24} className="d-block mx-auto mb-1" />
+                  <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Settings</span>
                 </NavLink>
               </>
             )}
