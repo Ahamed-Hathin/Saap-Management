@@ -11,7 +11,7 @@ const OrderDetails = () => {
   const { user } = useContext(AuthContext);
   const [order, setOrder] = useState(null);
   const [status, setStatus] = useState('');
-  const [settings, setSettings] = useState({ printingCompanies: ['In-House', 'Partner A', 'Partner B', 'Other'] });
+  const [settings, setSettings] = useState({ printingCompanies: ['Elite', 'Impression', 'Zig Zag', 'Vignesh', 'Amutham Flex', 'Chandru Screen', 'Amirtham Binding', 'Saravana Offset', 'Others'] });
   const [advanceReceived, setAdvanceReceived] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('');
   const [printingCompany, setPrintingCompany] = useState('');
@@ -19,7 +19,7 @@ const OrderDetails = () => {
   const [message, setMessage] = useState('');
 
   const statusOptions = [
-    'Processing', 'Design Uploaded', 'Ready', 'Delivered'
+    'Printing', 'Cutting', 'Ready To Dispatch', 'Delivered'
   ];
 
   const fetchOrder = async () => {
@@ -28,8 +28,8 @@ const OrderDetails = () => {
       setOrder(data);
       setStatus(data.status);
       setAdvanceReceived(data.advanceReceived);
-      setPaymentMethod(data.paymentMethod);
-      setPrintingCompany(data.printingCompany || 'None');
+      setPaymentMethod(data.paymentMethod && data.paymentMethod !== 'None' ? data.paymentMethod : 'GPay');
+      setPrintingCompany(data.printingCompany && data.printingCompany !== 'None' ? data.printingCompany : (settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite'));
       const setRes = await api.get('/settings');
       if (setRes.data) setSettings(setRes.data);
     } catch (err) {
@@ -45,12 +45,12 @@ const OrderDetails = () => {
   const handleStatusUpdate = async (e) => {
     e.preventDefault();
     try {
-      const payload = { status };
-      if (user.role === 'Admin') {
-        payload.paymentReceived = advanceReceived;
-        payload.paymentMethod = paymentMethod;
-        payload.printingCompany = printingCompany;
-      }
+      const payload = { 
+        status, 
+        paymentReceived: advanceReceived, 
+        paymentMethod, 
+        printingCompany 
+      };
       await api.put(`/orders/${id}`, payload);
       setMessage('Order updated successfully!');
       fetchOrder();
@@ -105,18 +105,18 @@ const OrderDetails = () => {
                 <Col sm={8}>{order.cardType}</Col>
               </Row>
               <Row className="mb-3">
-                <Col sm={4} className="text-muted">Printing</Col>
+                <Col sm={4} className="text-muted">Printing Method</Col>
                 <Col sm={8}>{order.printingCompany !== 'None' ? order.printingCompany : 'Not Set'}</Col>
               </Row>
 
               <h5 className="mt-5 fw-bold mb-4">Payment Information</h5>
               <Row className="mb-3">
                 <Col sm={4} className="text-muted fw-medium">Total Amount</Col>
-                <Col sm={8} className="fw-bold">${order.totalAmount}</Col>
+                <Col sm={8} className="fw-bold">₹{order.totalAmount}</Col>
               </Row>
               <Row className="mb-3">
                 <Col sm={4} className="text-muted fw-medium">Advance Amount</Col>
-                <Col sm={8}>${order.advanceAmount}</Col>
+                <Col sm={8}>₹{order.advanceAmount}</Col>
               </Row>
               <Row className="mb-3">
                 <Col sm={4} className="text-muted fw-medium">Advance Status</Col>
@@ -171,30 +171,24 @@ const OrderDetails = () => {
                   </Form.Select>
                 </Form.Group>
 
-                {user?.role === 'Admin' && (
-                  <>
                     <Form.Check type="switch" id="advance-switch" label="Advance Amount Received" checked={advanceReceived} onChange={(e) => setAdvanceReceived(e.target.checked)} className="mb-3 fw-medium" />
                     {advanceReceived && (
                       <Form.Group className="mb-4">
                         <Form.Label>Payment Method</Form.Label>
                         <Form.Select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="bg-light">
-                          <option value="None">None</option>
-                          <option value="GPay">GPay</option>
-                          <option value="B-Gpay">B-Gpay</option>
+                        <option value="GPay">GPay</option>
+                          <option value="Cash">Cash</option>
                         </Form.Select>
                       </Form.Group>
                     )}
                     <Form.Group className="mb-4">
-                      <Form.Label>Printing Company</Form.Label>
-                      <Form.Select value={printingCompany} onChange={(e) => setPrintingCompany(e.target.value)} className="bg-light">
-                        <option value="None">None</option>
-                        {settings.printingCompanies.map(pc => (
+                      <Form.Label>Printing Method</Form.Label>
+                        <Form.Select value={printingCompany} onChange={(e) => setPrintingCompany(e.target.value)} className="bg-light">
+                          {settings.printingCompanies.map(pc => (
                           <option key={pc} value={pc}>{pc}</option>
                         ))}
                       </Form.Select>
                     </Form.Group>
-                  </>
-                )}
 
                 <Button type="submit" variant="primary" className="w-100 fw-bold py-2">Update Order</Button>
               </Form>

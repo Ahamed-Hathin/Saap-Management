@@ -71,11 +71,9 @@ const updateOrderStatus = async (req, res) => {
   if (order) {
     if (req.user.role === 'Admin' || order.assignedEmployee.toString() === req.user._id.toString()) {
       order.status = req.body.status || order.status;
-      if (req.user.role === 'Admin') {
-          order.advanceReceived = req.body.paymentReceived !== undefined ? req.body.paymentReceived : order.advanceReceived;
-          order.paymentMethod = req.body.paymentMethod || order.paymentMethod;
-          order.printingCompany = req.body.printingCompany || order.printingCompany;
-      }
+      order.advanceReceived = req.body.paymentReceived !== undefined ? req.body.paymentReceived : order.advanceReceived;
+      order.paymentMethod = req.body.paymentMethod || order.paymentMethod;
+      order.printingCompany = req.body.printingCompany || order.printingCompany;
       const updatedOrder = await order.save();
       res.json(updatedOrder);
     } else {
@@ -95,7 +93,6 @@ const uploadDesignImage = async (req, res) => {
         return res.status(400).json({ message: 'No file uploaded' });
       }
       order.designImage = req.file.path;
-      order.status = 'Design Uploaded';
       const updatedOrder = await order.save();
       res.json(updatedOrder);
     } else {
@@ -108,21 +105,45 @@ const uploadDesignImage = async (req, res) => {
 };
 
 const getDashboardStats = async (req, res) => {
-   if (req.user.role === 'Admin') {
-     const totalOrders = await Order.countDocuments({});
-     const activeOrders = await Order.countDocuments({ status: { $nin: ['Completed', 'Delivered'] }});
-     const deliveredOrders = await Order.countDocuments({ status: 'Delivered' });
-     const pendingPayments = await Order.countDocuments({ advanceReceived: false });
-     const totalEmployees = await require('../models/User').countDocuments({ role: 'Employee' });
+   const { filter, startDate, endDate } = req.query;
 
-     res.json({ totalOrders, activeOrders, deliveredOrders, pendingPayments, totalEmployees });
-   } else {
-     const assignedOrders = await Order.countDocuments({ assignedEmployee: req.user._id });
-     const completedOrders = await Order.countDocuments({ assignedEmployee: req.user._id, status: { $in: ['Completed', 'Delivered'] }});
-     const pendingOrders = await Order.countDocuments({ assignedEmployee: req.user._id, status: { $nin: ['Completed', 'Delivered'] }});
-     
-     res.json({ assignedOrders, completedOrders, pendingOrders });
+   let dateFilter = {};
+   const now = new Date();
+
+   if (filter === 'today') {
+     const startOfDay = new Date(now.setHours(0, 0, 0, 0));
+     const endOfDay = new Date(new Date().setHours(23, 59, 59, 999));
+     dateFilter = { createdAt: { $gte: startOfDay, $lte: endOfDay } };
+   } else if (filter === 'weekly') {
+     const startOfWeek = new Date(now);
+     startOfWeek.setDate(now.getDate() - 7);
+     startOfWeek.setHours(0, 0, 0, 0);
+     dateFilter = { createdAt: { $gte: startOfWeek } };
+   } else if (filter === 'monthly') {
+     const startOfMonth = new Date(now);
+     startOfMonth.setDate(now.getDate() - 30);
+     startOfMonth.setHours(0, 0, 0, 0);
+     dateFilter = { createdAt: { $gte: startOfMonth } };
+   } else if (filter === 'custom' && startDate && endDate) {
+     const start = new Date(startDate);
+     start.setHours(0, 0, 0, 0);
+     const end = new Date(endDate);
+     end.setHours(23, 59, 59, 999);
+     dateFilter = { createdAt: { $gte: start, $lte: end } };
    }
+
+   let baseQuery = { ...dateFilter };
+   if (req.user.role !== 'Admin') {
+     baseQuery.assignedEmployee = req.user._id;
+   }
+
+   const totalOrders = await Order.countDocuments(baseQuery);
+   const pendingOrders = await Order.countDocuments({ ...baseQuery, status: { $ne: 'Delivered' } });
+   const readyToDispatch = await Order.countDocuments({ ...baseQuery, status: 'Ready To Dispatch' });
+   const pendingPayments = await Order.countDocuments({ ...baseQuery, advanceReceived: false });
+   const deliveredOrders = await Order.countDocuments({ ...baseQuery, status: 'Delivered' });
+
+   res.json({ totalOrders, pendingOrders, readyToDispatch, pendingPayments, deliveredOrders });
 };
 
 const deleteOrder = async (req, res) => {

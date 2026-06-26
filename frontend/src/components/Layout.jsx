@@ -23,7 +23,7 @@ const Layout = ({ children }) => {
     <Container fluid className="p-0">
       <Row className="g-0">
         <Col md={2} className="sidebar p-4 d-none d-md-block">
-          <h4 className="brand mb-5">Saap Mgmt</h4>
+          <h4 className="brand mb-5">SAAP Creation</h4>
           <Nav className="flex-column">
             {user?.role === 'Admin' ? (
               <>
@@ -54,7 +54,7 @@ const Layout = ({ children }) => {
         </Col>
         <Col md={10} className="d-flex flex-column vh-100">
           <Navbar className="glass-navbar px-4 py-3 d-md-none sticky-top">
-            <Navbar.Brand className="brand fw-bold">Saap Management</Navbar.Brand>
+            <Navbar.Brand className="brand fw-bold">SAAP Creation</Navbar.Brand>
           </Navbar>
           <div className="p-3 p-md-5 flex-grow-1 overflow-auto fade-in pb-5" style={{ backgroundColor: 'var(--bg-color)', paddingBottom: '80px' }}>
             {children}

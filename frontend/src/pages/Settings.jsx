@@ -290,11 +290,11 @@ const Settings = () => {
                   )}
                 </ListGroup>
 
-                {/* Printing Companies */}
-                <h6 className="fw-bold mb-3">Printing Companies</h6>
+                {/* Printing Methods */}
+                <h6 className="fw-bold mb-3">Printing Methods</h6>
                 <InputGroup className="mb-3">
                   <Form.Control
-                    placeholder="New printing company..."
+                    placeholder="New printing method..."
                     value={newPrintingCompany}
                     onChange={(e) => setNewPrintingCompany(e.target.value)}
                     className="bg-light"
@@ -314,7 +314,7 @@ const Settings = () => {
                     </ListGroup.Item>
                   ))}
                   {settings.printingCompanies.length === 0 && (
-                    <ListGroup.Item className="text-muted text-center border-light">No printing companies configured.</ListGroup.Item>
+                    <ListGroup.Item className="text-muted text-center border-light">No printing methods configured.</ListGroup.Item>
                   )}
                 </ListGroup>
               </Card.Body>

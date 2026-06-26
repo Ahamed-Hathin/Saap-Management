@@ -8,7 +8,7 @@ const settingsSchema = mongoose.Schema(
     },
     printingCompanies: {
       type: [String],
-      default: ['In-House', 'Partner A', 'Partner B', 'Other'],
+      default: ['Elite', 'Impression', 'Zig Zag', 'Vignesh', 'Amutham Flex', 'Chandru Screen', 'Amirtham Binding', 'Saravana Offset', 'Others'],
     },
   },
   {

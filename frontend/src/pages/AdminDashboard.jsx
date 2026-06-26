@@ -1,29 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import { Row, Col, Card } from 'react-bootstrap';
+import { Row, Col, Card, Form } from 'react-bootstrap';
 import api from '../services/api';
-import { ShoppingBag, CheckCircle, Clock, DollarSign, Users } from 'lucide-react';
+import { ShoppingBag, CheckCircle, Clock, IndianRupee, Package } from 'lucide-react';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
     totalOrders: 0,
-    activeOrders: 0,
-    deliveredOrders: 0,
+    pendingOrders: 0,
+    readyToDispatch: 0,
     pendingPayments: 0,
-    totalEmployees: 0
+    deliveredOrders: 0
   });
+  const [filter, setFilter] = useState('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+
+  const fetchStats = async () => {
+    try {
+      let query = `?filter=${filter}`;
+      if (filter === 'custom') {
+        if (!customStartDate || !customEndDate) return;
+        query += `&startDate=${customStartDate}&endDate=${customEndDate}`;
+      }
+      const { data } = await api.get(`/orders/dashboard-stats${query}`);
+      setStats(data);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const { data } = await api.get('/orders/dashboard-stats');
-        setStats(data);
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      }
-    };
     fetchStats();
-  }, []);
+  }, [filter, customStartDate, customEndDate]);
 
   const StatCard = ({ title, value, icon, color }) => (
     <Card className="dashboard-card h-100">
@@ -41,16 +50,48 @@ const AdminDashboard = () => {
 
   return (
     <Layout>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h3 className="mb-0 fw-bold">Overview</h3>
-        <span className="text-muted small">{new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+        <div>
+          <h3 className="mb-0 fw-bold">Overview</h3>
+          <span className="text-muted small">{new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+        </div>
+        <div className="d-flex flex-wrap gap-2 align-items-center">
+          <Form.Select 
+            value={filter} 
+            onChange={(e) => setFilter(e.target.value)}
+            className="w-auto shadow-sm"
+          >
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="weekly">Weekly (Last 7 Days)</option>
+            <option value="monthly">Monthly (Last 30 Days)</option>
+            <option value="custom">Custom Date</option>
+          </Form.Select>
+
+          {filter === 'custom' && (
+            <div className="d-flex gap-2">
+              <Form.Control 
+                type="date" 
+                value={customStartDate} 
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="shadow-sm"
+              />
+              <Form.Control 
+                type="date" 
+                value={customEndDate} 
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="shadow-sm"
+              />
+            </div>
+          )}
+        </div>
       </div>
       <Row className="g-3 mb-4">
-        <Col xs={6} md={4}><StatCard title="Total Orders" value={stats.totalOrders} icon={<ShoppingBag size={20} />} color="primary" /></Col>
-        <Col xs={6} md={4}><StatCard title="Active Orders" value={stats.activeOrders} icon={<Clock size={20} />} color="warning" /></Col>
-        <Col xs={6} md={4}><StatCard title="Delivered" value={stats.deliveredOrders} icon={<CheckCircle size={20} />} color="success" /></Col>
-        <Col xs={6} md={6}><StatCard title="Pending Pay" value={stats.pendingPayments} icon={<DollarSign size={20} />} color="danger" /></Col>
-        <Col xs={6} md={6}><StatCard title="Employees" value={stats.totalEmployees} icon={<Users size={20} />} color="info" /></Col>
+        <Col xs={6} md={4}><StatCard title="Total Order" value={stats.totalOrders || 0} icon={<ShoppingBag size={20} />} color="primary" /></Col>
+        <Col xs={6} md={4}><StatCard title="Pending Order" value={stats.pendingOrders || 0} icon={<Clock size={20} />} color="warning" /></Col>
+        <Col xs={6} md={4}><StatCard title="Ready To Dispatch" value={stats.readyToDispatch || 0} icon={<Package size={20} />} color="info" /></Col>
+        <Col xs={6} md={6}><StatCard title="Payment Pending" value={stats.pendingPayments || 0} icon={<IndianRupee size={20} />} color="danger" /></Col>
+        <Col xs={6} md={6}><StatCard title="Delivered" value={stats.deliveredOrders || 0} icon={<CheckCircle size={20} />} color="success" /></Col>
       </Row>
     </Layout>
   );

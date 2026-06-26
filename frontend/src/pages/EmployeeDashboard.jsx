@@ -7,7 +7,7 @@ import { ShoppingBag, CheckCircle, Clock, Plus } from 'lucide-react';
 
 const EmployeeDashboard = () => {
   const [orders, setOrders] = useState([]);
-  const [settings, setSettings] = useState({ jobTypes: ['Visiting Card', 'Invitation', 'Offset', 'Screen', 'Digital', 'Lamination'], printingCompanies: ['In-House', 'Partner A', 'Partner B', 'Other'] });
+  const [settings, setSettings] = useState({ jobTypes: ['Visiting Card', 'Invitation', 'Offset', 'Screen', 'Digital', 'Lamination'], printingCompanies: ['Elite', 'Impression', 'Zig Zag', 'Vignesh', 'Amutham Flex', 'Chandru Screen', 'Amirtham Binding', 'Saravana Offset', 'Others'] });
   const [showModal, setShowModal] = useState(false);
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
@@ -19,8 +19,8 @@ const EmployeeDashboard = () => {
     advanceAmount: 0,
     totalAmount: 0,
     advanceReceived: false,
-    paymentMethod: 'None',
-    printingCompany: 'None'
+    paymentMethod: 'GPay',
+    printingCompany: 'Elite'
   });
 
   const fetchData = async () => {
@@ -41,7 +41,7 @@ const EmployeeDashboard = () => {
   const handleShow = () => {
     setFormData({
       clientName: '', mobileNumber: '', cardType: settings.jobTypes.length > 0 ? settings.jobTypes[0] : 'Visiting Card', advanceAmount: 0, totalAmount: 0,
-      advanceReceived: false, paymentMethod: 'None', printingCompany: 'None'
+      advanceReceived: false, paymentMethod: 'GPay', printingCompany: settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite'
     });
     setFile(null);
     setError('');
@@ -77,8 +77,26 @@ const EmployeeDashboard = () => {
     }
   };
 
+  const handlePaymentStatusChange = async (orderId, newPaymentStatus) => {
+    try {
+      await api.put(`/orders/${orderId}`, { paymentReceived: newPaymentStatus });
+      fetchData();
+    } catch (err) {
+      alert('Error updating payment status');
+    }
+  };
+
+  const handlePaymentMethodChange = async (orderId, newMethod) => {
+    try {
+      await api.put(`/orders/${orderId}`, { paymentMethod: newMethod });
+      fetchData();
+    } catch (err) {
+      alert('Error updating payment method');
+    }
+  };
+
   const statusOptions = [
-    'Processing', 'Design Uploaded', 'Ready', 'Delivered'
+    'Printing', 'Cutting', 'Ready To Dispatch', 'Delivered'
   ];
 
   return (
@@ -110,7 +128,8 @@ const EmployeeDashboard = () => {
                   <tr>
                     <th>Client Name</th>
                     <th>Job</th>
-                    <th>Printing</th>
+                    <th>Printing Method</th>
+                    <th className="text-nowrap">Payment</th>
                     <th className="text-nowrap">Status</th>
                     <th className="text-nowrap">Date</th>
                     <th className="text-end text-nowrap">Actions</th>
@@ -122,6 +141,28 @@ const EmployeeDashboard = () => {
                       <td>{order.clientName}</td>
                       <td className="text-capitalize">{order.cardType}</td>
                       <td>{order.printingCompany !== 'None' ? order.printingCompany : '-'}</td>
+                      <td className="text-nowrap">
+                        <Form.Check 
+                          type="switch" 
+                          id={`pay-switch-emp-${order._id}`} 
+                          label={order.advanceReceived ? 'Paid' : 'Pending'} 
+                          checked={order.advanceReceived} 
+                          onChange={(e) => handlePaymentStatusChange(order._id, e.target.checked)} 
+                          className={`fw-medium mb-0 ${order.advanceReceived ? 'text-success' : 'text-danger'}`} 
+                        />
+                        {order.advanceReceived && (
+                          <Form.Select 
+                            size="sm" 
+                            value={order.paymentMethod} 
+                            onChange={(e) => handlePaymentMethodChange(order._id, e.target.value)}
+                            className="mt-1"
+                            style={{ minWidth: '90px' }}
+                          >
+                            <option value="GPay">GPay</option>
+                            <option value="Cash">Cash</option>
+                          </Form.Select>
+                        )}
+                      </td>
                       <td className="text-nowrap">
                         <span className={`badge-custom badge-${order.status === 'Delivered' ? 'success' : 'warning'} text-nowrap`}>
                           {order.status}
@@ -156,9 +197,40 @@ const EmployeeDashboard = () => {
                         {order.status}
                       </span>
                     </div>
+                    {order.designImage && (
+                      <div className="mb-2">
+                        <img 
+                          src={order.designImage.startsWith('http') ? order.designImage : `https://saap-management.onrender.com/${order.designImage.replace(/\\/g, '/').replace(/^\//, '')}`} 
+                          alt="Design" 
+                          style={{ width: '100%', maxHeight: '150px', objectFit: 'cover', borderRadius: '8px' }} 
+                        />
+                      </div>
+                    )}
                     <div className="text-muted small mb-3">
                       <strong>Job:</strong> {order.cardType}<br />
-                      <strong>Printing Co:</strong> {order.printingCompany !== 'None' ? order.printingCompany : 'Not Set'}<br />
+                      <strong>Printing Method:</strong> {order.printingCompany !== 'None' ? order.printingCompany : 'Not Set'}<br />
+                      <div className="d-flex align-items-center mt-1 mb-1">
+                        <strong className="me-2">Payment:</strong>
+                        <Form.Check 
+                          type="switch" 
+                          id={`pay-switch-mobile-${order._id}`} 
+                          label={order.advanceReceived ? 'Paid' : 'Pending'} 
+                          checked={order.advanceReceived} 
+                          onChange={(e) => handlePaymentStatusChange(order._id, e.target.checked)} 
+                          className={`fw-medium mb-0 me-2 ${order.advanceReceived ? 'text-success' : 'text-danger'}`} 
+                        />
+                        {order.advanceReceived && (
+                          <Form.Select 
+                            size="sm" 
+                            value={order.paymentMethod} 
+                            onChange={(e) => handlePaymentMethodChange(order._id, e.target.value)}
+                            className="w-auto"
+                          >
+                            <option value="GPay">GPay</option>
+                            <option value="Cash">Cash</option>
+                          </Form.Select>
+                        )}
+                      </div>
                       <strong>Date:</strong> {new Date(order.createdAt).toLocaleDateString()}
                     </div>
                     <Form.Select
@@ -213,9 +285,8 @@ const EmployeeDashboard = () => {
                 <Form.Control type="number" required value={formData.totalAmount} onChange={(e) => setFormData({ ...formData, totalAmount: e.target.value })} className="bg-light" />
               </div>
               <div className="col-md-6">
-                <Form.Label>Printing Company</Form.Label>
+                <Form.Label>Printing Method</Form.Label>
                 <Form.Select value={formData.printingCompany} onChange={(e) => setFormData({ ...formData, printingCompany: e.target.value })} className="bg-light">
-                  <option value="None">None</option>
                   {settings.printingCompanies.map(pc => (
                     <option key={pc} value={pc}>{pc}</option>
                   ))}
@@ -233,9 +304,8 @@ const EmployeeDashboard = () => {
                   <div className="col-md-6">
                     <Form.Label>Payment Method</Form.Label>
                     <Form.Select value={formData.paymentMethod} onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })} className="bg-light">
-                      <option value="None">None</option>
                       <option value="GPay">GPay</option>
-                      <option value="B-Gpay">B-Gpay</option>
+                      <option value="Cash">Cash</option>
                     </Form.Select>
                   </div>
                 </>

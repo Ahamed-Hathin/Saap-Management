@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 
 export const AuthContext = createContext();
 
@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (username, password) => {
     try {
       const config = { headers: { 'Content-Type': 'application/json' } };
-      const { data } = await axios.post('https://saap-management.onrender.com/api/auth/login', { username, password }, config);
+      const { data } = await api.post('/auth/login', { username, password }, config);
       setUser(data);
       localStorage.setItem('userInfo', JSON.stringify(data));
       return data;

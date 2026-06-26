@@ -37,12 +37,12 @@ const orderSchema = mongoose.Schema(
       type: String,
       required: true,
       enum: [
-        'Processing',
-        'Design Uploaded',
-        'Ready',
+        'Printing',
+        'Cutting',
+        'Ready To Dispatch',
         'Delivered',
       ],
-      default: 'Processing',
+      default: 'Printing',
     },
     advanceReceived: {
       type: Boolean,

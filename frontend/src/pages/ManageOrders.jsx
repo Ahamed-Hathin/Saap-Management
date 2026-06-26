@@ -8,7 +8,7 @@ import { Plus, Trash2 } from 'lucide-react';
 const ManageOrders = () => {
   const [orders, setOrders] = useState([]);
   const [employees, setEmployees] = useState([]);
-  const [settings, setSettings] = useState({ jobTypes: ['Visiting Card', 'Invitation', 'Offset', 'Screen', 'Digital', 'Lamination'], printingCompanies: ['In-House', 'Partner A', 'Partner B', 'Other'] });
+  const [settings, setSettings] = useState({ jobTypes: ['Visiting Card', 'Invitation', 'Offset', 'Screen', 'Digital', 'Lamination'], printingCompanies: ['Elite', 'Impression', 'Zig Zag', 'Vignesh', 'Amutham Flex', 'Chandru Screen', 'Amirtham Binding', 'Saravana Offset', 'Others'] });
   const [showModal, setShowModal] = useState(false);
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
@@ -22,8 +22,8 @@ const ManageOrders = () => {
     totalAmount: 0,
     assignedEmployee: '',
     advanceReceived: false,
-    paymentMethod: 'None',
-    printingCompany: 'None'
+    paymentMethod: 'GPay',
+    printingCompany: 'Elite'
   });
 
   const fetchData = async () => {
@@ -46,7 +46,7 @@ const ManageOrders = () => {
   const handleShow = () => {
     setFormData({
       clientName: '', mobileNumber: '', cardType: settings.jobTypes.length > 0 ? settings.jobTypes[0] : 'Visiting Card', advanceAmount: 0, totalAmount: 0,
-      assignedEmployee: employees.length > 0 ? employees[0]._id : '', advanceReceived: false, paymentMethod: 'None', printingCompany: 'None'
+      assignedEmployee: employees.length > 0 ? employees[0]._id : '', advanceReceived: false, paymentMethod: 'GPay', printingCompany: settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite'
     });
     setFile(null);
     setError('');
@@ -75,7 +75,27 @@ const ManageOrders = () => {
     }
   };
 
-  const statusOptions = ['Processing', 'Design Uploaded', 'Ready', 'Delivered'];
+  const handlePaymentStatusChange = async (orderId, newPaymentStatus) => {
+    try {
+      await api.put(`/orders/${orderId}`, { paymentReceived: newPaymentStatus });
+      fetchData();
+    } catch (err) {
+      console.error('Error updating payment status:', err);
+      alert('Error updating payment status');
+    }
+  };
+
+  const handlePaymentMethodChange = async (orderId, newMethod) => {
+    try {
+      await api.put(`/orders/${orderId}`, { paymentMethod: newMethod });
+      fetchData();
+    } catch (err) {
+      console.error('Error updating payment method:', err);
+      alert('Error updating payment method');
+    }
+  };
+
+  const statusOptions = ['Printing', 'Cutting', 'Ready To Dispatch', 'Delivered'];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -131,7 +151,7 @@ const ManageOrders = () => {
                     <th>Customer Name</th>
                     <th className="text-nowrap">Number</th>
                     <th>Job</th>
-                    <th>Printing</th>
+                    <th>Printing Method</th>
                     <th className="text-nowrap">Status</th>
                     <th className="text-nowrap">Payment</th>
                     <th>Update By</th>
@@ -151,7 +171,28 @@ const ManageOrders = () => {
                           {order.status}
                         </span>
                       </td>
-                      <td className="text-nowrap">{order.paymentMethod !== 'None' ? order.paymentMethod : (order.advanceReceived ? 'Paid' : '-')}</td>
+                      <td className="text-nowrap">
+                        <Form.Check 
+                          type="switch" 
+                          id={`pay-switch-${order._id}`} 
+                          label={order.advanceReceived ? 'Paid' : 'Pending'} 
+                          checked={order.advanceReceived} 
+                          onChange={(e) => handlePaymentStatusChange(order._id, e.target.checked)} 
+                          className={`fw-medium mb-0 ${order.advanceReceived ? 'text-success' : 'text-danger'}`} 
+                        />
+                        {order.advanceReceived && (
+                          <Form.Select 
+                            size="sm" 
+                            value={order.paymentMethod} 
+                            onChange={(e) => handlePaymentMethodChange(order._id, e.target.value)}
+                            className="mt-1"
+                            style={{ minWidth: '90px' }}
+                          >
+                            <option value="GPay">GPay</option>
+                            <option value="Cash">Cash</option>
+                          </Form.Select>
+                        )}
+                      </td>
                       <td>{order.assignedEmployee?.name || '-'}</td>
                       <td className="text-end">
                         <div className="d-flex flex-wrap justify-content-end align-items-center gap-2">
@@ -194,10 +235,40 @@ const ManageOrders = () => {
                         {order.status}
                       </span>
                     </div>
+                    {order.designImage && (
+                      <div className="mb-2">
+                        <img 
+                          src={order.designImage.startsWith('http') ? order.designImage : `https://saap-management.onrender.com/${order.designImage.replace(/\\/g, '/').replace(/^\//, '')}`} 
+                          alt="Design" 
+                          style={{ width: '100%', maxHeight: '150px', objectFit: 'cover', borderRadius: '8px' }} 
+                        />
+                      </div>
+                    )}
                     <div className="text-muted small mb-2">
                       <strong>Assigned To:</strong> {order.assignedEmployee?.name || 'Unassigned'}<br />
-                      <strong>Printing Co:</strong> {order.printingCompany !== 'None' ? order.printingCompany : 'Not Set'}<br />
-                      <strong>Payment:</strong> <span className={order.advanceReceived ? 'text-success fw-medium' : 'text-danger fw-medium'}>{order.advanceReceived ? 'Paid' : 'Pending'}</span>
+                      <strong>Printing Method:</strong> {order.printingCompany !== 'None' ? order.printingCompany : 'Not Set'}<br />
+                      <div className="d-flex align-items-center mt-1">
+                        <strong className="me-2">Payment:</strong>
+                        <Form.Check 
+                          type="switch" 
+                          id={`pay-switch-mobile-${order._id}`} 
+                          label={order.advanceReceived ? 'Paid' : 'Pending'} 
+                          checked={order.advanceReceived} 
+                          onChange={(e) => handlePaymentStatusChange(order._id, e.target.checked)} 
+                          className={`fw-medium mb-0 me-2 ${order.advanceReceived ? 'text-success' : 'text-danger'}`} 
+                        />
+                        {order.advanceReceived && (
+                          <Form.Select 
+                            size="sm" 
+                            value={order.paymentMethod} 
+                            onChange={(e) => handlePaymentMethodChange(order._id, e.target.value)}
+                            className="w-auto"
+                          >
+                            <option value="GPay">GPay</option>
+                            <option value="Cash">Cash</option>
+                          </Form.Select>
+                        )}
+                      </div>
                     </div>
                     <div className="d-flex flex-wrap gap-2 mt-2">
                       <Dropdown className="flex-grow-1">
@@ -276,9 +347,8 @@ const ManageOrders = () => {
                 </Form.Select>
               </div>
               <div className="col-md-6">
-                <Form.Label>Printing Company</Form.Label>
+                <Form.Label>Printing Method</Form.Label>
                 <Form.Select value={formData.printingCompany} onChange={(e) => setFormData({ ...formData, printingCompany: e.target.value })} className="bg-light">
-                  <option value="None">None</option>
                   {settings.printingCompanies.map(pc => (
                     <option key={pc} value={pc}>{pc}</option>
                   ))}
@@ -293,9 +363,8 @@ const ManageOrders = () => {
                   <div className="col-md-6">
                     <Form.Label>Payment Method</Form.Label>
                     <Form.Select value={formData.paymentMethod} onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })} className="bg-light">
-                      <option value="None">None</option>
                       <option value="GPay">GPay</option>
-                      <option value="B-Gpay">B-Gpay</option>
+                      <option value="Cash">Cash</option>
                     </Form.Select>
                   </div>
                 </>
