@@ -24,6 +24,11 @@ const orderSchema = mongoose.Schema(
       required: true,
       default: 0,
     },
+    balanceAmount: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
     designImage: {
       type: String,
       default: null,
@@ -51,7 +56,7 @@ const orderSchema = mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ['None', 'GPay', 'B-Gpay'],
+      enum: ['None', 'GPay', 'B-Gpay', 'Cash'],
       default: 'None',
     },
     printingCompany: {

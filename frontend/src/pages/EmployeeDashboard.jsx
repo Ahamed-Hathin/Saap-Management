@@ -11,17 +11,28 @@ const EmployeeDashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedOrderForPayment, setSelectedOrderForPayment] = useState(null);
+  const [paymentFormData, setPaymentFormData] = useState({ advanceAmount: '', balanceAmount: '', paymentMethod: 'GPay' });
+  const [previewImage, setPreviewImage] = useState(null);
 
   const [formData, setFormData] = useState({
     clientName: '',
     mobileNumber: '',
-    cardType: '',
+    cardType: settings.jobTypes.length > 0 ? settings.jobTypes[0] : '',
     advanceAmount: 0,
     totalAmount: 0,
     advanceReceived: false,
     paymentMethod: 'GPay',
-    printingCompany: 'Elite'
+    printingCompany: settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite'
   });
+
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http')) return imagePath;
+    const baseUrl = api.defaults.baseURL.replace('/api', '');
+    return `${baseUrl}/${imagePath.replace(/\\/g, '/').replace(/^\//, '')}`;
+  };
 
   const fetchData = async () => {
     try {
@@ -95,6 +106,32 @@ const EmployeeDashboard = () => {
     }
   };
 
+  const handlePaymentToggle = (order, isChecked) => {
+    setSelectedOrderForPayment(order);
+    setPaymentFormData({ 
+      advanceAmount: order.advanceAmount || '', 
+      balanceAmount: order.balanceAmount || '', 
+      paymentMethod: order.paymentMethod || 'GPay' 
+    });
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api.put(`/orders/${selectedOrderForPayment._id}`, { 
+        paymentReceived: true, 
+        advanceAmount: Number(paymentFormData.advanceAmount),
+        balanceAmount: Number(paymentFormData.balanceAmount),
+        paymentMethod: paymentFormData.paymentMethod
+      });
+      setShowPaymentModal(false);
+      fetchData();
+    } catch (err) {
+      alert('Error saving payment');
+    }
+  };
+
   const statusOptions = [
     'Printing', 'Cutting', 'Ready To Dispatch', 'Delivered'
   ];
@@ -128,6 +165,7 @@ const EmployeeDashboard = () => {
                   <tr>
                     <th>Client Name</th>
                     <th>Job</th>
+                    <th>Image</th>
                     <th>Printing Method</th>
                     <th className="text-nowrap">Payment</th>
                     <th className="text-nowrap">Status</th>
@@ -139,18 +177,28 @@ const EmployeeDashboard = () => {
                   {orders.map((order) => (
                     <tr key={order._id}>
                       <td>{order.clientName}</td>
-                      <td className="text-capitalize">{order.cardType}</td>
-                      <td>{order.printingCompany !== 'None' ? order.printingCompany : '-'}</td>
+                        <td className="text-capitalize">{order.cardType}</td>
+                        <td>
+                          {order.designImage ? (
+                            <img 
+                              src={getImageUrl(order.designImage)} 
+                              alt="Design" 
+                              style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer' }}
+                              onClick={() => setPreviewImage(order.designImage)}
+                            />
+                          ) : '-'}
+                        </td>
+                        <td>{order.printingCompany !== 'None' ? order.printingCompany : '-'}</td>
                       <td className="text-nowrap">
                         <Form.Check 
                           type="switch" 
-                          id={`pay-switch-emp-${order._id}`} 
-                          label={order.advanceReceived ? 'Paid' : 'Pending'} 
-                          checked={order.advanceReceived} 
-                          onChange={(e) => handlePaymentStatusChange(order._id, e.target.checked)} 
-                          className={`fw-medium mb-0 ${order.advanceReceived ? 'text-success' : 'text-danger'}`} 
+                          id={`pay-switch-${order._id}`} 
+                          label={(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'Paid' : 'Pending'} 
+                          checked={(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount)} 
+                          onChange={(e) => handlePaymentToggle(order, e.target.checked)} 
+                          className={`fw-medium mb-0 ${(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'text-success' : 'text-danger'}`} 
                         />
-                        {order.advanceReceived && (
+                        {order.advanceReceived && !((order.totalAmount > 0) && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) && (
                           <Form.Select 
                             size="sm" 
                             value={order.paymentMethod} 
@@ -200,26 +248,34 @@ const EmployeeDashboard = () => {
                     {order.designImage && (
                       <div className="mb-2">
                         <img 
-                          src={order.designImage.startsWith('http') ? order.designImage : `https://saap-management.onrender.com/${order.designImage.replace(/\\/g, '/').replace(/^\//, '')}`} 
+                          src={getImageUrl(order.designImage)} 
                           alt="Design" 
-                          style={{ width: '100%', maxHeight: '150px', objectFit: 'cover', borderRadius: '8px' }} 
+                          style={{ width: '100%', maxHeight: '150px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer' }} 
+                          onClick={() => setPreviewImage(order.designImage)}
                         />
                       </div>
                     )}
                     <div className="text-muted small mb-3">
                       <strong>Job:</strong> {order.cardType}<br />
                       <strong>Printing Method:</strong> {order.printingCompany !== 'None' ? order.printingCompany : 'Not Set'}<br />
+                      <strong>Total Amount:</strong> ₹{order.totalAmount || 0}<br />
+                      <strong>Advance Paid:</strong> {order.advanceAmount > 0 ? `₹${order.advanceAmount} (${order.paymentMethod || 'None'})` : 'No'}<br />
+                      {((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0)) > 0 ? (
+                        <><strong className="text-danger">Pending Amount:</strong> ₹{(order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0)}<br /></>
+                      ) : (
+                        <><strong className="text-success">Amount Paid:</strong> ₹{(order.advanceAmount || 0) + (order.balanceAmount || 0)} {((order.advanceAmount || 0) + (order.balanceAmount || 0)) > 0 ? `(${order.paymentMethod || 'None'})` : ''}<br /></>
+                      )}
                       <div className="d-flex align-items-center mt-1 mb-1">
                         <strong className="me-2">Payment:</strong>
                         <Form.Check 
                           type="switch" 
                           id={`pay-switch-mobile-${order._id}`} 
-                          label={order.advanceReceived ? 'Paid' : 'Pending'} 
-                          checked={order.advanceReceived} 
-                          onChange={(e) => handlePaymentStatusChange(order._id, e.target.checked)} 
-                          className={`fw-medium mb-0 me-2 ${order.advanceReceived ? 'text-success' : 'text-danger'}`} 
+                          label={(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'Paid' : 'Pending'} 
+                          checked={(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount)} 
+                          onChange={(e) => handlePaymentToggle(order, e.target.checked)} 
+                          className={`fw-medium mb-0 me-2 ${(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'text-success' : 'text-danger'}`} 
                         />
-                        {order.advanceReceived && (
+                        {order.advanceReceived && !((order.totalAmount > 0) && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) && (
                           <Form.Select 
                             size="sm" 
                             value={order.paymentMethod} 
@@ -317,6 +373,71 @@ const EmployeeDashboard = () => {
             <Button variant="primary" type="submit" className="fw-medium px-4">Create Order</Button>
           </Modal.Footer>
         </Form>
+      </Modal>
+
+      {/* Payment Details Modal */}
+      <Modal show={showPaymentModal} onHide={() => setShowPaymentModal(false)} centered contentClassName="border-0 rounded-4 shadow-lg">
+        <Modal.Header closeButton className="border-0 pb-0 mt-3 mx-2">
+          <Modal.Title className="fw-bold">Payment Details</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handlePaymentSubmit}>
+          <Modal.Body className="px-4 pt-4">
+            <Form.Group className="mb-3">
+              <Form.Label>Amount</Form.Label>
+              <Form.Control 
+                type="number" 
+                value={paymentFormData.balanceAmount} 
+                onChange={(e) => setPaymentFormData({ ...paymentFormData, balanceAmount: e.target.value })} 
+                className="bg-light"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Advance Amount</Form.Label>
+              <Form.Control 
+                type="number" 
+                value={paymentFormData.advanceAmount} 
+                onChange={(e) => setPaymentFormData({ ...paymentFormData, advanceAmount: e.target.value })} 
+                className="bg-light"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Payment Method</Form.Label>
+              <Form.Select 
+                value={paymentFormData.paymentMethod} 
+                onChange={(e) => setPaymentFormData({ ...paymentFormData, paymentMethod: e.target.value })}
+                className="bg-light"
+              >
+                <option value="GPay">GPay</option>
+                <option value="Cash">Cash</option>
+              </Form.Select>
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer className="border-0 px-4 pb-4">
+            <Button variant="light" onClick={() => setShowPaymentModal(false)} className="fw-medium">Cancel</Button>
+            <Button variant="primary" type="submit" className="fw-medium px-4">Save Payment</Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      {/* Image Preview Modal */}
+      <Modal show={!!previewImage} onHide={() => setPreviewImage(null)} centered size="lg" contentClassName="border-0 rounded-4 shadow-lg bg-transparent">
+        <Modal.Body className="p-0 text-center position-relative">
+          <Button 
+            variant="dark" 
+            className="position-absolute rounded-circle p-2" 
+            style={{ top: '-15px', right: '-15px', zIndex: 1050 }}
+            onClick={() => setPreviewImage(null)}
+          >
+            &times;
+          </Button>
+          {previewImage && (
+            <img 
+              src={getImageUrl(previewImage)} 
+              alt="Design Preview" 
+              style={{ maxWidth: '100%', maxHeight: '85vh', objectFit: 'contain', borderRadius: '8px', backgroundColor: '#fff' }} 
+            />
+          )}
+        </Modal.Body>
       </Modal>
     </Layout>
   );

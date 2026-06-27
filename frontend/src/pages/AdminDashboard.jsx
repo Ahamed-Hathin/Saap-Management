@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { Row, Col, Card, Form } from 'react-bootstrap';
 import api from '../services/api';
 import { ShoppingBag, CheckCircle, Clock, IndianRupee, Package } from 'lucide-react';
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalOrders: 0,
     pendingOrders: 0,
@@ -34,8 +36,12 @@ const AdminDashboard = () => {
     fetchStats();
   }, [filter, customStartDate, customEndDate]);
 
-  const StatCard = ({ title, value, icon, color }) => (
-    <Card className="dashboard-card h-100">
+  const StatCard = ({ title, value, icon, color, onClick }) => (
+    <Card 
+      className="dashboard-card h-100" 
+      onClick={onClick}
+      style={onClick ? { cursor: 'pointer' } : {}}
+    >
       <Card.Body className="d-flex align-items-center p-3">
         <div className={`icon-wrapper bg-${color} bg-opacity-10 text-${color} me-3 p-2 p-md-3`}>
           {icon}
@@ -87,11 +93,11 @@ const AdminDashboard = () => {
         </div>
       </div>
       <Row className="g-3 mb-4">
-        <Col xs={6} md={4}><StatCard title="Total Order" value={stats.totalOrders || 0} icon={<ShoppingBag size={20} />} color="primary" /></Col>
-        <Col xs={6} md={4}><StatCard title="Pending Order" value={stats.pendingOrders || 0} icon={<Clock size={20} />} color="warning" /></Col>
-        <Col xs={6} md={4}><StatCard title="Ready To Dispatch" value={stats.readyToDispatch || 0} icon={<Package size={20} />} color="info" /></Col>
-        <Col xs={6} md={6}><StatCard title="Payment Pending" value={stats.pendingPayments || 0} icon={<IndianRupee size={20} />} color="danger" /></Col>
-        <Col xs={6} md={6}><StatCard title="Delivered" value={stats.deliveredOrders || 0} icon={<CheckCircle size={20} />} color="success" /></Col>
+        <Col xs={6} md={4}><StatCard title="Total Order" value={stats.totalOrders || 0} icon={<ShoppingBag size={20} />} color="primary" onClick={() => navigate('/admin/orders')} /></Col>
+        <Col xs={6} md={4}><StatCard title="Pending Order" value={stats.pendingOrders || 0} icon={<Clock size={20} />} color="warning" onClick={() => navigate('/admin/orders?filter=pending')} /></Col>
+        <Col xs={6} md={4}><StatCard title="Ready To Dispatch" value={stats.readyToDispatch || 0} icon={<Package size={20} />} color="info" onClick={() => navigate('/admin/orders?filter=ready')} /></Col>
+        <Col xs={6} md={6}><StatCard title="Payment Pending" value={stats.pendingPayments || 0} icon={<IndianRupee size={20} />} color="danger" onClick={() => navigate('/admin/orders?filter=payment_pending')} /></Col>
+        <Col xs={6} md={6}><StatCard title="Delivered" value={stats.deliveredOrders || 0} icon={<CheckCircle size={20} />} color="success" onClick={() => navigate('/admin/orders?filter=delivered')} /></Col>
       </Row>
     </Layout>
   );

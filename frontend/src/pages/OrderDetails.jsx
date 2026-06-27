@@ -17,10 +17,18 @@ const OrderDetails = () => {
   const [printingCompany, setPrintingCompany] = useState('');
   const [file, setFile] = useState(null);
   const [message, setMessage] = useState('');
+  const [previewImage, setPreviewImage] = useState(null);
 
   const statusOptions = [
     'Printing', 'Cutting', 'Ready To Dispatch', 'Delivered'
   ];
+
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http')) return imagePath;
+    const baseUrl = api.defaults.baseURL.replace('/api', '');
+    return `${baseUrl}/${imagePath.replace(/\\/g, '/').replace(/^\//, '')}`;
+  };
 
   const fetchOrder = async () => {
     try {
@@ -116,13 +124,28 @@ const OrderDetails = () => {
               </Row>
               <Row className="mb-3">
                 <Col sm={4} className="text-muted fw-medium">Advance Amount</Col>
-                <Col sm={8}>₹{order.advanceAmount}</Col>
+                <Col sm={8}>₹{order.advanceAmount} {order.advanceAmount > 0 ? `(${order.paymentMethod || 'None'})` : ''}</Col>
               </Row>
               <Row className="mb-3">
-                <Col sm={4} className="text-muted fw-medium">Advance Status</Col>
+                <Col sm={4} className="text-muted fw-medium">Balance Paid</Col>
+                <Col sm={8}>₹{order.balanceAmount || 0} {(order.balanceAmount > 0) ? `(${order.paymentMethod || 'None'})` : ''}</Col>
+              </Row>
+              <Row className="mb-3">
+                <Col sm={4} className="text-muted fw-medium">
+                  {((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0)) > 0 ? 'Pending Amount' : 'Amount Paid'}
+                </Col>
+                <Col sm={8} className={((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0)) > 0 ? "text-danger fw-medium" : "text-success fw-medium"}>
+                  ₹{((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0)) > 0 
+                    ? ((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0)) 
+                    : ((order.advanceAmount || 0) + (order.balanceAmount || 0))} 
+                  {((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0)) <= 0 && ((order.advanceAmount || 0) + (order.balanceAmount || 0)) > 0 ? `(${order.paymentMethod || 'None'})` : ''}
+                </Col>
+              </Row>
+              <Row className="mb-3">
+                <Col sm={4} className="text-muted fw-medium">Payment Status</Col>
                 <Col sm={8}>
-                  <span className={`badge-custom badge-${order.advanceReceived ? 'success' : 'danger'} me-2`}>
-                    {order.advanceReceived ? 'Received' : 'Pending'}
+                  <span className={`badge-custom badge-${(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'success' : 'danger'} me-2`}>
+                    {(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'Paid' : 'Pending'}
                   </span>
                   {order.advanceReceived && <span className="text-muted">({order.paymentMethod})</span>}
                 </Col>
@@ -136,10 +159,11 @@ const OrderDetails = () => {
               {order.designImage ? (
                 <div>
                   <img 
-                    src={order.designImage.startsWith('http') ? order.designImage : `https://saap-management.onrender.com/${order.designImage.replace(/\\/g, '/').replace(/^\//, '')}`} 
+                    src={getImageUrl(order.designImage)} 
                     alt="Design" 
                     className="img-fluid rounded" 
-                    style={{ maxHeight: '400px' }} 
+                    style={{ maxHeight: '400px', cursor: 'pointer' }} 
+                    onClick={() => setPreviewImage(order.designImage)}
                   />
                 </div>
               ) : (
@@ -196,6 +220,27 @@ const OrderDetails = () => {
           </Card>
         </Col>
       </Row>
+
+      {/* Image Preview Modal */}
+      <Modal show={!!previewImage} onHide={() => setPreviewImage(null)} centered size="lg" contentClassName="border-0 rounded-4 shadow-lg bg-transparent">
+        <Modal.Body className="p-0 text-center position-relative">
+          <Button 
+            variant="dark" 
+            className="position-absolute rounded-circle p-2" 
+            style={{ top: '-15px', right: '-15px', zIndex: 1050 }}
+            onClick={() => setPreviewImage(null)}
+          >
+            &times;
+          </Button>
+          {previewImage && (
+            <img 
+              src={getImageUrl(previewImage)} 
+              alt="Design Preview" 
+              style={{ maxWidth: '100%', maxHeight: '85vh', objectFit: 'contain', borderRadius: '8px', backgroundColor: '#fff' }} 
+            />
+          )}
+        </Modal.Body>
+      </Modal>
     </Layout>
   );
 };

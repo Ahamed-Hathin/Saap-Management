@@ -72,6 +72,9 @@ const updateOrderStatus = async (req, res) => {
     if (req.user.role === 'Admin' || order.assignedEmployee.toString() === req.user._id.toString()) {
       order.status = req.body.status || order.status;
       order.advanceReceived = req.body.paymentReceived !== undefined ? req.body.paymentReceived : order.advanceReceived;
+      order.advanceAmount = req.body.advanceAmount !== undefined ? req.body.advanceAmount : order.advanceAmount;
+      order.balanceAmount = req.body.balanceAmount !== undefined ? req.body.balanceAmount : order.balanceAmount;
+      order.totalAmount = req.body.totalAmount !== undefined ? req.body.totalAmount : order.totalAmount;
       order.paymentMethod = req.body.paymentMethod || order.paymentMethod;
       order.printingCompany = req.body.printingCompany || order.printingCompany;
       const updatedOrder = await order.save();
@@ -140,7 +143,16 @@ const getDashboardStats = async (req, res) => {
    const totalOrders = await Order.countDocuments(baseQuery);
    const pendingOrders = await Order.countDocuments({ ...baseQuery, status: { $ne: 'Delivered' } });
    const readyToDispatch = await Order.countDocuments({ ...baseQuery, status: 'Ready To Dispatch' });
-   const pendingPayments = await Order.countDocuments({ ...baseQuery, advanceReceived: false });
+   const pendingPayments = await Order.countDocuments({ 
+     ...baseQuery, 
+     totalAmount: { $gt: 0 },
+     $expr: { 
+       $lt: [
+         { $add: [ { $ifNull: ["$advanceAmount", 0] }, { $ifNull: ["$balanceAmount", 0] } ] }, 
+         { $ifNull: ["$totalAmount", 0] }
+       ] 
+     }
+   });
    const deliveredOrders = await Order.countDocuments({ ...baseQuery, status: 'Delivered' });
 
    res.json({ totalOrders, pendingOrders, readyToDispatch, pendingPayments, deliveredOrders });

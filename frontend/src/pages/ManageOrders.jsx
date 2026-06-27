@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Card, Table, Button, Modal, Form, Alert, Badge, Dropdown } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { Plus, Trash2 } from 'lucide-react';
 
@@ -13,18 +13,29 @@ const ManageOrders = () => {
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedOrderForPayment, setSelectedOrderForPayment] = useState(null);
+  const [paymentFormData, setPaymentFormData] = useState({ advanceAmount: '', balanceAmount: '', paymentMethod: 'GPay' });
+  const [previewImage, setPreviewImage] = useState(null);
 
   const [formData, setFormData] = useState({
     clientName: '',
     mobileNumber: '',
-    cardType: '',
+    cardType: settings.jobTypes.length > 0 ? settings.jobTypes[0] : '',
     advanceAmount: 0,
     totalAmount: 0,
     assignedEmployee: '',
     advanceReceived: false,
     paymentMethod: 'GPay',
-    printingCompany: 'Elite'
+    printingCompany: settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite'
   });
+
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http')) return imagePath;
+    const baseUrl = api.defaults.baseURL.replace('/api', '');
+    return `${baseUrl}/${imagePath.replace(/\\/g, '/').replace(/^\//, '')}`;
+  };
 
   const fetchData = async () => {
     try {
@@ -95,6 +106,33 @@ const ManageOrders = () => {
     }
   };
 
+  const handlePaymentToggle = (order, isChecked) => {
+    setSelectedOrderForPayment(order);
+    setPaymentFormData({ 
+      advanceAmount: order.advanceAmount || '', 
+      balanceAmount: order.balanceAmount || '', 
+      paymentMethod: order.paymentMethod || 'GPay' 
+    });
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api.put(`/orders/${selectedOrderForPayment._id}`, { 
+        paymentReceived: true, 
+        advanceAmount: Number(paymentFormData.advanceAmount),
+        balanceAmount: Number(paymentFormData.balanceAmount),
+        paymentMethod: paymentFormData.paymentMethod
+      });
+      setShowPaymentModal(false);
+      fetchData();
+    } catch (err) {
+      console.error('Error saving payment:', err);
+      alert('Error saving payment');
+    }
+  };
+
   const statusOptions = ['Printing', 'Cutting', 'Ready To Dispatch', 'Delivered'];
 
   const handleSubmit = async (e) => {
@@ -120,6 +158,20 @@ const ManageOrders = () => {
     }
   };
 
+  const [searchParams] = useSearchParams();
+  const filterParam = searchParams.get('filter');
+
+  let displayedOrders = orders;
+  if (filterParam === 'pending') {
+    displayedOrders = orders.filter(o => o.status !== 'Delivered');
+  } else if (filterParam === 'ready') {
+    displayedOrders = orders.filter(o => o.status === 'Ready To Dispatch');
+  } else if (filterParam === 'payment_pending') {
+    displayedOrders = orders.filter(o => o.totalAmount > 0 && (o.advanceAmount + (o.balanceAmount || 0)) < o.totalAmount);
+  } else if (filterParam === 'delivered') {
+    displayedOrders = orders.filter(o => o.status === 'Delivered');
+  }
+
   return (
     <Layout>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
@@ -134,10 +186,10 @@ const ManageOrders = () => {
 
       <Card className="dashboard-card border-0 mb-4">
         <Card.Body className="p-0">
-          {orders.length === 0 ? (
+          {displayedOrders.length === 0 ? (
             <div className="p-5 text-center text-muted">
               <h5 className="fw-medium mb-3">No orders found</h5>
-              <p>You haven't created any orders yet.</p>
+              <p>You haven't created any orders yet, or no orders match your filter.</p>
               <Button variant="outline-primary" onClick={handleShow} className="mt-2">
                 <Plus size={18} className="me-2" /> Create First Order
               </Button>
@@ -151,6 +203,7 @@ const ManageOrders = () => {
                     <th>Customer Name</th>
                     <th className="text-nowrap">Number</th>
                     <th>Job</th>
+                    <th>Image</th>
                     <th>Printing Method</th>
                     <th className="text-nowrap">Status</th>
                     <th className="text-nowrap">Payment</th>
@@ -159,12 +212,22 @@ const ManageOrders = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map((order, index) => (
+                  {displayedOrders.map((order, index) => (
                     <tr key={order._id}>
                       <td className="text-nowrap">{index + 1}</td>
                       <td>{order.clientName}</td>
                       <td className="text-nowrap">{order.mobileNumber}</td>
                       <td className="text-capitalize">{order.cardType}</td>
+                      <td>
+                        {order.designImage ? (
+                          <img 
+                            src={getImageUrl(order.designImage)} 
+                            alt="Design" 
+                            style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer' }}
+                            onClick={() => setPreviewImage(order.designImage)}
+                          />
+                        ) : '-'}
+                      </td>
                       <td>{order.printingCompany !== 'None' ? order.printingCompany : '-'}</td>
                       <td className="text-nowrap">
                         <span className={`badge-custom badge-${order.status === 'Delivered' ? 'success' : 'primary'} text-nowrap`}>
@@ -175,12 +238,12 @@ const ManageOrders = () => {
                         <Form.Check 
                           type="switch" 
                           id={`pay-switch-${order._id}`} 
-                          label={order.advanceReceived ? 'Paid' : 'Pending'} 
-                          checked={order.advanceReceived} 
-                          onChange={(e) => handlePaymentStatusChange(order._id, e.target.checked)} 
-                          className={`fw-medium mb-0 ${order.advanceReceived ? 'text-success' : 'text-danger'}`} 
+                          label={(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'Paid' : 'Pending'} 
+                          checked={(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount)} 
+                          onChange={(e) => handlePaymentToggle(order, e.target.checked)} 
+                          className={`fw-medium mb-0 ${(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'text-success' : 'text-danger'}`} 
                         />
-                        {order.advanceReceived && (
+                        {order.advanceReceived && !((order.totalAmount > 0) && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) && (
                           <Form.Select 
                             size="sm" 
                             value={order.paymentMethod} 
@@ -227,7 +290,7 @@ const ManageOrders = () => {
 
               {/* Mobile Cards View */}
               <div className="d-md-none">
-                {orders.map((order) => (
+                {displayedOrders.map((order) => (
                   <div key={order._id} className="p-3 border-bottom">
                     <div className="d-flex justify-content-between align-items-start mb-2">
                       <h6 className="fw-bold mb-0">{order.clientName}</h6>
@@ -238,26 +301,34 @@ const ManageOrders = () => {
                     {order.designImage && (
                       <div className="mb-2">
                         <img 
-                          src={order.designImage.startsWith('http') ? order.designImage : `https://saap-management.onrender.com/${order.designImage.replace(/\\/g, '/').replace(/^\//, '')}`} 
+                          src={getImageUrl(order.designImage)} 
                           alt="Design" 
-                          style={{ width: '100%', maxHeight: '150px', objectFit: 'cover', borderRadius: '8px' }} 
+                          style={{ width: '100%', maxHeight: '150px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer' }} 
+                          onClick={() => setPreviewImage(order.designImage)}
                         />
                       </div>
                     )}
                     <div className="text-muted small mb-2">
                       <strong>Assigned To:</strong> {order.assignedEmployee?.name || 'Unassigned'}<br />
                       <strong>Printing Method:</strong> {order.printingCompany !== 'None' ? order.printingCompany : 'Not Set'}<br />
+                      <strong>Total Amount:</strong> ₹{order.totalAmount || 0}<br />
+                      <strong>Advance Paid:</strong> {order.advanceAmount > 0 ? `₹${order.advanceAmount} (${order.paymentMethod || 'None'})` : 'No'}<br />
+                      {((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0)) > 0 ? (
+                        <><strong className="text-danger">Pending Amount:</strong> ₹{(order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0)}<br /></>
+                      ) : (
+                        <><strong className="text-success">Amount Paid:</strong> ₹{(order.advanceAmount || 0) + (order.balanceAmount || 0)} {((order.advanceAmount || 0) + (order.balanceAmount || 0)) > 0 ? `(${order.paymentMethod || 'None'})` : ''}<br /></>
+                      )}
                       <div className="d-flex align-items-center mt-1">
                         <strong className="me-2">Payment:</strong>
                         <Form.Check 
                           type="switch" 
                           id={`pay-switch-mobile-${order._id}`} 
-                          label={order.advanceReceived ? 'Paid' : 'Pending'} 
-                          checked={order.advanceReceived} 
-                          onChange={(e) => handlePaymentStatusChange(order._id, e.target.checked)} 
-                          className={`fw-medium mb-0 me-2 ${order.advanceReceived ? 'text-success' : 'text-danger'}`} 
+                          label={(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'Paid' : 'Pending'} 
+                          checked={(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount)} 
+                          onChange={(e) => handlePaymentToggle(order, e.target.checked)} 
+                          className={`fw-medium mb-0 me-2 ${(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'text-success' : 'text-danger'}`} 
                         />
-                        {order.advanceReceived && (
+                        {order.advanceReceived && !((order.totalAmount > 0) && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) && (
                           <Form.Select 
                             size="sm" 
                             value={order.paymentMethod} 
@@ -378,6 +449,72 @@ const ManageOrders = () => {
             </Button>
           </Modal.Footer>
         </Form>
+      </Modal>
+
+      {/* Payment Details Modal */}
+      <Modal show={showPaymentModal} onHide={() => setShowPaymentModal(false)} centered contentClassName="border-0 rounded-4 shadow-lg">
+        <Modal.Header closeButton className="border-0 pb-0 mt-3 mx-2">
+          <Modal.Title className="fw-bold">Payment Details</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handlePaymentSubmit}>
+          <Modal.Body className="px-4 pt-4">
+            <Form.Group className="mb-3">
+              <Form.Label>Amount</Form.Label>
+              <Form.Control 
+                type="number" 
+                value={paymentFormData.balanceAmount} 
+                onChange={(e) => setPaymentFormData({ ...paymentFormData, balanceAmount: e.target.value })} 
+                className="bg-light"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Advance Amount</Form.Label>
+              <Form.Control 
+                type="number" 
+                value={paymentFormData.advanceAmount} 
+                onChange={(e) => setPaymentFormData({ ...paymentFormData, advanceAmount: e.target.value })} 
+                className="bg-light"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Payment Method</Form.Label>
+              <Form.Select 
+                value={paymentFormData.paymentMethod} 
+                onChange={(e) => setPaymentFormData({ ...paymentFormData, paymentMethod: e.target.value })}
+                className="bg-light"
+              >
+                <option value="GPay">GPay</option>
+                <option value="Cash">Cash</option>
+              </Form.Select>
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer className="border-0 px-4 pb-4">
+            <Button variant="light" onClick={() => setShowPaymentModal(false)} className="fw-medium">Cancel</Button>
+            <Button variant="primary" type="submit" className="fw-medium px-4">Save Payment</Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+
+      {/* Image Preview Modal */}
+      <Modal show={!!previewImage} onHide={() => setPreviewImage(null)} centered size="lg" contentClassName="border-0 rounded-4 shadow-lg bg-transparent">
+        <Modal.Body className="p-0 text-center position-relative">
+          <Button 
+            variant="dark" 
+            className="position-absolute rounded-circle p-2" 
+            style={{ top: '-15px', right: '-15px', zIndex: 1050 }}
+            onClick={() => setPreviewImage(null)}
+          >
+            &times;
+          </Button>
+          {previewImage && (
+            <img 
+              src={getImageUrl(previewImage)} 
+              alt="Design Preview" 
+              style={{ maxWidth: '100%', maxHeight: '85vh', objectFit: 'contain', borderRadius: '8px', backgroundColor: '#fff' }} 
+            />
+          )}
+        </Modal.Body>
       </Modal>
     </Layout>
   );
