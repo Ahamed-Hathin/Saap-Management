@@ -36,7 +36,7 @@ const Login = () => {
           <Card className="dashboard-card border-0 rounded-4 overflow-hidden">
             <Card.Body className="p-5">
               <div className="text-center mb-5">
-                <h2 className="fw-bold text-primary mb-4" style={{ letterSpacing: '-0.5px' }}>SAAP Creation</h2>
+                <h2 className="fw-bold text-primary mb-4" style={{ letterSpacing: '-0.5px' }}>SAPP Creation</h2>
                 <h4 className="fw-bold text-dark mb-2 tracking-tight">Welcome Back</h4>
                 <p className="text-muted">Sign in to your account</p>
               </div>
