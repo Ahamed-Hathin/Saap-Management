@@ -3,6 +3,7 @@ import Layout from '../components/Layout';
 import { Card, Table, Button, Modal, Form, Alert, InputGroup } from 'react-bootstrap';
 import api from '../services/api';
 import { Edit2, Trash2, UserPlus, Eye, EyeOff } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 const ManageEmployees = () => {
   const [employees, setEmployees] = useState([]);
@@ -43,12 +44,23 @@ const ManageEmployees = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this employee?')) {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: 'You want to delete this employee?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it!'
+    });
+    if (result.isConfirmed) {
       try {
         await api.delete(`/users/${id}`);
         fetchEmployees();
+        Swal.fire('Deleted!', 'Employee has been deleted.', 'success');
       } catch (err) {
-        alert(err.response?.data?.message || 'Error deleting employee');
+        console.error('Error deleting employee:', err);
+        Swal.fire('Error', err.response?.data?.message || 'Error deleting employee', 'error');
       }
     }
   };
@@ -154,7 +166,7 @@ const ManageEmployees = () => {
         </Card.Body>
       </Card>
 
-      <Modal show={showModal} onHide={() => setShowModal(false)} centered contentClassName="border-0 rounded-4 shadow-lg">
+      <Modal backdrop="static" show={showModal} onHide={() => setShowModal(false)} centered contentClassName="border-0 rounded-4 shadow-lg">
         <Modal.Header closeButton className="border-0 pb-0 mt-3 mx-2">
           <Modal.Title className="fw-bold">{editMode ? 'Edit Employee' : 'Add New Employee'}</Modal.Title>
         </Modal.Header>

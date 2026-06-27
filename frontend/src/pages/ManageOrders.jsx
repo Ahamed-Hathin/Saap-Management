@@ -4,6 +4,7 @@ import { Card, Table, Button, Modal, Form, Alert, Badge, Dropdown } from 'react-
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { Plus, Trash2 } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 const ManageOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -15,19 +16,19 @@ const ManageOrders = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState(null);
-  const [paymentFormData, setPaymentFormData] = useState({ advanceAmount: '', balanceAmount: '', paymentMethod: 'GPay' });
+  const [paymentFormData, setPaymentFormData] = useState({ advanceAmount: '', balanceAmount: '', paymentMethod: '' });
   const [previewImage, setPreviewImage] = useState(null);
 
   const [formData, setFormData] = useState({
     clientName: '',
     mobileNumber: '',
-    cardType: settings.jobTypes.length > 0 ? settings.jobTypes[0] : '',
-    advanceAmount: 0,
-    totalAmount: 0,
+    cardType: '',
+    advanceAmount: '',
+    totalAmount: '',
     assignedEmployee: '',
     advanceReceived: false,
-    paymentMethod: 'GPay',
-    printingCompany: settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite'
+    paymentMethod: '',
+    printingCompany: ''
   });
 
   const getImageUrl = (imagePath) => {
@@ -56,8 +57,8 @@ const ManageOrders = () => {
 
   const handleShow = () => {
     setFormData({
-      clientName: '', mobileNumber: '', cardType: settings.jobTypes.length > 0 ? settings.jobTypes[0] : 'Visiting Card', advanceAmount: 0, totalAmount: 0,
-      assignedEmployee: employees.length > 0 ? employees[0]._id : '', advanceReceived: false, paymentMethod: 'GPay', printingCompany: settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite'
+      clientName: '', mobileNumber: '', cardType: '', advanceAmount: '', totalAmount: '',
+      assignedEmployee: '', advanceReceived: false, paymentMethod: '', printingCompany: ''
     });
     setFile(null);
     setError('');
@@ -65,13 +66,23 @@ const ManageOrders = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this order?')) {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: 'You want to delete this order?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it!'
+    });
+    if (result.isConfirmed) {
       try {
         await api.delete(`/orders/${id}`);
         fetchData();
+        Swal.fire('Deleted!', 'Order has been deleted.', 'success');
       } catch (err) {
         console.error('Error deleting order:', err);
-        alert(err.response?.data?.message || 'Error deleting order');
+        Swal.fire('Error', err.response?.data?.message || 'Error deleting order', 'error');
       }
     }
   };
@@ -82,7 +93,7 @@ const ManageOrders = () => {
       fetchData();
     } catch (err) {
       console.error('Error updating status:', err);
-      alert('Error updating status');
+      Swal.fire('Error', 'Error updating status', 'error');
     }
   };
 
@@ -92,7 +103,7 @@ const ManageOrders = () => {
       fetchData();
     } catch (err) {
       console.error('Error updating payment status:', err);
-      alert('Error updating payment status');
+      Swal.fire('Error', 'Error updating payment status', 'error');
     }
   };
 
@@ -102,7 +113,7 @@ const ManageOrders = () => {
       fetchData();
     } catch (err) {
       console.error('Error updating payment method:', err);
-      alert('Error updating payment method');
+      Swal.fire('Error', 'Error updating payment method', 'error');
     }
   };
 
@@ -111,7 +122,7 @@ const ManageOrders = () => {
     setPaymentFormData({ 
       advanceAmount: order.advanceAmount || '', 
       balanceAmount: order.balanceAmount || '', 
-      paymentMethod: order.paymentMethod || 'GPay' 
+      paymentMethod: order.paymentMethod || '' 
     });
     setShowPaymentModal(true);
   };
@@ -123,13 +134,13 @@ const ManageOrders = () => {
         paymentReceived: true, 
         advanceAmount: Number(paymentFormData.advanceAmount),
         balanceAmount: Number(paymentFormData.balanceAmount),
-        paymentMethod: paymentFormData.paymentMethod
+        paymentMethod: paymentFormData.paymentMethod === '' ? 'None' : paymentFormData.paymentMethod
       });
       setShowPaymentModal(false);
       fetchData();
     } catch (err) {
       console.error('Error saving payment:', err);
-      alert('Error saving payment');
+      Swal.fire('Error', 'Error saving payment', 'error');
     }
   };
 
@@ -139,7 +150,14 @@ const ManageOrders = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const { data: newOrder } = await api.post('/orders', formData);
+      const payload = {
+        ...formData,
+        advanceAmount: formData.advanceAmount === '' ? 0 : Number(formData.advanceAmount),
+        totalAmount: formData.totalAmount === '' ? 0 : Number(formData.totalAmount),
+        paymentMethod: formData.paymentMethod === '' ? 'None' : formData.paymentMethod,
+        printingCompany: formData.printingCompany === '' ? 'None' : formData.printingCompany,
+      };
+      const { data: newOrder } = await api.post('/orders', payload);
 
       if (file) {
         const uploadData = new FormData();
@@ -235,6 +253,13 @@ const ManageOrders = () => {
                         </span>
                       </td>
                       <td className="text-nowrap">
+                        <div className="small fw-bold mb-1">
+                          {((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0)) > 0 ? (
+                            <span className="text-danger">₹{((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0))} Pending</span>
+                          ) : (
+                            <span className="text-success">Fully Paid</span>
+                          )}
+                        </div>
                         <Form.Check 
                           type="switch" 
                           id={`pay-switch-${order._id}`} 
@@ -342,7 +367,7 @@ const ManageOrders = () => {
                       </div>
                     </div>
                     <div className="d-flex flex-wrap gap-2 mt-2">
-                      <Dropdown className="flex-grow-1">
+                      <Dropdown className="flex-grow-1" drop="up">
                         <Dropdown.Toggle variant="outline-success" size="sm" className="w-100 fw-medium shadow-sm">
                           Update Status
                         </Dropdown.Toggle>
@@ -373,7 +398,7 @@ const ManageOrders = () => {
         </Card.Body>
       </Card>
 
-      <Modal show={showModal} onHide={() => setShowModal(false)} centered contentClassName="border-0 rounded-4 shadow-lg">
+      <Modal backdrop="static" show={showModal} onHide={() => setShowModal(false)} centered size="lg" contentClassName="border-0 rounded-4 shadow-lg">
         <Modal.Header closeButton className="border-0 pb-0 mt-3 mx-2">
           <Modal.Title className="fw-bold">Create New Order</Modal.Title>
         </Modal.Header>
@@ -392,6 +417,7 @@ const ManageOrders = () => {
               <div className="col-12">
                 <Form.Label>Job</Form.Label>
                 <Form.Select required value={formData.cardType} onChange={(e) => setFormData({ ...formData, cardType: e.target.value })} className="bg-light">
+                  <option value="">Select Job</option>
                   {settings.jobTypes.map(job => (
                     <option key={job} value={job}>{job}</option>
                   ))}
@@ -419,7 +445,8 @@ const ManageOrders = () => {
               </div>
               <div className="col-md-6">
                 <Form.Label>Printing Method</Form.Label>
-                <Form.Select value={formData.printingCompany} onChange={(e) => setFormData({ ...formData, printingCompany: e.target.value })} className="bg-light">
+                <Form.Select required value={formData.printingCompany} onChange={(e) => setFormData({ ...formData, printingCompany: e.target.value })} className="bg-light">
+                  <option value="">Select Printing Method</option>
                   {settings.printingCompanies.map(pc => (
                     <option key={pc} value={pc}>{pc}</option>
                   ))}
@@ -434,6 +461,7 @@ const ManageOrders = () => {
                   <div className="col-md-6">
                     <Form.Label>Payment Method</Form.Label>
                     <Form.Select value={formData.paymentMethod} onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })} className="bg-light">
+                      <option value="">Select Payment Method</option>
                       <option value="GPay">GPay</option>
                       <option value="Cash">Cash</option>
                     </Form.Select>
@@ -452,7 +480,7 @@ const ManageOrders = () => {
       </Modal>
 
       {/* Payment Details Modal */}
-      <Modal show={showPaymentModal} onHide={() => setShowPaymentModal(false)} centered contentClassName="border-0 rounded-4 shadow-lg">
+      <Modal backdrop="static" show={showPaymentModal} onHide={() => setShowPaymentModal(false)} centered contentClassName="border-0 rounded-4 shadow-lg">
         <Modal.Header closeButton className="border-0 pb-0 mt-3 mx-2">
           <Modal.Title className="fw-bold">Payment Details</Modal.Title>
         </Modal.Header>
@@ -483,6 +511,7 @@ const ManageOrders = () => {
                 onChange={(e) => setPaymentFormData({ ...paymentFormData, paymentMethod: e.target.value })}
                 className="bg-light"
               >
+                <option value="">Select Payment Method</option>
                 <option value="GPay">GPay</option>
                 <option value="Cash">Cash</option>
               </Form.Select>
@@ -497,7 +526,7 @@ const ManageOrders = () => {
 
 
       {/* Image Preview Modal */}
-      <Modal show={!!previewImage} onHide={() => setPreviewImage(null)} centered size="lg" contentClassName="border-0 rounded-4 shadow-lg bg-transparent">
+      <Modal backdrop="static" show={!!previewImage} onHide={() => setPreviewImage(null)} centered size="lg" contentClassName="border-0 rounded-4 shadow-lg bg-transparent">
         <Modal.Body className="p-0 text-center position-relative">
           <Button 
             variant="dark" 

@@ -4,6 +4,7 @@ import { Row, Col, Card, Table, Badge, Button, Modal, Form, Alert } from 'react-
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { ShoppingBag, CheckCircle, Clock, Plus } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 const EmployeeDashboard = () => {
   const [orders, setOrders] = useState([]);
@@ -84,7 +85,7 @@ const EmployeeDashboard = () => {
       await api.put(`/orders/${orderId}`, { status: newStatus });
       fetchData();
     } catch (err) {
-      alert('Error updating status');
+      Swal.fire('Error', 'Error updating status', 'error');
     }
   };
 
@@ -93,7 +94,7 @@ const EmployeeDashboard = () => {
       await api.put(`/orders/${orderId}`, { paymentReceived: newPaymentStatus });
       fetchData();
     } catch (err) {
-      alert('Error updating payment status');
+      Swal.fire('Error', 'Error updating payment status', 'error');
     }
   };
 
@@ -102,7 +103,7 @@ const EmployeeDashboard = () => {
       await api.put(`/orders/${orderId}`, { paymentMethod: newMethod });
       fetchData();
     } catch (err) {
-      alert('Error updating payment method');
+      Swal.fire('Error', 'Error updating payment method', 'error');
     }
   };
 
@@ -128,7 +129,7 @@ const EmployeeDashboard = () => {
       setShowPaymentModal(false);
       fetchData();
     } catch (err) {
-      alert('Error saving payment');
+      Swal.fire('Error', 'Error saving payment', 'error');
     }
   };
 
@@ -190,6 +191,13 @@ const EmployeeDashboard = () => {
                         </td>
                         <td>{order.printingCompany !== 'None' ? order.printingCompany : '-'}</td>
                       <td className="text-nowrap">
+                        <div className="small fw-bold mb-1">
+                          {((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0)) > 0 ? (
+                            <span className="text-danger">₹{((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0))} Pending</span>
+                          ) : (
+                            <span className="text-success">Fully Paid</span>
+                          )}
+                        </div>
                         <Form.Check 
                           type="switch" 
                           id={`pay-switch-${order._id}`} 
@@ -308,7 +316,7 @@ const EmployeeDashboard = () => {
         </Card.Body>
       </Card>
 
-      <Modal show={showModal} onHide={() => setShowModal(false)} centered contentClassName="border-0 rounded-4 shadow-lg">
+      <Modal backdrop="static" show={showModal} onHide={() => setShowModal(false)} centered size="lg" contentClassName="border-0 rounded-4 shadow-lg">
         <Modal.Header closeButton className="border-0 pb-0 mt-3 mx-2">
           <Modal.Title className="fw-bold">Create New Order</Modal.Title>
         </Modal.Header>
@@ -376,7 +384,7 @@ const EmployeeDashboard = () => {
       </Modal>
 
       {/* Payment Details Modal */}
-      <Modal show={showPaymentModal} onHide={() => setShowPaymentModal(false)} centered contentClassName="border-0 rounded-4 shadow-lg">
+      <Modal backdrop="static" show={showPaymentModal} onHide={() => setShowPaymentModal(false)} centered contentClassName="border-0 rounded-4 shadow-lg">
         <Modal.Header closeButton className="border-0 pb-0 mt-3 mx-2">
           <Modal.Title className="fw-bold">Payment Details</Modal.Title>
         </Modal.Header>
@@ -420,7 +428,7 @@ const EmployeeDashboard = () => {
       </Modal>
 
       {/* Image Preview Modal */}
-      <Modal show={!!previewImage} onHide={() => setPreviewImage(null)} centered size="lg" contentClassName="border-0 rounded-4 shadow-lg bg-transparent">
+      <Modal backdrop="static" show={!!previewImage} onHide={() => setPreviewImage(null)} centered size="lg" contentClassName="border-0 rounded-4 shadow-lg bg-transparent">
         <Modal.Body className="p-0 text-center position-relative">
           <Button 
             variant="dark" 

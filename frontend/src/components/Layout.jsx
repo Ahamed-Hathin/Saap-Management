@@ -98,7 +98,7 @@ const Layout = ({ children }) => {
       </Row>
 
       {/* Styled Logout Confirmation Modal */}
-      <Modal show={showLogoutModal} onHide={() => setShowLogoutModal(false)} centered size="sm" contentClassName="border-0 rounded-4 shadow-lg">
+      <Modal backdrop="static" show={showLogoutModal} onHide={() => setShowLogoutModal(false)} centered size="sm" contentClassName="border-0 rounded-4 shadow-lg">
         <Modal.Body className="p-4 text-center">
           <div className="mb-3 d-flex justify-content-center">
             <div className="bg-danger bg-opacity-10 text-danger p-2 rounded-circle d-flex align-items-center justify-content-center" style={{ width: '60px', height: '60px' }}>

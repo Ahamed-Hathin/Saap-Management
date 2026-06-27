@@ -1,7 +1,7 @@
 const User = require('../models/User');
 
 const getEmployees = async (req, res) => {
-  const users = await User.find({ role: 'Employee' }).select('-password');
+  const users = await User.find({ role: { $in: ['Employee', 'Admin'] } }).select('-password');
   res.json(users);
 };
 

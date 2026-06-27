@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import Layout from '../components/Layout';
-import { Card, Row, Col, Badge, Form, Button, Alert } from 'react-bootstrap';
+import { Card, Row, Col, Badge, Form, Button, Alert, Modal } from 'react-bootstrap';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
@@ -222,7 +222,7 @@ const OrderDetails = () => {
       </Row>
 
       {/* Image Preview Modal */}
-      <Modal show={!!previewImage} onHide={() => setPreviewImage(null)} centered size="lg" contentClassName="border-0 rounded-4 shadow-lg bg-transparent">
+      <Modal backdrop="static" show={!!previewImage} onHide={() => setPreviewImage(null)} centered size="lg" contentClassName="border-0 rounded-4 shadow-lg bg-transparent">
         <Modal.Body className="p-0 text-center position-relative">
           <Button 
             variant="dark" 
