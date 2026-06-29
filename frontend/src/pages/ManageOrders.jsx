@@ -3,7 +3,8 @@ import Layout from '../components/Layout';
 import { Card, Table, Button, Modal, Form, Alert, Badge, Dropdown } from 'react-bootstrap';
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
 import Swal from 'sweetalert2';
 
 const ManageOrders = () => {
@@ -143,6 +144,69 @@ const ManageOrders = () => {
       console.error('Error saving payment:', err);
       Swal.fire('Error', 'Error saving payment', 'error');
     }
+  };
+
+  const handleDownloadPDF = (order, index) => {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(22);
+    doc.setFont("helvetica", "bold");
+    doc.text('Order Invoice', 105, 25, { align: 'center' });
+    
+    doc.setLineWidth(0.5);
+    doc.line(20, 30, 190, 30);
+    
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    
+    const serialNum = order.serialNumber || (orders.length - index);
+    const methodStr = (order.paymentMethod && order.paymentMethod !== 'None') ? ` (${order.paymentMethod})` : '';
+    const balance = (order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0);
+
+    let startY = 45;
+    const lineHeight = 10;
+    
+    // Details
+    doc.setFont("helvetica", "bold"); doc.text('SI Number:', 20, startY);
+    doc.setFont("helvetica", "normal"); doc.text(String(serialNum), 65, startY);
+    startY += lineHeight;
+
+    doc.setFont("helvetica", "bold"); doc.text('Client Name:', 20, startY);
+    doc.setFont("helvetica", "normal"); doc.text(order.clientName || '-', 65, startY);
+    startY += lineHeight;
+
+    doc.setFont("helvetica", "bold"); doc.text('Mobile Number:', 20, startY);
+    doc.setFont("helvetica", "normal"); doc.text(order.mobileNumber || '-', 65, startY);
+    startY += lineHeight;
+
+    doc.setFont("helvetica", "bold"); doc.text('Job / Card Type:', 20, startY);
+    doc.setFont("helvetica", "normal"); doc.text(order.cardType || '-', 65, startY);
+    startY += lineHeight;
+
+    doc.setFont("helvetica", "bold"); doc.text('Description:', 20, startY);
+    doc.setFont("helvetica", "normal");
+    const splitDesc = doc.splitTextToSize(order.description || '-', 120);
+    doc.text(splitDesc, 65, startY);
+    startY += (splitDesc.length * 6) + 5; 
+
+    // Payment Section
+    doc.setLineWidth(0.2);
+    doc.line(20, startY, 190, startY);
+    startY += 10;
+    
+    doc.setFont("helvetica", "bold");
+    doc.text('Payment Summary', 20, startY);
+    startY += 8;
+
+    doc.setFont("helvetica", "normal");
+    doc.text(`Total Amount: Rs. ${order.totalAmount || 0}`, 20, startY);
+    startY += 8;
+    doc.text(`Advance Paid: Rs. ${order.advanceAmount || 0}${methodStr}`, 20, startY);
+    startY += 8;
+    doc.setFont("helvetica", "bold");
+    doc.text(`Balance Amount: Rs. ${balance}`, 20, startY);
+    
+    doc.save(`Order_${serialNum}_${order.clientName.replace(/\s+/g, '_')}.pdf`);
   };
 
   const statusOptions = settings?.orderStatuses || ['Printing', 'Cutting', 'Ready To Dispatch', 'Delivered'];
@@ -314,6 +378,9 @@ const ManageOrders = () => {
                           <Link to={`/orders/${order._id}`}>
                             <Button variant="outline-primary" size="sm" className="fw-medium">View / Edit</Button>
                           </Link>
+                          <Button variant="outline-info" size="sm" onClick={() => handleDownloadPDF(order, index)} title="Download PDF">
+                            <Download size={16} />
+                          </Button>
                           <Button variant="outline-danger" size="sm" onClick={() => handleDelete(order._id)}>
                             <Trash2 size={16} />
                           </Button>
@@ -402,6 +469,9 @@ const ManageOrders = () => {
                       <Link to={`/orders/${order._id}`} className="flex-grow-1">
                         <Button variant="outline-primary" size="sm" className="w-100 fw-medium">View / Edit</Button>
                       </Link>
+                      <Button variant="outline-info" size="sm" onClick={() => handleDownloadPDF(order, orders.indexOf(order))} title="Download PDF">
+                        <Download size={16} />
+                      </Button>
                       <Button variant="outline-danger" size="sm" onClick={() => handleDelete(order._id)}>
                         <Trash2 size={16} />
                       </Button>
