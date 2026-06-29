@@ -14,6 +14,10 @@ const orderSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    description: {
+      type: String,
+      default: '',
+    },
     advanceAmount: {
       type: Number,
       required: true,

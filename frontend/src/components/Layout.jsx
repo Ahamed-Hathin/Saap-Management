@@ -45,6 +45,12 @@ const Layout = ({ children }) => {
                 <NavLink to="/employee/orders" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                   <ShoppingCart className="me-3" size={20} /> My Orders
                 </NavLink>
+                <NavLink to="/employee/superior-1" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                  <Users className="me-3" size={20} /> Superior 1
+                </NavLink>
+                <NavLink to="/employee/superior-2" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                  <Users className="me-3" size={20} /> Superior 2
+                </NavLink>
                 <NavLink to="/employee/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                   <Settings className="me-3" size={20} /> Settings
                 </NavLink>
@@ -86,6 +92,14 @@ const Layout = ({ children }) => {
                 <NavLink to="/employee/orders" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
                   <ShoppingCart size={24} className="d-block mx-auto mb-1" />
                   <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>My Orders</span>
+                </NavLink>
+                <NavLink to="/employee/superior-1" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
+                  <Users size={24} className="d-block mx-auto mb-1" />
+                  <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Superior 1</span>
+                </NavLink>
+                <NavLink to="/employee/superior-2" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
+                  <Users size={24} className="d-block mx-auto mb-1" />
+                  <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Superior 2</span>
                 </NavLink>
                 <NavLink to="/employee/settings" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
                   <Settings size={24} className="d-block mx-auto mb-1" />

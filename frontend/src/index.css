@@ -120,11 +120,11 @@ body {
   font-size: 0.75rem;
   letter-spacing: 0.5px;
   border-bottom: 2px solid var(--border-color);
-  padding: 16px;
+  padding: 10px 8px;
 }
 
 .table-custom tbody td {
-  padding: 16px;
+  padding: 10px 8px;
   color: var(--text-primary);
   font-weight: 500;
   border-bottom: 1px solid var(--border-color);
@@ -202,4 +202,15 @@ body {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Hide number input arrows/spinners */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
 }

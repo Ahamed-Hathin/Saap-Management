@@ -13,6 +13,7 @@ const createOrder = async (req, res) => {
       advanceReceived,
       paymentMethod,
       printingCompany,
+      description,
     } = req.body;
 
     let assignedEmployeeId = assignedEmployee;
@@ -32,6 +33,7 @@ const createOrder = async (req, res) => {
       advanceReceived: isAdvanceReceived,
       paymentMethod,
       printingCompany,
+      description,
     });
 
     const createdOrder = await order.save();
@@ -46,6 +48,15 @@ const getOrders = async (req, res) => {
     const orders = await Order.find({}).sort({ updatedAt: -1 }).populate('assignedEmployee', 'name username');
     res.json(orders);
   } else {
+    if (req.query.superior) {
+      const superiorUser = await require('../models/User').findOne({ name: { $regex: new RegExp(`^${req.query.superior}$`, 'i') } });
+      if (superiorUser) {
+        const orders = await Order.find({ assignedEmployee: superiorUser._id }).sort({ updatedAt: -1 }).populate('assignedEmployee', 'name username');
+        return res.json(orders);
+      } else {
+        return res.json([]);
+      }
+    }
     const orders = await Order.find({ assignedEmployee: req.user._id }).sort({ updatedAt: -1 }).populate('assignedEmployee', 'name username');
     res.json(orders);
   }
@@ -55,7 +66,10 @@ const getOrderById = async (req, res) => {
   const order = await Order.findById(req.params.id).populate('assignedEmployee', 'name username');
 
   if (order) {
-    if (req.user.role === 'Admin' || order.assignedEmployee._id.toString() === req.user._id.toString()) {
+    const assignedName = order.assignedEmployee ? order.assignedEmployee.name.toLowerCase() : '';
+    const isSuperior = assignedName.includes('superior 1') || assignedName.includes('superior 2');
+    
+    if (req.user.role === 'Admin' || (order.assignedEmployee && order.assignedEmployee._id.toString() === req.user._id.toString()) || isSuperior) {
       res.json(order);
     } else {
       res.status(401).json({ message: 'Not authorized to view this order' });
@@ -66,10 +80,13 @@ const getOrderById = async (req, res) => {
 };
 
 const updateOrderStatus = async (req, res) => {
-  const order = await Order.findById(req.params.id);
+  const order = await Order.findById(req.params.id).populate('assignedEmployee');
 
   if (order) {
-    if (req.user.role === 'Admin' || order.assignedEmployee.toString() === req.user._id.toString()) {
+    const assignedName = order.assignedEmployee ? order.assignedEmployee.name.toLowerCase() : '';
+    const isSuperior = assignedName.includes('superior 1') || assignedName.includes('superior 2');
+
+    if (req.user.role === 'Admin' || (order.assignedEmployee && order.assignedEmployee._id.toString() === req.user._id.toString()) || isSuperior) {
       order.status = req.body.status || order.status;
       order.advanceReceived = req.body.paymentReceived !== undefined ? req.body.paymentReceived : order.advanceReceived;
       order.advanceAmount = req.body.advanceAmount !== undefined ? req.body.advanceAmount : order.advanceAmount;

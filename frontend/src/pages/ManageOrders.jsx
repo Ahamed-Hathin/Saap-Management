@@ -28,7 +28,8 @@ const ManageOrders = () => {
     assignedEmployee: '',
     advanceReceived: false,
     paymentMethod: '',
-    printingCompany: ''
+    printingCompany: '',
+    description: ''
   });
 
   const getImageUrl = (imagePath) => {
@@ -58,7 +59,7 @@ const ManageOrders = () => {
   const handleShow = () => {
     setFormData({
       clientName: '', mobileNumber: '', cardType: '', advanceAmount: '', totalAmount: '',
-      assignedEmployee: '', advanceReceived: false, paymentMethod: '', printingCompany: ''
+      assignedEmployee: '', advanceReceived: false, paymentMethod: '', printingCompany: '', description: ''
     });
     setFile(null);
     setError('');
@@ -217,14 +218,15 @@ const ManageOrders = () => {
               <Table className="table-custom mb-0 align-middle d-none d-md-table">
                 <thead>
                   <tr>
-                    <th className="text-nowrap">S.No</th>
+                    <th>S.No</th>
                     <th>Customer Name</th>
-                    <th className="text-nowrap">Number</th>
+                    <th>Number</th>
                     <th>Job</th>
                     <th>Image</th>
+                    <th>Description</th>
                     <th>Printing Method</th>
-                    <th className="text-nowrap">Status</th>
-                    <th className="text-nowrap">Payment</th>
+                    <th>Status</th>
+                    <th>Payment</th>
                     <th>Update By</th>
                     <th className="text-end">Actions</th>
                   </tr>
@@ -232,9 +234,9 @@ const ManageOrders = () => {
                 <tbody>
                   {displayedOrders.map((order, index) => (
                     <tr key={order._id}>
-                      <td className="text-nowrap">{index + 1}</td>
+                      <td>{index + 1}</td>
                       <td>{order.clientName}</td>
-                      <td className="text-nowrap">{order.mobileNumber}</td>
+                      <td>{order.mobileNumber}</td>
                       <td className="text-capitalize">{order.cardType}</td>
                       <td>
                         {order.designImage ? (
@@ -246,13 +248,25 @@ const ManageOrders = () => {
                           />
                         ) : '-'}
                       </td>
+                      <td 
+                        style={{ cursor: order.description ? 'pointer' : 'default', maxWidth: '120px' }} 
+                        className="text-truncate"
+                        onClick={() => {
+                          if (order.description) {
+                            Swal.fire({ title: 'Description', text: order.description, icon: 'info' });
+                          }
+                        }}
+                        title={order.description ? "Click to view full description" : ""}
+                      >
+                        {order.description || '-'}
+                      </td>
                       <td>{order.printingCompany !== 'None' ? order.printingCompany : '-'}</td>
-                      <td className="text-nowrap">
-                        <span className={`badge-custom badge-${order.status === 'Delivered' ? 'success' : 'primary'} text-nowrap`}>
+                      <td>
+                        <span className={`badge-custom badge-${order.status === 'Delivered' ? 'success' : 'primary'}`}>
                           {order.status}
                         </span>
                       </td>
-                      <td className="text-nowrap">
+                      <td>
                         <div className="small fw-bold mb-1">
                           {((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0)) > 0 ? (
                             <span className="text-danger">₹{((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0))} Pending</span>
@@ -301,7 +315,7 @@ const ManageOrders = () => {
                             </Dropdown.Menu>
                           </Dropdown>
                           <Link to={`/orders/${order._id}`}>
-                            <Button variant="outline-primary" size="sm" className="fw-medium text-nowrap">View / Edit</Button>
+                            <Button variant="outline-primary" size="sm" className="fw-medium">View / Edit</Button>
                           </Link>
                           <Button variant="outline-danger" size="sm" onClick={() => handleDelete(order._id)}>
                             <Trash2 size={16} />
@@ -334,6 +348,11 @@ const ManageOrders = () => {
                       </div>
                     )}
                     <div className="text-muted small mb-2">
+                      <strong>Mobile:</strong> {order.mobileNumber || '-'}<br />
+                      <strong>Job:</strong> <span className="text-capitalize">{order.cardType || '-'}</span><br />
+                      {order.description && (
+                        <><strong>Description:</strong> <span style={{cursor: 'pointer', color: 'blue', textDecoration: 'underline'}} onClick={() => Swal.fire({ title: 'Description', text: order.description, icon: 'info' })}>{order.description.length > 30 ? order.description.substring(0, 30) + '...' : order.description}</span><br /></>
+                      )}
                       <strong>Assigned To:</strong> {order.assignedEmployee?.name || 'Unassigned'}<br />
                       <strong>Printing Method:</strong> {order.printingCompany !== 'None' ? order.printingCompany : 'Not Set'}<br />
                       <strong>Total Amount:</strong> ₹{order.totalAmount || 0}<br />
@@ -412,7 +431,7 @@ const ManageOrders = () => {
               </div>
               <div className="col-md-6">
                 <Form.Label>Mobile Number</Form.Label>
-                <Form.Control type="text" required value={formData.mobileNumber} onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })} className="bg-light" />
+                <Form.Control type="text" required minLength={10} maxLength={10} pattern="\d{10}" title="Mobile number must be exactly 10 digits" value={formData.mobileNumber} onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value.replace(/\D/g, '').slice(0, 10) })} className="bg-light" />
               </div>
               <div className="col-12">
                 <Form.Label>Job</Form.Label>
@@ -422,6 +441,10 @@ const ManageOrders = () => {
                     <option key={job} value={job}>{job}</option>
                   ))}
                 </Form.Select>
+              </div>
+              <div className="col-12">
+                <Form.Label>Description (Optional)</Form.Label>
+                <Form.Control as="textarea" rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="bg-light" />
               </div>
               <div className="col-12">
                 <Form.Label>Design Image (Optional)</Form.Label>

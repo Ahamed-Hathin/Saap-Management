@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Row, Col, Card, Table, Badge, Button, Modal, Form, Alert } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import { ShoppingBag, CheckCircle, Clock, Plus } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 const EmployeeDashboard = () => {
+  const location = useLocation();
   const [orders, setOrders] = useState([]);
   const [settings, setSettings] = useState({ jobTypes: ['Visiting Card', 'Invitation', 'Offset', 'Screen', 'Digital', 'Lamination'], printingCompanies: ['Elite', 'Impression', 'Zig Zag', 'Vignesh', 'Amutham Flex', 'Chandru Screen', 'Amirtham Binding', 'Saravana Offset', 'Others'] });
   const [showModal, setShowModal] = useState(false);
@@ -25,7 +26,8 @@ const EmployeeDashboard = () => {
     totalAmount: 0,
     advanceReceived: false,
     paymentMethod: 'GPay',
-    printingCompany: settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite'
+    printingCompany: settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite',
+    description: ''
   });
 
   const getImageUrl = (imagePath) => {
@@ -37,7 +39,13 @@ const EmployeeDashboard = () => {
 
   const fetchData = async () => {
     try {
-      const ordersRes = await api.get('/orders');
+      let endpoint = '/orders';
+      if (location.pathname.includes('/superior-1')) {
+        endpoint = '/orders?superior=superior%201';
+      } else if (location.pathname.includes('/superior-2')) {
+        endpoint = '/orders?superior=superior%202';
+      }
+      const ordersRes = await api.get(endpoint);
       setOrders(ordersRes.data);
       const setRes = await api.get('/settings');
       if (setRes.data) setSettings(setRes.data);
@@ -48,12 +56,12 @@ const EmployeeDashboard = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [location.pathname]);
 
   const handleShow = () => {
     setFormData({
       clientName: '', mobileNumber: '', cardType: settings.jobTypes.length > 0 ? settings.jobTypes[0] : 'Visiting Card', advanceAmount: 0, totalAmount: 0,
-      advanceReceived: false, paymentMethod: 'GPay', printingCompany: settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite'
+      advanceReceived: false, paymentMethod: 'GPay', printingCompany: settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite', description: ''
     });
     setFile(null);
     setError('');
@@ -141,7 +149,9 @@ const EmployeeDashboard = () => {
     <Layout>
       <div className="d-flex justify-content-between align-items-center mb-5">
         <div>
-          <h2 className="mb-1 fw-bold">My Orders</h2>
+          <h2 className="mb-1 fw-bold">
+            {location.pathname.includes('/superior-1') ? 'Superior 1 Orders' : location.pathname.includes('/superior-2') ? 'Superior 2 Orders' : 'My Orders'}
+          </h2>
           <p className="text-muted mb-0">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
         <Button variant="primary" onClick={handleShow} className="d-flex align-items-center">
@@ -167,11 +177,12 @@ const EmployeeDashboard = () => {
                     <th>Client Name</th>
                     <th>Job</th>
                     <th>Image</th>
+                    <th>Description</th>
                     <th>Printing Method</th>
-                    <th className="text-nowrap">Payment</th>
-                    <th className="text-nowrap">Status</th>
-                    <th className="text-nowrap">Date</th>
-                    <th className="text-end text-nowrap">Actions</th>
+                    <th>Payment</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th className="text-end">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -189,8 +200,20 @@ const EmployeeDashboard = () => {
                             />
                           ) : '-'}
                         </td>
+                        <td 
+                          style={{ cursor: order.description ? 'pointer' : 'default', maxWidth: '120px' }} 
+                          className="text-truncate"
+                          onClick={() => {
+                            if (order.description) {
+                              Swal.fire({ title: 'Description', text: order.description, icon: 'info' });
+                            }
+                          }}
+                          title={order.description ? "Click to view full description" : ""}
+                        >
+                          {order.description || '-'}
+                        </td>
                         <td>{order.printingCompany !== 'None' ? order.printingCompany : '-'}</td>
-                      <td className="text-nowrap">
+                      <td>
                         <div className="small fw-bold mb-1">
                           {((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0)) > 0 ? (
                             <span className="text-danger">₹{((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0))} Pending</span>
@@ -219,19 +242,19 @@ const EmployeeDashboard = () => {
                           </Form.Select>
                         )}
                       </td>
-                      <td className="text-nowrap">
-                        <span className={`badge-custom badge-${order.status === 'Delivered' ? 'success' : 'warning'} text-nowrap`}>
+                      <td>
+                        <span className={`badge-custom badge-${order.status === 'Delivered' ? 'success' : 'warning'}`}>
                           {order.status}
                         </span>
                       </td>
-                      <td className="text-nowrap">{new Date(order.createdAt).toLocaleDateString()}</td>
-                      <td className="text-end text-nowrap">
+                      <td>{new Date(order.createdAt).toLocaleDateString()}</td>
+                      <td className="text-end">
                         <Form.Select
                           size="sm"
                           value={order.status}
                           onChange={(e) => handleStatusChange(order._id, e.target.value)}
                           className="fw-medium border-primary text-primary shadow-sm"
-                          style={{ cursor: 'pointer', backgroundColor: 'transparent' }}
+                          style={{ cursor: 'pointer', backgroundColor: 'transparent', maxWidth: '140px' }}
                         >
                           {statusOptions.map(opt => (
                             <option key={opt} value={opt} className="text-dark">{opt}</option>
@@ -264,7 +287,11 @@ const EmployeeDashboard = () => {
                       </div>
                     )}
                     <div className="text-muted small mb-3">
-                      <strong>Job:</strong> {order.cardType}<br />
+                      <strong>Mobile:</strong> {order.mobileNumber || '-'}<br />
+                      <strong>Job:</strong> <span className="text-capitalize">{order.cardType || '-'}</span><br />
+                      {order.description && (
+                        <><strong>Description:</strong> <span style={{cursor: 'pointer', color: 'blue', textDecoration: 'underline'}} onClick={() => Swal.fire({ title: 'Description', text: order.description, icon: 'info' })}>{order.description.length > 30 ? order.description.substring(0, 30) + '...' : order.description}</span><br /></>
+                      )}
                       <strong>Printing Method:</strong> {order.printingCompany !== 'None' ? order.printingCompany : 'Not Set'}<br />
                       <strong>Total Amount:</strong> ₹{order.totalAmount || 0}<br />
                       <strong>Advance Paid:</strong> {order.advanceAmount > 0 ? `₹${order.advanceAmount} (${order.paymentMethod || 'None'})` : 'No'}<br />
@@ -330,7 +357,7 @@ const EmployeeDashboard = () => {
               </div>
               <div className="col-md-6">
                 <Form.Label>Mobile Number</Form.Label>
-                <Form.Control type="text" required value={formData.mobileNumber} onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })} className="bg-light" />
+                <Form.Control type="text" required minLength={10} maxLength={10} pattern="\d{10}" title="Mobile number must be exactly 10 digits" value={formData.mobileNumber} onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value.replace(/\D/g, '').slice(0, 10) })} className="bg-light" />
               </div>
               <div className="col-12">
                 <Form.Label>Job</Form.Label>
@@ -339,6 +366,10 @@ const EmployeeDashboard = () => {
                     <option key={job} value={job}>{job}</option>
                   ))}
                 </Form.Select>
+              </div>
+              <div className="col-12">
+                <Form.Label>Description (Optional)</Form.Label>
+                <Form.Control as="textarea" rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="bg-light" />
               </div>
               <div className="col-12">
                 <Form.Label>Design Image (Optional)</Form.Label>

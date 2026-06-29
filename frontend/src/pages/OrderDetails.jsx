@@ -116,6 +116,12 @@ const OrderDetails = () => {
                 <Col sm={4} className="text-muted">Printing Method</Col>
                 <Col sm={8}>{order.printingCompany !== 'None' ? order.printingCompany : 'Not Set'}</Col>
               </Row>
+              {order.description && (
+                <Row className="mb-3">
+                  <Col sm={4} className="text-muted">Description</Col>
+                  <Col sm={8} style={{ whiteSpace: 'pre-line' }}>{order.description}</Col>
+                </Row>
+              )}
 
               <h5 className="mt-5 fw-bold mb-4">Payment Information</h5>
               <Row className="mb-3">
