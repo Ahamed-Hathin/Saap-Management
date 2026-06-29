@@ -145,7 +145,7 @@ const ManageOrders = () => {
     }
   };
 
-  const statusOptions = ['Printing', 'Cutting', 'Ready To Dispatch', 'Delivered'];
+  const statusOptions = settings?.orderStatuses || ['Printing', 'Cutting', 'Ready To Dispatch', 'Delivered'];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -225,7 +225,6 @@ const ManageOrders = () => {
                     <th>Image</th>
                     <th>Description</th>
                     <th>Printing Method</th>
-                    <th>Status</th>
                     <th>Payment</th>
                     <th>Update By</th>
                     <th className="text-end">Actions</th>
@@ -262,11 +261,6 @@ const ManageOrders = () => {
                       </td>
                       <td>{order.printingCompany !== 'None' ? order.printingCompany : '-'}</td>
                       <td>
-                        <span className={`badge-custom badge-${order.status === 'Delivered' ? 'success' : 'primary'}`}>
-                          {order.status}
-                        </span>
-                      </td>
-                      <td>
                         <div className="small fw-bold mb-1">
                           {((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0)) > 0 ? (
                             <span className="text-danger">₹{((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0))} Pending</span>
@@ -291,6 +285,9 @@ const ManageOrders = () => {
                             style={{ minWidth: '90px' }}
                           >
                             <option value="GPay">GPay</option>
+                            <option value="B-Gpay">B-Gpay</option>
+                            <option value="KVB">KVB</option>
+                            <option value="Dtdc Wallet">Dtdc Wallet</option>
                             <option value="Cash">Cash</option>
                           </Form.Select>
                         )}
@@ -299,8 +296,8 @@ const ManageOrders = () => {
                       <td className="text-end">
                         <div className="d-flex flex-wrap justify-content-end align-items-center gap-2">
                           <Dropdown>
-                            <Dropdown.Toggle variant="outline-success" size="sm" className="fw-medium shadow-sm">
-                              Update Status
+                            <Dropdown.Toggle variant={order.status === 'Delivered' ? 'success' : 'outline-success'} size="sm" className="fw-medium shadow-sm">
+                              {order.status || 'Update Status'}
                             </Dropdown.Toggle>
                             <Dropdown.Menu>
                               {statusOptions.map(opt => (
@@ -333,9 +330,6 @@ const ManageOrders = () => {
                   <div key={order._id} className="p-3 border-bottom">
                     <div className="d-flex justify-content-between align-items-start mb-2">
                       <h6 className="fw-bold mb-0">{order.clientName}</h6>
-                      <span className={`badge-custom badge-${order.status === 'Completed' || order.status === 'Delivered' ? 'success' : 'primary'}`}>
-                        {order.status}
-                      </span>
                     </div>
                     {order.designImage && (
                       <div className="mb-2">
@@ -380,6 +374,9 @@ const ManageOrders = () => {
                             className="w-auto"
                           >
                             <option value="GPay">GPay</option>
+                            <option value="B-Gpay">B-Gpay</option>
+                            <option value="KVB">KVB</option>
+                            <option value="Dtdc Wallet">Dtdc Wallet</option>
                             <option value="Cash">Cash</option>
                           </Form.Select>
                         )}
@@ -387,8 +384,8 @@ const ManageOrders = () => {
                     </div>
                     <div className="d-flex flex-wrap gap-2 mt-2">
                       <Dropdown className="flex-grow-1" drop="up">
-                        <Dropdown.Toggle variant="outline-success" size="sm" className="w-100 fw-medium shadow-sm">
-                          Update Status
+                        <Dropdown.Toggle variant={order.status === 'Delivered' ? 'success' : 'outline-success'} size="sm" className="w-100 fw-medium shadow-sm">
+                          {order.status || 'Update Status'}
                         </Dropdown.Toggle>
                         <Dropdown.Menu className="w-100">
                           {statusOptions.map(opt => (
@@ -486,6 +483,9 @@ const ManageOrders = () => {
                     <Form.Select value={formData.paymentMethod} onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })} className="bg-light">
                       <option value="">Select Payment Method</option>
                       <option value="GPay">GPay</option>
+                      <option value="B-Gpay">B-Gpay</option>
+                      <option value="KVB">KVB</option>
+                      <option value="Dtdc Wallet">Dtdc Wallet</option>
                       <option value="Cash">Cash</option>
                     </Form.Select>
                   </div>
@@ -536,6 +536,9 @@ const ManageOrders = () => {
               >
                 <option value="">Select Payment Method</option>
                 <option value="GPay">GPay</option>
+                <option value="B-Gpay">B-Gpay</option>
+                <option value="KVB">KVB</option>
+                <option value="Dtdc Wallet">Dtdc Wallet</option>
                 <option value="Cash">Cash</option>
               </Form.Select>
             </Form.Group>

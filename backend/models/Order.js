@@ -49,12 +49,6 @@ const orderSchema = mongoose.Schema(
     status: {
       type: String,
       required: true,
-      enum: [
-        'Printing',
-        'Cutting',
-        'Ready To Dispatch',
-        'Delivered',
-      ],
       default: 'Printing',
     },
     advanceReceived: {
@@ -64,7 +58,7 @@ const orderSchema = mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ['None', 'GPay', 'B-Gpay', 'Cash'],
+      enum: ['None', 'GPay', 'B-Gpay', 'KVB', 'Dtdc Wallet', 'Cash'],
       default: 'None',
     },
     printingCompany: {

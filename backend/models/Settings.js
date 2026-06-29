@@ -10,6 +10,10 @@ const settingsSchema = mongoose.Schema(
       type: [String],
       default: ['Elite', 'Impression', 'Zig Zag', 'Vignesh', 'Amutham Flex', 'Chandru Screen', 'Amirtham Binding', 'Saravana Offset', 'Others'],
     },
+    orderStatuses: {
+      type: [String],
+      default: ['Printing', 'Cutting', 'Ready To Dispatch', 'Delivered'],
+    },
   },
   {
     timestamps: true,

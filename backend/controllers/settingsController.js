@@ -22,6 +22,7 @@ const updateSettings = async (req, res) => {
 
   settings.jobTypes = req.body.jobTypes || settings.jobTypes;
   settings.printingCompanies = req.body.printingCompanies || settings.printingCompanies;
+  settings.orderStatuses = req.body.orderStatuses || settings.orderStatuses;
 
   const updatedSettings = await settings.save();
   res.json(updatedSettings);

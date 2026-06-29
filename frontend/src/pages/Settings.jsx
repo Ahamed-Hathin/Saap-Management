@@ -19,11 +19,13 @@ const Settings = () => {
 
   const [settings, setSettings] = useState({
     jobTypes: [],
-    printingCompanies: []
+    printingCompanies: [],
+    orderStatuses: []
   });
 
   const [newJobType, setNewJobType] = useState('');
   const [newPrintingCompany, setNewPrintingCompany] = useState('');
+  const [newOrderStatus, setNewOrderStatus] = useState('');
 
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -128,6 +130,18 @@ const Settings = () => {
   const handleRemovePrintingCompany = (company) => {
     const updated = settings.printingCompanies.filter(c => c !== company);
     updateSettingsAPI({ printingCompanies: updated });
+  };
+
+  const handleAddOrderStatus = () => {
+    if (!newOrderStatus.trim()) return;
+    if (settings.orderStatuses?.includes(newOrderStatus.trim())) return;
+    updateSettingsAPI({ orderStatuses: [...(settings.orderStatuses || []), newOrderStatus.trim()] });
+    setNewOrderStatus('');
+  };
+
+  const handleRemoveOrderStatus = (status) => {
+    const updated = (settings.orderStatuses || []).filter(s => s !== status);
+    updateSettingsAPI({ orderStatuses: updated });
   };
 
   const handleLogout = () => {
@@ -315,6 +329,34 @@ const Settings = () => {
                   ))}
                   {settings.printingCompanies.length === 0 && (
                     <ListGroup.Item className="text-muted text-center border-light">No printing methods configured.</ListGroup.Item>
+                  )}
+                </ListGroup>
+
+                {/* Order Statuses */}
+                <h6 className="fw-bold mb-3 mt-5">Order Statuses</h6>
+                <InputGroup className="mb-3">
+                  <Form.Control
+                    placeholder="New order status..."
+                    value={newOrderStatus}
+                    onChange={(e) => setNewOrderStatus(e.target.value)}
+                    className="bg-light"
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddOrderStatus()}
+                  />
+                  <Button variant="outline-primary" onClick={handleAddOrderStatus} className="d-flex align-items-center">
+                    <Plus size={18} />
+                  </Button>
+                </InputGroup>
+                <ListGroup className="shadow-sm rounded-3">
+                  {(settings.orderStatuses || []).map((status, index) => (
+                    <ListGroup.Item key={index} className="d-flex justify-content-between align-items-center border-light">
+                      {status}
+                      <Button variant="link" className="text-danger p-0 m-0" onClick={() => handleRemoveOrderStatus(status)}>
+                        <Trash2 size={16} />
+                      </Button>
+                    </ListGroup.Item>
+                  ))}
+                  {(!settings.orderStatuses || settings.orderStatuses.length === 0) && (
+                    <ListGroup.Item className="text-muted text-center border-light">No order statuses configured.</ListGroup.Item>
                   )}
                 </ListGroup>
               </Card.Body>

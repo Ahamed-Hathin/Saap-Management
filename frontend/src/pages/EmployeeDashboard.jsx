@@ -140,9 +140,7 @@ const EmployeeDashboard = () => {
     }
   };
 
-  const statusOptions = [
-    'Printing', 'Cutting', 'Ready To Dispatch', 'Delivered'
-  ];
+  const statusOptions = settings?.orderStatuses || ['Printing', 'Cutting', 'Ready To Dispatch', 'Delivered'];
 
   return (
     <Layout>
@@ -179,7 +177,6 @@ const EmployeeDashboard = () => {
                     <th>Description</th>
                     <th>Printing Method</th>
                     <th>Payment</th>
-                    <th>Status</th>
                     <th>Date</th>
                     <th className="text-end">Actions</th>
                   </tr>
@@ -237,14 +234,12 @@ const EmployeeDashboard = () => {
                             style={{ minWidth: '90px' }}
                           >
                             <option value="GPay">GPay</option>
-                            <option value="Cash">Cash</option>
+<option value="B-Gpay">B-Gpay</option>
+<option value="KVB">KVB</option>
+<option value="Dtdc Wallet">Dtdc Wallet</option>
+<option value="Cash">Cash</option>
                           </Form.Select>
                         )}
-                      </td>
-                      <td>
-                        <span className={`badge-custom badge-${order.status === 'Delivered' ? 'success' : 'warning'}`}>
-                          {order.status}
-                        </span>
                       </td>
                       <td>{new Date(order.createdAt).toLocaleDateString()}</td>
                       <td className="text-end">
@@ -271,9 +266,6 @@ const EmployeeDashboard = () => {
                   <div key={order._id} className="p-3 border-bottom">
                     <div className="d-flex justify-content-between align-items-start mb-2">
                       <h6 className="fw-bold mb-0">{order.clientName}</h6>
-                      <span className={`badge-custom badge-${order.status === 'Delivered' ? 'success' : 'warning'}`}>
-                        {order.status}
-                      </span>
                     </div>
                     {order.designImage && (
                       <div className="mb-2">
@@ -317,7 +309,10 @@ const EmployeeDashboard = () => {
                             className="w-auto"
                           >
                             <option value="GPay">GPay</option>
-                            <option value="Cash">Cash</option>
+<option value="B-Gpay">B-Gpay</option>
+<option value="KVB">KVB</option>
+<option value="Dtdc Wallet">Dtdc Wallet</option>
+<option value="Cash">Cash</option>
                           </Form.Select>
                         )}
                       </div>
@@ -399,6 +394,9 @@ const EmployeeDashboard = () => {
                     <Form.Label>Payment Method</Form.Label>
                     <Form.Select value={formData.paymentMethod} onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })} className="bg-light">
                       <option value="GPay">GPay</option>
+                      <option value="B-Gpay">B-Gpay</option>
+                      <option value="KVB">KVB</option>
+                      <option value="Dtdc Wallet">Dtdc Wallet</option>
                       <option value="Cash">Cash</option>
                     </Form.Select>
                   </div>
@@ -446,6 +444,9 @@ const EmployeeDashboard = () => {
                 className="bg-light"
               >
                 <option value="GPay">GPay</option>
+                <option value="B-Gpay">B-Gpay</option>
+                <option value="KVB">KVB</option>
+                <option value="Dtdc Wallet">Dtdc Wallet</option>
                 <option value="Cash">Cash</option>
               </Form.Select>
             </Form.Group>

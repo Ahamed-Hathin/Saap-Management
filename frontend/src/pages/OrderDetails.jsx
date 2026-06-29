@@ -19,9 +19,7 @@ const OrderDetails = () => {
   const [message, setMessage] = useState('');
   const [previewImage, setPreviewImage] = useState(null);
 
-  const statusOptions = [
-    'Printing', 'Cutting', 'Ready To Dispatch', 'Delivered'
-  ];
+  const statusOptions = settings?.orderStatuses || ['Printing', 'Cutting', 'Ready To Dispatch', 'Delivered'];
 
   const getImageUrl = (imagePath) => {
     if (!imagePath) return '';
@@ -207,7 +205,10 @@ const OrderDetails = () => {
                         <Form.Label>Payment Method</Form.Label>
                         <Form.Select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="bg-light">
                         <option value="GPay">GPay</option>
-                          <option value="Cash">Cash</option>
+                        <option value="B-Gpay">B-Gpay</option>
+                        <option value="KVB">KVB</option>
+                        <option value="Dtdc Wallet">Dtdc Wallet</option>
+                        <option value="Cash">Cash</option>
                         </Form.Select>
                       </Form.Group>
                     )}
