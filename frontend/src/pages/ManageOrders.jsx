@@ -234,7 +234,7 @@ const ManageOrders = () => {
                 <tbody>
                   {displayedOrders.map((order, index) => (
                     <tr key={order._id}>
-                      <td>{index + 1}</td>
+                      <td>{order.serialNumber || (orders.length - index)}</td>
                       <td>{order.clientName}</td>
                       <td>{order.mobileNumber}</td>
                       <td className="text-capitalize">{order.cardType}</td>
@@ -253,7 +253,7 @@ const ManageOrders = () => {
                         className="text-truncate"
                         onClick={() => {
                           if (order.description) {
-                            Swal.fire({ title: 'Description', text: order.description, icon: 'info' });
+                            Swal.fire({ title: 'Description', html: `<div style="text-align: left; font-size: 15px; line-height: 1.5;">${order.description.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}</div>` });
                           }
                         }}
                         title={order.description ? "Click to view full description" : ""}
@@ -351,7 +351,7 @@ const ManageOrders = () => {
                       <strong>Mobile:</strong> {order.mobileNumber || '-'}<br />
                       <strong>Job:</strong> <span className="text-capitalize">{order.cardType || '-'}</span><br />
                       {order.description && (
-                        <><strong>Description:</strong> <span style={{cursor: 'pointer', color: 'blue', textDecoration: 'underline'}} onClick={() => Swal.fire({ title: 'Description', text: order.description, icon: 'info' })}>{order.description.length > 30 ? order.description.substring(0, 30) + '...' : order.description}</span><br /></>
+                        <><strong>Description:</strong> <span style={{cursor: 'pointer', color: 'blue', textDecoration: 'underline'}} onClick={() => Swal.fire({ title: 'Description', html: `<div style="text-align: left; font-size: 15px; line-height: 1.5;">${order.description.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}</div>` })}>{order.description.length > 30 ? order.description.substring(0, 30) + '...' : order.description}</span><br /></>
                       )}
                       <strong>Assigned To:</strong> {order.assignedEmployee?.name || 'Unassigned'}<br />
                       <strong>Printing Method:</strong> {order.printingCompany !== 'None' ? order.printingCompany : 'Not Set'}<br />

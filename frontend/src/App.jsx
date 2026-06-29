@@ -52,8 +52,7 @@ function App() {
 
         {/* Employee Routes */}
         <Route path="/employee/orders" element={<PrivateRoute role="Employee"><EmployeeDashboard /></PrivateRoute>} />
-        <Route path="/employee/superior-1" element={<PrivateRoute role="Employee"><EmployeeDashboard /></PrivateRoute>} />
-        <Route path="/employee/superior-2" element={<PrivateRoute role="Employee"><EmployeeDashboard /></PrivateRoute>} />
+        <Route path="/employee/user/:id" element={<PrivateRoute role="Employee"><EmployeeDashboard /></PrivateRoute>} />
         <Route path="/employee/settings" element={<PrivateRoute role="Employee"><Settings /></PrivateRoute>} />
         
         {/* Shared Routes */}

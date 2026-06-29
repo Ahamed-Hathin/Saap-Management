@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 
 const orderSchema = mongoose.Schema(
   {
+    serialNumber: {
+      type: Number,
+      unique: true
+    },
     clientName: {
       type: String,
       required: true,

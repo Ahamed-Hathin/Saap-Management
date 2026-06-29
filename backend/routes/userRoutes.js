@@ -8,7 +8,7 @@ const {
 } = require('../controllers/userController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
-router.route('/').get(protect, admin, getEmployees).post(protect, admin, createEmployee);
+router.route('/').get(protect, getEmployees).post(protect, admin, createEmployee);
 router
   .route('/:id')
   .put(protect, admin, updateEmployee)

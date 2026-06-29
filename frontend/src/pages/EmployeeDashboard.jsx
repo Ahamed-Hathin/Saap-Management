@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Row, Col, Card, Table, Badge, Button, Modal, Form, Alert } from 'react-bootstrap';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import api from '../services/api';
 import { ShoppingBag, CheckCircle, Clock, Plus } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 const EmployeeDashboard = () => {
   const location = useLocation();
+  const { id } = useParams();
   const [orders, setOrders] = useState([]);
   const [settings, setSettings] = useState({ jobTypes: ['Visiting Card', 'Invitation', 'Offset', 'Screen', 'Digital', 'Lamination'], printingCompanies: ['Elite', 'Impression', 'Zig Zag', 'Vignesh', 'Amutham Flex', 'Chandru Screen', 'Amirtham Binding', 'Saravana Offset', 'Others'] });
   const [showModal, setShowModal] = useState(false);
@@ -40,10 +41,8 @@ const EmployeeDashboard = () => {
   const fetchData = async () => {
     try {
       let endpoint = '/orders';
-      if (location.pathname.includes('/superior-1')) {
-        endpoint = '/orders?superior=superior%201';
-      } else if (location.pathname.includes('/superior-2')) {
-        endpoint = '/orders?superior=superior%202';
+      if (id) {
+        endpoint = `/orders?employeeId=${id}`;
       }
       const ordersRes = await api.get(endpoint);
       setOrders(ordersRes.data);
@@ -56,7 +55,7 @@ const EmployeeDashboard = () => {
 
   useEffect(() => {
     fetchData();
-  }, [location.pathname]);
+  }, [id, location.pathname]);
 
   const handleShow = () => {
     setFormData({
@@ -150,7 +149,7 @@ const EmployeeDashboard = () => {
       <div className="d-flex justify-content-between align-items-center mb-5">
         <div>
           <h2 className="mb-1 fw-bold">
-            {location.pathname.includes('/superior-1') ? 'Superior 1 Orders' : location.pathname.includes('/superior-2') ? 'Superior 2 Orders' : 'My Orders'}
+            {id ? (location.state?.employeeName ? `${location.state.employeeName} Orders` : 'Employee Orders') : 'My Orders'}
           </h2>
           <p className="text-muted mb-0">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
@@ -205,7 +204,7 @@ const EmployeeDashboard = () => {
                           className="text-truncate"
                           onClick={() => {
                             if (order.description) {
-                              Swal.fire({ title: 'Description', text: order.description, icon: 'info' });
+                              Swal.fire({ title: 'Description', html: `<div style="text-align: left; font-size: 15px; line-height: 1.5;">${order.description.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}</div>` });
                             }
                           }}
                           title={order.description ? "Click to view full description" : ""}
@@ -290,7 +289,7 @@ const EmployeeDashboard = () => {
                       <strong>Mobile:</strong> {order.mobileNumber || '-'}<br />
                       <strong>Job:</strong> <span className="text-capitalize">{order.cardType || '-'}</span><br />
                       {order.description && (
-                        <><strong>Description:</strong> <span style={{cursor: 'pointer', color: 'blue', textDecoration: 'underline'}} onClick={() => Swal.fire({ title: 'Description', text: order.description, icon: 'info' })}>{order.description.length > 30 ? order.description.substring(0, 30) + '...' : order.description}</span><br /></>
+                        <><strong>Description:</strong> <span style={{cursor: 'pointer', color: 'blue', textDecoration: 'underline'}} onClick={() => Swal.fire({ title: 'Description', html: `<div style="text-align: left; font-size: 15px; line-height: 1.5;">${order.description.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}</div>` })}>{order.description.length > 30 ? order.description.substring(0, 30) + '...' : order.description}</span><br /></>
                       )}
                       <strong>Printing Method:</strong> {order.printingCompany !== 'None' ? order.printingCompany : 'Not Set'}<br />
                       <strong>Total Amount:</strong> ₹{order.totalAmount || 0}<br />

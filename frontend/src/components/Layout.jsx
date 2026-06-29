@@ -1,4 +1,5 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
+import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Navbar, Nav, Button, Modal } from 'react-bootstrap';
@@ -8,6 +9,22 @@ const Layout = ({ children }) => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [employees, setEmployees] = useState([]);
+
+  useEffect(() => {
+    if (user?.role === 'Employee') {
+      const fetchEmployees = async () => {
+        try {
+          const res = await api.get('/users');
+          const otherEmployees = res.data.filter(emp => emp._id !== user._id && emp.role !== 'Admin');
+          setEmployees(otherEmployees);
+        } catch (error) {
+          console.error('Error fetching employees', error);
+        }
+      };
+      fetchEmployees();
+    }
+  }, [user]);
 
   const handleLogoutClick = () => {
     setShowLogoutModal(true);
@@ -45,12 +62,11 @@ const Layout = ({ children }) => {
                 <NavLink to="/employee/orders" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                   <ShoppingCart className="me-3" size={20} /> My Orders
                 </NavLink>
-                <NavLink to="/employee/superior-1" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                  <Users className="me-3" size={20} /> Superior 1
-                </NavLink>
-                <NavLink to="/employee/superior-2" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                  <Users className="me-3" size={20} /> Superior 2
-                </NavLink>
+                {employees.map(emp => (
+                  <NavLink key={emp._id} to={`/employee/user/${emp._id}`} state={{ employeeName: emp.name }} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                    <Users className="me-3" size={20} /> {emp.name}
+                  </NavLink>
+                ))}
                 <NavLink to="/employee/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                   <Settings className="me-3" size={20} /> Settings
                 </NavLink>
@@ -93,14 +109,12 @@ const Layout = ({ children }) => {
                   <ShoppingCart size={24} className="d-block mx-auto mb-1" />
                   <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>My Orders</span>
                 </NavLink>
-                <NavLink to="/employee/superior-1" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
-                  <Users size={24} className="d-block mx-auto mb-1" />
-                  <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Superior 1</span>
-                </NavLink>
-                <NavLink to="/employee/superior-2" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
-                  <Users size={24} className="d-block mx-auto mb-1" />
-                  <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Superior 2</span>
-                </NavLink>
+                {employees.map(emp => (
+                  <NavLink key={emp._id} to={`/employee/user/${emp._id}`} state={{ employeeName: emp.name }} className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
+                    <Users size={24} className="d-block mx-auto mb-1" />
+                    <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>{emp.name}</span>
+                  </NavLink>
+                ))}
                 <NavLink to="/employee/settings" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
                   <Settings size={24} className="d-block mx-auto mb-1" />
                   <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Settings</span>
