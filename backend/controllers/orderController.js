@@ -184,30 +184,58 @@ const getDashboardStats = async (req, res) => {
    });
    const deliveredOrders = await Order.countDocuments({ ...baseQuery, status: 'Delivered' });
 
-   // Calculate Revenue Metrics
-   const revenueStats = await Order.aggregate([
-     { $match: baseQuery },
-     { 
-       $group: {
-         _id: null,
-         totalRevenue: { $sum: "$totalAmount" },
-         totalAdvance: { $sum: "$advanceAmount" },
-         totalBalance: { $sum: "$balanceAmount" }
-       }
-     }
-   ]);
+   const ordersForRevenue = await Order.find(baseQuery, 'totalAmount advanceAmount paymentMethod balancePayments');
 
    let totalRevenue = 0;
    let collectedRevenue = 0;
    let pendingRevenue = 0;
+   let paymentBreakdown = {
+     'GPay': 0,
+     'B-Gpay': 0,
+     'KVB': 0,
+     'Dtdc Wallet': 0,
+     'Cash': 0,
+     'Discount Amount': 0
+   };
 
-   if (revenueStats.length > 0) {
-     totalRevenue = revenueStats[0].totalRevenue || 0;
-     const advance = revenueStats[0].totalAdvance || 0;
-     const balance = revenueStats[0].totalBalance || 0;
-     collectedRevenue = advance + balance;
-     pendingRevenue = totalRevenue - collectedRevenue;
-   }
+   ordersForRevenue.forEach(order => {
+     totalRevenue += (order.totalAmount || 0);
+     
+     let orderCollected = 0;
+     let orderDiscount = 0;
+     
+     const adv = order.advanceAmount || 0;
+     if (adv > 0) {
+       if (order.paymentMethod === 'Discount Amount') {
+         orderDiscount += adv;
+       } else {
+         orderCollected += adv;
+         const method = (order.paymentMethod && order.paymentMethod !== 'None') ? order.paymentMethod : 'Cash';
+         paymentBreakdown[method] = (paymentBreakdown[method] || 0) + adv;
+       }
+     }
+
+     if (order.balancePayments && Array.isArray(order.balancePayments)) {
+       order.balancePayments.forEach(bp => {
+         const bpAmt = Number(bp.amount) || 0;
+         if (bpAmt > 0) {
+           if (bp.method === 'Discount Amount') {
+             orderDiscount += bpAmt;
+           } else {
+             orderCollected += bpAmt;
+             const method = (bp.method && bp.method !== 'None') ? bp.method : 'Cash';
+             paymentBreakdown[method] = (paymentBreakdown[method] || 0) + bpAmt;
+           }
+         }
+       });
+     }
+
+     collectedRevenue += orderCollected;
+     
+     // Pending amount for this order (cannot be negative)
+     const orderPending = Math.max(0, (order.totalAmount || 0) - orderCollected - orderDiscount);
+     pendingRevenue += orderPending;
+   });
 
    // Chart Data Generation
    const chartDataRaw = await Order.aggregate([
@@ -242,6 +270,7 @@ const getDashboardStats = async (req, res) => {
      totalRevenue,
      collectedRevenue,
      pendingRevenue,
+     paymentBreakdown,
      chartData,
      recentOrders
    });

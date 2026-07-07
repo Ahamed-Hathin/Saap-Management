@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
-import { Row, Col, Card, Form, ProgressBar, Table, Badge } from 'react-bootstrap';
+import { Row, Col, Card, Form, ProgressBar, Table, Badge, Modal } from 'react-bootstrap';
 import api from '../services/api';
 import { ShoppingBag, CheckCircle, Clock, IndianRupee, Package, TrendingUp, DollarSign, Activity, FileText } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -17,9 +17,11 @@ const AdminDashboard = () => {
     totalRevenue: 0,
     collectedRevenue: 0,
     pendingRevenue: 0,
+    paymentBreakdown: {},
     chartData: [],
     recentOrders: []
   });
+  const [showIncomeModal, setShowIncomeModal] = useState(false);
   const [filter, setFilter] = useState(localStorage.getItem('globalDateFilter') || 'all');
   const [customStartDate, setCustomStartDate] = useState(localStorage.getItem('globalStartDate') || '');
   const [customEndDate, setCustomEndDate] = useState(localStorage.getItem('globalEndDate') || '');
@@ -47,6 +49,7 @@ const AdminDashboard = () => {
         totalRevenue: data.totalRevenue || 0,
         collectedRevenue: data.collectedRevenue || 0,
         pendingRevenue: data.pendingRevenue || 0,
+        paymentBreakdown: data.paymentBreakdown || {},
         chartData: data.chartData || [],
         recentOrders: data.recentOrders || []
       });
@@ -125,7 +128,7 @@ const AdminDashboard = () => {
       <Row className="g-3 mb-4">
         {/* Total Income */}
         <Col xs={12} md={6}>
-          <Card className="border shadow-sm rounded-4 h-100 p-2 border-light" style={{ cursor: 'pointer' }}>
+          <Card className="border shadow-sm rounded-4 h-100 p-2 border-light" style={{ cursor: 'pointer' }} onClick={() => setShowIncomeModal(true)}>
             <Card.Body className="d-flex align-items-center p-3">
               <div className="rounded-3 d-flex align-items-center justify-content-center me-3" style={{ width: '56px', height: '56px', backgroundColor: '#eff6ff', color: '#2563eb' }}>
                 <DollarSign size={24} />
@@ -232,6 +235,34 @@ const AdminDashboard = () => {
         </Col>
       </Row>
 
+      {/* Income Breakdown Modal */}
+      <Modal show={showIncomeModal} onHide={() => setShowIncomeModal(false)} centered>
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-bold fs-5">Income Breakdown</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Table hover responsive className="mb-0 border rounded overflow-hidden">
+            <thead className="table-light">
+              <tr>
+                <th>Payment Method</th>
+                <th className="text-end">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(stats.paymentBreakdown || {}).map(([method, amount]) => (
+                <tr key={method}>
+                  <td className="fw-medium">{method}</td>
+                  <td className="text-end text-success fw-medium">₹{amount.toLocaleString()}</td>
+                </tr>
+              ))}
+              <tr className="table-light">
+                <td className="fw-bold">Total Collected</td>
+                <td className="text-end fw-bold text-success fs-5">₹{stats.collectedRevenue.toLocaleString()}</td>
+              </tr>
+            </tbody>
+          </Table>
+        </Modal.Body>
+      </Modal>
     </Layout>
   );
 };

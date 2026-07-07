@@ -5,6 +5,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { Plus, Trash2, Download } from 'lucide-react';
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import Swal from 'sweetalert2';
 
 const ManageOrders = () => {
@@ -155,65 +156,143 @@ const ManageOrders = () => {
 
   const handleDownloadPDF = (order, index) => {
     const doc = new jsPDF();
+    const serialNum = order.serialNumber || (orders.length - index);
 
+    // --- Header ---
+    // Brand Name
     doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
-    doc.text('Order Invoice', 105, 25, { align: 'center' });
+    doc.setTextColor(0, 0, 0);
+    doc.text('SAPP Creation', 20, 26);
 
-    doc.setLineWidth(0.5);
-    doc.line(20, 30, 190, 30);
-
-    doc.setFontSize(12);
+    // Yellow Bar & INVOICE Text
+    doc.setFillColor(253, 192, 47); // Yellowish color
+    doc.rect(20, 40, 95, 10, 'F'); // Left bar
+    
+    doc.setFontSize(28);
     doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 0, 0);
+    doc.text('INVOICE', 120, 48);
+    
+    doc.setFillColor(253, 192, 47);
+    doc.rect(172, 40, 18, 10, 'F'); // Right bar
 
-    const serialNum = order.serialNumber || (orders.length - index);
+    // --- Information Section ---
+    // Left side: Invoice to
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text('Invoice to:', 20, 65);
+    
+    doc.setFontSize(11);
+    doc.text(order.clientName || 'Client Name', 20, 72);
+    
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text('Mobile:', 20, 78);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 0, 0);
+    doc.text(order.mobileNumber || '-', 32, 78);
+
+    let leftY = 84;
+    if (order.description) {
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      doc.text('Description:', 20, leftY);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(0, 0, 0);
+      const splitDesc = doc.splitTextToSize(order.description, 80);
+      doc.text(splitDesc, 20, leftY + 5);
+      leftY += 5 + (splitDesc.length * 4.5);
+    }
+
+    // Right side: Date
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text('Date', 120, 65);
+    
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 0, 0);
+    const dateStr = order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB');
+    doc.text(dateStr, 135, 65);
+
+    // --- Table ---
+    const itemDesc = order.cardType || '-';
+    
+    autoTable(doc, {
+      startY: Math.max(95, leftY + 10),
+      head: [['SL.', 'Item Description', 'Price', 'Qty.', 'Total']],
+      body: [
+        ['1', itemDesc, `Rs. ${order.totalAmount || 0}`, '1', `Rs. ${order.totalAmount || 0}`]
+      ],
+      theme: 'plain',
+      headStyles: {
+        fillColor: [50, 54, 63],
+        textColor: 255,
+        fontStyle: 'bold',
+        fontSize: 10,
+        halign: 'center'
+      },
+      bodyStyles: {
+        textColor: [0, 0, 0],
+        fontSize: 9,
+        halign: 'center'
+      },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 20 },
+        1: { halign: 'left' },
+        2: { halign: 'center', cellWidth: 30 },
+        3: { halign: 'center', cellWidth: 20 },
+        4: { halign: 'center', cellWidth: 30 }
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 245]
+      },
+      margin: { left: 20, right: 20 }
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 10;
+
+    // --- Footer Section ---
+
+    // Payment Summary instead of Payment Info
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text('Payment Summary:', 20, finalY + 12);
+    
+    const advanceAmount = order.advanceAmount || 0;
+    const balancePaid = order.balanceAmount || 0;
     const methodStr = (order.paymentMethod && order.paymentMethod !== 'None') ? ` (${order.paymentMethod})` : '';
-    const balance = (order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0);
+    const pendingBalance = Math.max(0, (order.totalAmount || 0) - advanceAmount - balancePaid);
 
-    let startY = 45;
-    const lineHeight = 10;
-
-    // Details
-    doc.setFont("helvetica", "bold"); doc.text('SI Number:', 20, startY);
-    doc.setFont("helvetica", "normal"); doc.text(String(serialNum), 65, startY);
-    startY += lineHeight;
-
-    doc.setFont("helvetica", "bold"); doc.text('Client Name:', 20, startY);
-    doc.setFont("helvetica", "normal"); doc.text(order.clientName || '-', 65, startY);
-    startY += lineHeight;
-
-    doc.setFont("helvetica", "bold"); doc.text('Mobile Number:', 20, startY);
-    doc.setFont("helvetica", "normal"); doc.text(order.mobileNumber || '-', 65, startY);
-    startY += lineHeight;
-
-    doc.setFont("helvetica", "bold"); doc.text('Job / Card Type:', 20, startY);
-    doc.setFont("helvetica", "normal"); doc.text(order.cardType || '-', 65, startY);
-    startY += lineHeight;
-
-    doc.setFont("helvetica", "bold"); doc.text('Description:', 20, startY);
+    doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-    const splitDesc = doc.splitTextToSize(order.description || '-', 120);
-    doc.text(splitDesc, 65, startY);
-    startY += (splitDesc.length * 6) + 5;
+    doc.setTextColor(0, 0, 0);
+    
+    doc.text('Total Amount:', 20, finalY + 18);
+    doc.text(`Rs. ${order.totalAmount || 0}`, 50, finalY + 18);
+    
+    doc.text('Advance Paid:', 20, finalY + 23);
+    doc.text(`Rs. ${advanceAmount}${methodStr}`, 50, finalY + 23);
+    
+    doc.text('Balance Amount:', 20, finalY + 28);
+    doc.text(`Rs. ${pendingBalance}`, 50, finalY + 28);
 
-    // Payment Section
-    doc.setLineWidth(0.2);
-    doc.line(20, startY, 190, startY);
-    startY += 10;
-
+    // Thank you for your business
+    doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.text('Payment Summary', 20, startY);
-    startY += 8;
+    doc.setTextColor(0, 0, 0);
+    doc.text('Thank you for your business', 20, finalY + 40);
 
-    doc.setFont("helvetica", "normal");
-    doc.text(`Total Amount: Rs. ${order.totalAmount || 0}`, 20, startY);
-    startY += 8;
-    doc.text(`Advance Paid: Rs. ${order.advanceAmount || 0}${methodStr}`, 20, startY);
-    startY += 8;
-    doc.setFont("helvetica", "bold");
-    doc.text(`Balance Amount: Rs. ${balance}`, 20, startY);
+    // Footer completely removed as requested
 
-    doc.save(`Order_${serialNum}_${order.clientName.replace(/\s+/g, '_')}.pdf`);
+    doc.save(`Invoice_${serialNum}_${(order.clientName || 'Client').replace(/\s+/g, '_')}.pdf`);
   };
 
   const statusOptions = settings?.orderStatuses || ['Printing', 'Cutting', 'Ready To Dispatch', 'Delivered'];
