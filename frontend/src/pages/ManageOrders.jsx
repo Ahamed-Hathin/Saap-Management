@@ -18,7 +18,9 @@ const ManageOrders = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState(null);
   const [paymentFormData, setPaymentFormData] = useState({ advanceAmount: '', balanceAmount: '', paymentMethod: '' });
+  const [balancePayments, setBalancePayments] = useState([{ amount: '', method: '' }]);
   const [previewImage, setPreviewImage] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [formData, setFormData] = useState({
     clientName: '',
@@ -121,23 +123,28 @@ const ManageOrders = () => {
 
   const handlePaymentToggle = (order, isChecked) => {
     setSelectedOrderForPayment(order);
-    setPaymentFormData({ 
-      advanceAmount: order.advanceAmount || '', 
-      balanceAmount: order.balanceAmount || '', 
-      paymentMethod: order.paymentMethod || '' 
+    setPaymentFormData({
+      advanceAmount: order.advanceAmount || '',
+      paymentMethod: order.paymentMethod || ''
     });
+    setBalancePayments([{ amount: '', method: '' }]);
     setShowPaymentModal(true);
   };
 
   const handlePaymentSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.put(`/orders/${selectedOrderForPayment._id}`, { 
-        paymentReceived: true, 
+      const validPayments = balancePayments.filter(p => p.amount && p.method);
+      const payload = {
+        paymentReceived: true,
         advanceAmount: Number(paymentFormData.advanceAmount),
-        balanceAmount: Number(paymentFormData.balanceAmount),
-        paymentMethod: paymentFormData.paymentMethod === '' ? 'None' : paymentFormData.paymentMethod
-      });
+        paymentMethod: paymentFormData.paymentMethod || 'None'
+      };
+      if (validPayments.length > 0) {
+        payload.newBalancePayments = validPayments;
+      }
+
+      await api.put(`/orders/${selectedOrderForPayment._id}`, payload);
       setShowPaymentModal(false);
       fetchData();
     } catch (err) {
@@ -148,24 +155,24 @@ const ManageOrders = () => {
 
   const handleDownloadPDF = (order, index) => {
     const doc = new jsPDF();
-    
+
     doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
     doc.text('Order Invoice', 105, 25, { align: 'center' });
-    
+
     doc.setLineWidth(0.5);
     doc.line(20, 30, 190, 30);
-    
+
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
-    
+
     const serialNum = order.serialNumber || (orders.length - index);
     const methodStr = (order.paymentMethod && order.paymentMethod !== 'None') ? ` (${order.paymentMethod})` : '';
     const balance = (order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0);
 
     let startY = 45;
     const lineHeight = 10;
-    
+
     // Details
     doc.setFont("helvetica", "bold"); doc.text('SI Number:', 20, startY);
     doc.setFont("helvetica", "normal"); doc.text(String(serialNum), 65, startY);
@@ -187,13 +194,13 @@ const ManageOrders = () => {
     doc.setFont("helvetica", "normal");
     const splitDesc = doc.splitTextToSize(order.description || '-', 120);
     doc.text(splitDesc, 65, startY);
-    startY += (splitDesc.length * 6) + 5; 
+    startY += (splitDesc.length * 6) + 5;
 
     // Payment Section
     doc.setLineWidth(0.2);
     doc.line(20, startY, 190, startY);
     startY += 10;
-    
+
     doc.setFont("helvetica", "bold");
     doc.text('Payment Summary', 20, startY);
     startY += 8;
@@ -205,7 +212,7 @@ const ManageOrders = () => {
     startY += 8;
     doc.setFont("helvetica", "bold");
     doc.text(`Balance Amount: Rs. ${balance}`, 20, startY);
-    
+
     doc.save(`Order_${serialNum}_${order.clientName.replace(/\s+/g, '_')}.pdf`);
   };
 
@@ -243,16 +250,62 @@ const ManageOrders = () => {
 
   const [searchParams] = useSearchParams();
   const filterParam = searchParams.get('filter');
+  const dateFilterParam = searchParams.get('dateFilter');
+  const startDateParam = searchParams.get('startDate');
+  const endDateParam = searchParams.get('endDate');
 
   let displayedOrders = orders;
+
+  if (dateFilterParam && dateFilterParam !== 'all') {
+    const now = new Date();
+    let start, end;
+    if (dateFilterParam === 'today') {
+      start = new Date(now.setHours(0, 0, 0, 0));
+      end = new Date(new Date().setHours(23, 59, 59, 999));
+    } else if (dateFilterParam === 'weekly') {
+      start = new Date(now);
+      start.setDate(now.getDate() - 7);
+      start.setHours(0, 0, 0, 0);
+    } else if (dateFilterParam === 'monthly') {
+      start = new Date(now);
+      start.setDate(now.getDate() - 30);
+      start.setHours(0, 0, 0, 0);
+    } else if (dateFilterParam === 'custom' && startDateParam && endDateParam) {
+      start = new Date(startDateParam);
+      start.setHours(0, 0, 0, 0);
+      end = new Date(endDateParam);
+      end.setHours(23, 59, 59, 999);
+    }
+
+    if (start) {
+      displayedOrders = displayedOrders.filter(o => {
+        const orderDate = new Date(o.createdAt);
+        if (end) {
+          return orderDate >= start && orderDate <= end;
+        }
+        return orderDate >= start;
+      });
+    }
+  }
+
   if (filterParam === 'pending') {
-    displayedOrders = orders.filter(o => o.status !== 'Delivered');
+    displayedOrders = displayedOrders.filter(o => o.status !== 'Delivered');
   } else if (filterParam === 'ready') {
-    displayedOrders = orders.filter(o => o.status === 'Ready To Dispatch');
+    displayedOrders = displayedOrders.filter(o => o.status === 'Ready To Dispatch');
   } else if (filterParam === 'payment_pending') {
-    displayedOrders = orders.filter(o => o.totalAmount > 0 && (o.advanceAmount + (o.balanceAmount || 0)) < o.totalAmount);
+    displayedOrders = displayedOrders.filter(o => o.totalAmount > 0 && (o.advanceAmount + (o.balanceAmount || 0)) < o.totalAmount);
   } else if (filterParam === 'delivered') {
-    displayedOrders = orders.filter(o => o.status === 'Delivered');
+    displayedOrders = displayedOrders.filter(o => o.status === 'Delivered');
+  }
+
+  if (searchQuery.trim()) {
+    const q = searchQuery.toLowerCase();
+    displayedOrders = displayedOrders.filter(o =>
+      (o.clientName && o.clientName.toLowerCase().includes(q)) ||
+      (o.mobileNumber && o.mobileNumber.includes(q)) ||
+      (o.serialNumber && String(o.serialNumber).includes(q)) ||
+      (o.cardType && o.cardType.toLowerCase().includes(q))
+    );
   }
 
   return (
@@ -262,9 +315,19 @@ const ManageOrders = () => {
           <h3 className="mb-1 fw-bold">Manage Orders</h3>
           <p className="text-muted mb-0 small">Track and manage all card orders</p>
         </div>
-        <Button variant="primary" onClick={handleShow} className="d-flex align-items-center mt-2 mt-md-0">
-          <Plus size={18} className="me-2" /> Create Order
-        </Button>
+        <div className="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2">
+          <Form.Control
+            type="search"
+            placeholder="Search Orders..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="shadow-sm border-light bg-white"
+            style={{ minWidth: '250px' }}
+          />
+          <Button variant="primary" onClick={handleShow} className="d-flex align-items-center justify-content-center text-nowrap shadow-sm">
+            <Plus size={18} className="me-2" /> Create Order
+          </Button>
+        </div>
       </div>
 
       <Card className="dashboard-card border-0 mb-4">
@@ -297,22 +360,22 @@ const ManageOrders = () => {
                 <tbody>
                   {displayedOrders.map((order, index) => (
                     <tr key={order._id}>
-                      <td>{order.serialNumber || (orders.length - index)}</td>
+                      <td>{displayedOrders.length - index}</td>
                       <td>{order.clientName}</td>
                       <td>{order.mobileNumber}</td>
                       <td className="text-capitalize">{order.cardType}</td>
                       <td>
                         {order.designImage ? (
-                          <img 
-                            src={getImageUrl(order.designImage)} 
-                            alt="Design" 
+                          <img
+                            src={getImageUrl(order.designImage)}
+                            alt="Design"
                             style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer' }}
                             onClick={() => setPreviewImage(order.designImage)}
                           />
                         ) : '-'}
                       </td>
-                      <td 
-                        style={{ cursor: order.description ? 'pointer' : 'default', maxWidth: '120px' }} 
+                      <td
+                        style={{ cursor: order.description ? 'pointer' : 'default', maxWidth: '120px' }}
                         className="text-truncate"
                         onClick={() => {
                           if (order.description) {
@@ -327,23 +390,23 @@ const ManageOrders = () => {
                       <td>
                         <div className="small fw-bold mb-1">
                           {((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0)) > 0 ? (
-                            <span className="text-danger">₹{((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0))} Pending</span>
+                            <span className="text-danger">₹{((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0))}</span>
                           ) : (
                             <span className="text-success">Fully Paid</span>
                           )}
                         </div>
-                        <Form.Check 
-                          type="switch" 
-                          id={`pay-switch-${order._id}`} 
-                          label={(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'Paid' : 'Pending'} 
-                          checked={(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount)} 
-                          onChange={(e) => handlePaymentToggle(order, e.target.checked)} 
-                          className={`fw-medium mb-0 ${(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'text-success' : 'text-danger'}`} 
+                        <Form.Check
+                          type="switch"
+                          id={`pay-switch-${order._id}`}
+                          label={(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'Paid' : 'Pending'}
+                          checked={(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount)}
+                          onChange={(e) => handlePaymentToggle(order, e.target.checked)}
+                          className={`fw-medium mb-0 ${(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'text-success' : 'text-danger'}`}
                         />
                         {order.advanceReceived && !((order.totalAmount > 0) && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) && (
-                          <Form.Select 
-                            size="sm" 
-                            value={order.paymentMethod} 
+                          <Form.Select
+                            size="sm"
+                            value={order.paymentMethod}
                             onChange={(e) => handlePaymentMethodChange(order._id, e.target.value)}
                             className="mt-1"
                             style={{ minWidth: '90px' }}
@@ -353,10 +416,18 @@ const ManageOrders = () => {
                             <option value="KVB">KVB</option>
                             <option value="Dtdc Wallet">Dtdc Wallet</option>
                             <option value="Cash">Cash</option>
+                            <option value="Discount Amount">Discount Amount</option>
                           </Form.Select>
                         )}
                       </td>
-                      <td>{order.assignedEmployee?.name || '-'}</td>
+                      <td>
+                        {order.assignedEmployee?.name || '-'}
+                        {order.createdAt && (
+                          <div className="small text-muted mt-1">
+                            {new Date(order.createdAt).toLocaleDateString('en-GB')}
+                          </div>
+                        )}
+                      </td>
                       <td className="text-end">
                         <div className="d-flex flex-wrap justify-content-end align-items-center gap-2">
                           <Dropdown>
@@ -365,8 +436,8 @@ const ManageOrders = () => {
                             </Dropdown.Toggle>
                             <Dropdown.Menu>
                               {statusOptions.map(opt => (
-                                <Dropdown.Item 
-                                  key={opt} 
+                                <Dropdown.Item
+                                  key={opt}
                                   active={order.status === opt}
                                   onClick={() => handleStatusChange(order._id, opt)}
                                 >
@@ -400,10 +471,10 @@ const ManageOrders = () => {
                     </div>
                     {order.designImage && (
                       <div className="mb-2">
-                        <img 
-                          src={getImageUrl(order.designImage)} 
-                          alt="Design" 
-                          style={{ width: '100%', maxHeight: '150px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer' }} 
+                        <img
+                          src={getImageUrl(order.designImage)}
+                          alt="Design"
+                          style={{ width: '100%', maxHeight: '150px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer' }}
                           onClick={() => setPreviewImage(order.designImage)}
                         />
                       </div>
@@ -412,9 +483,13 @@ const ManageOrders = () => {
                       <strong>Mobile:</strong> {order.mobileNumber || '-'}<br />
                       <strong>Job:</strong> <span className="text-capitalize">{order.cardType || '-'}</span><br />
                       {order.description && (
-                        <><strong>Description:</strong> <span style={{cursor: 'pointer', color: 'blue', textDecoration: 'underline'}} onClick={() => Swal.fire({ title: 'Description', html: `<div style="text-align: left; font-size: 15px; line-height: 1.5;">${order.description.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}</div>` })}>{order.description.length > 30 ? order.description.substring(0, 30) + '...' : order.description}</span><br /></>
+                        <><strong>Description:</strong> <span style={{ cursor: 'pointer', color: 'blue', textDecoration: 'underline' }} onClick={() => Swal.fire({ title: 'Description', html: `<div style="text-align: left; font-size: 15px; line-height: 1.5;">${order.description.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}</div>` })}>{order.description.length > 30 ? order.description.substring(0, 30) + '...' : order.description}</span><br /></>
                       )}
-                      <strong>Assigned To:</strong> {order.assignedEmployee?.name || 'Unassigned'}<br />
+                      <strong>Assigned To:</strong> {order.assignedEmployee?.name || 'Unassigned'}
+                      {order.createdAt && (
+                        <span className="ms-2 text-muted">({new Date(order.createdAt).toLocaleDateString('en-GB')})</span>
+                      )}
+                      <br />
                       <strong>Printing Method:</strong> {order.printingCompany !== 'None' ? order.printingCompany : 'Not Set'}<br />
                       <strong>Total Amount:</strong> ₹{order.totalAmount || 0}<br />
                       <strong>Advance Paid:</strong> {order.advanceAmount > 0 ? `₹${order.advanceAmount} (${order.paymentMethod || 'None'})` : 'No'}<br />
@@ -425,18 +500,18 @@ const ManageOrders = () => {
                       )}
                       <div className="d-flex align-items-center mt-1">
                         <strong className="me-2">Payment:</strong>
-                        <Form.Check 
-                          type="switch" 
-                          id={`pay-switch-mobile-${order._id}`} 
-                          label={(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'Paid' : 'Pending'} 
-                          checked={(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount)} 
-                          onChange={(e) => handlePaymentToggle(order, e.target.checked)} 
-                          className={`fw-medium mb-0 me-2 ${(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'text-success' : 'text-danger'}`} 
+                        <Form.Check
+                          type="switch"
+                          id={`pay-switch-mobile-${order._id}`}
+                          label={(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'Paid' : 'Pending'}
+                          checked={(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount)}
+                          onChange={(e) => handlePaymentToggle(order, e.target.checked)}
+                          className={`fw-medium mb-0 me-2 ${(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'text-success' : 'text-danger'}`}
                         />
                         {order.advanceReceived && !((order.totalAmount > 0) && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) && (
-                          <Form.Select 
-                            size="sm" 
-                            value={order.paymentMethod} 
+                          <Form.Select
+                            size="sm"
+                            value={order.paymentMethod}
                             onChange={(e) => handlePaymentMethodChange(order._id, e.target.value)}
                             className="w-auto"
                           >
@@ -445,6 +520,7 @@ const ManageOrders = () => {
                             <option value="KVB">KVB</option>
                             <option value="Dtdc Wallet">Dtdc Wallet</option>
                             <option value="Cash">Cash</option>
+                            <option value="Discount Amount">Discount Amount</option>
                           </Form.Select>
                         )}
                       </div>
@@ -456,8 +532,8 @@ const ManageOrders = () => {
                         </Dropdown.Toggle>
                         <Dropdown.Menu className="w-100">
                           {statusOptions.map(opt => (
-                            <Dropdown.Item 
-                              key={opt} 
+                            <Dropdown.Item
+                              key={opt}
                               active={order.status === opt}
                               onClick={() => handleStatusChange(order._id, opt)}
                             >
@@ -494,11 +570,11 @@ const ManageOrders = () => {
             <div className="row g-3">
               <div className="col-md-6">
                 <Form.Label>Client Name</Form.Label>
-                <Form.Control type="text" required value={formData.clientName} onChange={(e) => setFormData({ ...formData, clientName: e.target.value })} className="bg-light" />
+                <Form.Control type="text" required value={formData.clientName} onChange={(e) => setFormData({ ...formData, clientName: e.target.value ? e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1) : '' })} className="bg-light" />
               </div>
               <div className="col-md-6">
                 <Form.Label>Mobile Number</Form.Label>
-                <Form.Control type="text" required minLength={10} maxLength={10} pattern="\d{10}" title="Mobile number must be exactly 10 digits" value={formData.mobileNumber} onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value.replace(/\D/g, '').slice(0, 10) })} className="bg-light" />
+                <Form.Control type="text" required minLength={11} maxLength={11} pattern="\d{5} \d{5}" title="Mobile number must be exactly 10 digits with a space after the first 5" value={formData.mobileNumber} onChange={(e) => { const rawValue = e.target.value.replace(/\D/g, '').slice(0, 10); const formattedValue = rawValue.length > 5 ? `${rawValue.slice(0, 5)} ${rawValue.slice(5)}` : rawValue; setFormData({ ...formData, mobileNumber: formattedValue }); }} className="bg-light" />
               </div>
               <div className="col-12">
                 <Form.Label>Job</Form.Label>
@@ -557,6 +633,7 @@ const ManageOrders = () => {
                       <option value="KVB">KVB</option>
                       <option value="Dtdc Wallet">Dtdc Wallet</option>
                       <option value="Cash">Cash</option>
+                      <option value="Discount Amount">Discount Amount</option>
                     </Form.Select>
                   </div>
                 </>
@@ -580,27 +657,19 @@ const ManageOrders = () => {
         <Form onSubmit={handlePaymentSubmit}>
           <Modal.Body className="px-4 pt-4">
             <Form.Group className="mb-3">
-              <Form.Label>Amount</Form.Label>
-              <Form.Control 
-                type="number" 
-                value={paymentFormData.balanceAmount} 
-                onChange={(e) => setPaymentFormData({ ...paymentFormData, balanceAmount: e.target.value })} 
-                className="bg-light"
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
               <Form.Label>Advance Amount</Form.Label>
-              <Form.Control 
-                type="number" 
-                value={paymentFormData.advanceAmount} 
-                onChange={(e) => setPaymentFormData({ ...paymentFormData, advanceAmount: e.target.value })} 
+              <Form.Control
+                type="number"
+                value={paymentFormData.advanceAmount}
+                onChange={(e) => setPaymentFormData({ ...paymentFormData, advanceAmount: e.target.value })}
                 className="bg-light"
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label>Payment Method</Form.Label>
-              <Form.Select 
-                value={paymentFormData.paymentMethod} 
+              <Form.Label>Advance Payment Method</Form.Label>
+              <Form.Select
+                required={Number(paymentFormData.advanceAmount) > 0}
+                value={paymentFormData.paymentMethod}
                 onChange={(e) => setPaymentFormData({ ...paymentFormData, paymentMethod: e.target.value })}
                 className="bg-light"
               >
@@ -610,8 +679,56 @@ const ManageOrders = () => {
                 <option value="KVB">KVB</option>
                 <option value="Dtdc Wallet">Dtdc Wallet</option>
                 <option value="Cash">Cash</option>
+                <option value="Discount Amount">Discount Amount</option>
               </Form.Select>
             </Form.Group>
+
+            <h6 className="fw-bold mb-3 mt-4">Balance Payments</h6>
+            {balancePayments.map((bp, i) => (
+              <div key={i} className="d-flex gap-2 mb-3">
+                <Form.Control
+                  type="number"
+                  placeholder="Amount"
+                  required={!!bp.method}
+                  value={bp.amount}
+                  onChange={(e) => {
+                    const newBps = [...balancePayments];
+                    newBps[i].amount = e.target.value;
+                    setBalancePayments(newBps);
+                  }}
+                  className="bg-light"
+                />
+                <Form.Select
+                  required={!!bp.amount}
+                  value={bp.method}
+                  onChange={(e) => {
+                    const newBps = [...balancePayments];
+                    newBps[i].method = e.target.value;
+                    setBalancePayments(newBps);
+                  }}
+                  className="bg-light"
+                >
+                  <option value="">Method</option>
+                  <option value="GPay">GPay</option>
+                  <option value="B-Gpay">B-Gpay</option>
+                  <option value="KVB">KVB</option>
+                  <option value="Dtdc Wallet">Dtdc Wallet</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Discount Amount">Discount Amount</option>
+                </Form.Select>
+                {balancePayments.length > 1 && (
+                  <Button variant="outline-danger" onClick={() => {
+                    const newBps = balancePayments.filter((_, idx) => idx !== i);
+                    setBalancePayments(newBps);
+                  }}>
+                    <Trash2 size={16} />
+                  </Button>
+                )}
+              </div>
+            ))}
+            <Button variant="outline-primary" size="sm" onClick={() => setBalancePayments([...balancePayments, { amount: '', method: '' }])}>
+              <Plus size={16} className="me-1" /> Add Payment Split
+            </Button>
           </Modal.Body>
           <Modal.Footer className="border-0 px-4 pb-4">
             <Button variant="light" onClick={() => setShowPaymentModal(false)} className="fw-medium">Cancel</Button>
@@ -624,19 +741,19 @@ const ManageOrders = () => {
       {/* Image Preview Modal */}
       <Modal backdrop="static" show={!!previewImage} onHide={() => setPreviewImage(null)} centered size="lg" contentClassName="border-0 rounded-4 shadow-lg bg-transparent">
         <Modal.Body className="p-0 text-center position-relative">
-          <Button 
-            variant="dark" 
-            className="position-absolute rounded-circle p-2" 
+          <Button
+            variant="dark"
+            className="position-absolute rounded-circle p-2"
             style={{ top: '-15px', right: '-15px', zIndex: 1050 }}
             onClick={() => setPreviewImage(null)}
           >
             &times;
           </Button>
           {previewImage && (
-            <img 
-              src={getImageUrl(previewImage)} 
-              alt="Design Preview" 
-              style={{ maxWidth: '100%', maxHeight: '85vh', objectFit: 'contain', borderRadius: '8px', backgroundColor: '#fff' }} 
+            <img
+              src={getImageUrl(previewImage)}
+              alt="Design Preview"
+              style={{ maxWidth: '100%', maxHeight: '85vh', objectFit: 'contain', borderRadius: '8px', backgroundColor: '#fff' }}
             />
           )}
         </Modal.Body>

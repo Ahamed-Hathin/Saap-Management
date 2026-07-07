@@ -11,13 +11,24 @@ const OrderDetails = () => {
   const { user } = useContext(AuthContext);
   const [order, setOrder] = useState(null);
   const [status, setStatus] = useState('');
-  const [settings, setSettings] = useState({ printingCompanies: ['Elite', 'Impression', 'Zig Zag', 'Vignesh', 'Amutham Flex', 'Chandru Screen', 'Amirtham Binding', 'Saravana Offset', 'Others'] });
+  const [settings, setSettings] = useState({ jobTypes: ['Visiting Card', 'Invitation', 'Offset', 'Screen', 'Digital', 'Lamination'], printingCompanies: ['Elite', 'Impression', 'Zig Zag', 'Vignesh', 'Amutham Flex', 'Chandru Screen', 'Amirtham Binding', 'Saravana Offset', 'Others'] });
   const [advanceReceived, setAdvanceReceived] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('');
   const [printingCompany, setPrintingCompany] = useState('');
   const [file, setFile] = useState(null);
   const [message, setMessage] = useState('');
   const [previewImage, setPreviewImage] = useState(null);
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    clientName: '',
+    mobileNumber: '',
+    cardType: '',
+    description: '',
+    totalAmount: 0,
+    advanceAmount: 0,
+    balanceAmount: 0
+  });
 
   const statusOptions = settings?.orderStatuses || ['Printing', 'Cutting', 'Ready To Dispatch', 'Delivered'];
 
@@ -36,6 +47,15 @@ const OrderDetails = () => {
       setAdvanceReceived(data.advanceReceived);
       setPaymentMethod(data.paymentMethod && data.paymentMethod !== 'None' ? data.paymentMethod : 'GPay');
       setPrintingCompany(data.printingCompany && data.printingCompany !== 'None' ? data.printingCompany : (settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite'));
+      setEditForm({
+        clientName: data.clientName || '',
+        mobileNumber: data.mobileNumber || '',
+        cardType: data.cardType || (settings.jobTypes?.length > 0 ? settings.jobTypes[0] : 'Visiting Card'),
+        description: data.description || '',
+        totalAmount: data.totalAmount || 0,
+        advanceAmount: data.advanceAmount || 0,
+        balanceAmount: data.balanceAmount || 0
+      });
       const setRes = await api.get('/settings');
       if (setRes.data) setSettings(setRes.data);
     } catch (err) {
@@ -48,6 +68,30 @@ const OrderDetails = () => {
     fetchOrder();
   }, [id, navigate]);
 
+  const handleSaveInlineEdits = async () => {
+    try {
+      const payload = {
+        clientName: editForm.clientName,
+        mobileNumber: editForm.mobileNumber,
+        cardType: editForm.cardType,
+        description: editForm.description,
+        totalAmount: editForm.totalAmount ? Number(editForm.totalAmount) : 0,
+        advanceAmount: editForm.advanceAmount ? Number(editForm.advanceAmount) : 0,
+        balanceAmount: editForm.balanceAmount ? Number(editForm.balanceAmount) : 0,
+        status,
+        paymentReceived: advanceReceived,
+        paymentMethod,
+        printingCompany
+      };
+      await api.put(`/orders/${id}`, payload);
+      setMessage('Order updated successfully!');
+      setIsEditing(false);
+      fetchOrder();
+    } catch (err) {
+      setMessage('Error updating order.');
+    }
+  };
+
   const handleStatusUpdate = async (e) => {
     e.preventDefault();
     try {
@@ -57,8 +101,20 @@ const OrderDetails = () => {
         paymentMethod, 
         printingCompany 
       };
+      
+      if (isEditing) {
+        payload.clientName = editForm.clientName;
+        payload.mobileNumber = editForm.mobileNumber;
+        payload.cardType = editForm.cardType;
+        payload.description = editForm.description;
+        payload.totalAmount = editForm.totalAmount ? Number(editForm.totalAmount) : 0;
+        payload.advanceAmount = editForm.advanceAmount ? Number(editForm.advanceAmount) : 0;
+        payload.balanceAmount = editForm.balanceAmount ? Number(editForm.balanceAmount) : 0;
+      }
+      
       await api.put(`/orders/${id}`, payload);
       setMessage('Order updated successfully!');
+      if (isEditing) setIsEditing(false);
       fetchOrder();
     } catch (err) {
       setMessage('Error updating order.');
@@ -97,42 +153,98 @@ const OrderDetails = () => {
         <Col md={8}>
           <Card className="dashboard-card border-0 mb-4">
             <Card.Body className="p-4">
-              <h5 className="fw-bold mb-4">Client Information</h5>
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <h5 className="fw-bold mb-0">Client Information</h5>
+                <Button variant={isEditing ? "outline-secondary" : "outline-primary"} size="sm" onClick={() => {
+                  if (isEditing) {
+                    setIsEditing(false);
+                    setEditForm({
+                      clientName: order.clientName || '',
+                      mobileNumber: order.mobileNumber || '',
+                      cardType: order.cardType || '',
+                      description: order.description || '',
+                      totalAmount: order.totalAmount || 0,
+                      advanceAmount: order.advanceAmount || 0,
+                      balanceAmount: order.balanceAmount || 0
+                    });
+                  } else {
+                    setIsEditing(true);
+                  }
+                }}>
+                  {isEditing ? 'Cancel Edit' : 'Edit Information'}
+                </Button>
+              </div>
               <Row className="mb-3">
                 <Col sm={4} className="text-muted">Client Name</Col>
-                <Col sm={8}>{order.clientName}</Col>
+                <Col sm={8}>
+                  {isEditing ? <Form.Control value={editForm.clientName} onChange={(e) => setEditForm({...editForm, clientName: e.target.value})} /> : order.clientName}
+                </Col>
               </Row>
               <Row className="mb-3">
                 <Col sm={4} className="text-muted">Mobile Number</Col>
-                <Col sm={8}>{order.mobileNumber}</Col>
+                <Col sm={8}>
+                  {isEditing ? (
+                    <Form.Control 
+                      value={editForm.mobileNumber} 
+                      onChange={(e) => {
+                        const rawValue = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        const formattedValue = rawValue.length > 5 ? `${rawValue.slice(0, 5)} ${rawValue.slice(5)}` : rawValue;
+                        setEditForm({...editForm, mobileNumber: formattedValue});
+                      }} 
+                    />
+                  ) : order.mobileNumber}
+                </Col>
               </Row>
               <Row className="mb-3">
                 <Col sm={4} className="text-muted">Job</Col>
-                <Col sm={8}>{order.cardType}</Col>
+                <Col sm={8}>
+                  {isEditing ? (
+                    <Form.Select value={editForm.cardType} onChange={(e) => setEditForm({...editForm, cardType: e.target.value})}>
+                      {settings.jobTypes?.map(job => <option key={job} value={job}>{job}</option>)}
+                    </Form.Select>
+                  ) : order.cardType}
+                </Col>
               </Row>
               <Row className="mb-3">
                 <Col sm={4} className="text-muted">Printing Method</Col>
                 <Col sm={8}>{order.printingCompany !== 'None' ? order.printingCompany : 'Not Set'}</Col>
               </Row>
-              {order.description && (
-                <Row className="mb-3">
-                  <Col sm={4} className="text-muted">Description</Col>
-                  <Col sm={8} style={{ whiteSpace: 'pre-line' }}>{order.description}</Col>
-                </Row>
-              )}
+              <Row className="mb-3">
+                <Col sm={4} className="text-muted">Description</Col>
+                <Col sm={8} style={{ whiteSpace: 'pre-line' }}>
+                  {isEditing ? <Form.Control as="textarea" rows={3} value={editForm.description} onChange={(e) => setEditForm({...editForm, description: e.target.value})} /> : (order.description || '-')}
+                </Col>
+              </Row>
 
               <h5 className="mt-5 fw-bold mb-4">Payment Information</h5>
               <Row className="mb-3">
                 <Col sm={4} className="text-muted fw-medium">Total Amount</Col>
-                <Col sm={8} className="fw-bold">₹{order.totalAmount}</Col>
+                <Col sm={8} className={isEditing ? "" : "fw-bold"}>
+                  {isEditing ? <Form.Control type="number" value={editForm.totalAmount} onChange={(e) => setEditForm({...editForm, totalAmount: e.target.value})} /> : `₹${order.totalAmount}`}
+                </Col>
               </Row>
               <Row className="mb-3">
                 <Col sm={4} className="text-muted fw-medium">Advance Amount</Col>
-                <Col sm={8}>₹{order.advanceAmount} {order.advanceAmount > 0 ? `(${order.paymentMethod || 'None'})` : ''}</Col>
+                <Col sm={8}>
+                  {isEditing ? <Form.Control type="number" value={editForm.advanceAmount} onChange={(e) => setEditForm({...editForm, advanceAmount: e.target.value})} /> : `₹${order.advanceAmount} ${order.advanceAmount > 0 ? `(${order.paymentMethod || 'None'})` : ''}`}
+                </Col>
               </Row>
               <Row className="mb-3">
                 <Col sm={4} className="text-muted fw-medium">Balance Paid</Col>
-                <Col sm={8}>₹{order.balanceAmount || 0} {(order.balanceAmount > 0) ? `(${order.paymentMethod || 'None'})` : ''}</Col>
+                <Col sm={8}>
+                  {isEditing ? <Form.Control type="number" value={editForm.balanceAmount} onChange={(e) => setEditForm({...editForm, balanceAmount: e.target.value})} /> : (
+                    <>
+                      <div>₹{order.balanceAmount || 0}</div>
+                      {order.balancePayments && order.balancePayments.length > 0 && (
+                        <div className="small text-muted mt-1">
+                          {order.balancePayments.map((bp, i) => (
+                            <div key={i}>₹{bp.amount} ({bp.method}) on {new Date(bp.date).toLocaleDateString()}</div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </Col>
               </Row>
               <Row className="mb-3">
                 <Col sm={4} className="text-muted fw-medium">
@@ -142,7 +254,6 @@ const OrderDetails = () => {
                   ₹{((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0)) > 0 
                     ? ((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0)) 
                     : ((order.advanceAmount || 0) + (order.balanceAmount || 0))} 
-                  {((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0)) <= 0 && ((order.advanceAmount || 0) + (order.balanceAmount || 0)) > 0 ? `(${order.paymentMethod || 'None'})` : ''}
                 </Col>
               </Row>
               <Row className="mb-3">
@@ -151,9 +262,14 @@ const OrderDetails = () => {
                   <span className={`badge-custom badge-${(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'success' : 'danger'} me-2`}>
                     {(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'Paid' : 'Pending'}
                   </span>
-                  {order.advanceReceived && <span className="text-muted">({order.paymentMethod})</span>}
                 </Col>
               </Row>
+              
+              {isEditing && (
+                <div className="mt-4 pt-3 border-top d-flex justify-content-end">
+                  <Button variant="primary" className="fw-medium px-4" onClick={handleSaveInlineEdits}>Save Information</Button>
+                </div>
+              )}
             </Card.Body>
           </Card>
 
@@ -209,6 +325,7 @@ const OrderDetails = () => {
                         <option value="KVB">KVB</option>
                         <option value="Dtdc Wallet">Dtdc Wallet</option>
                         <option value="Cash">Cash</option>
+<option value="Discount Amount">Discount Amount</option>
                         </Form.Select>
                       </Form.Group>
                     )}

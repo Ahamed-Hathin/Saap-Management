@@ -18,6 +18,7 @@ const EmployeeDashboard = () => {
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState(null);
   const [paymentFormData, setPaymentFormData] = useState({ advanceAmount: '', balanceAmount: '', paymentMethod: 'GPay' });
   const [previewImage, setPreviewImage] = useState(null);
+  const [filter, setFilter] = useState('all');
 
   const [formData, setFormData] = useState({
     clientName: '',
@@ -142,23 +143,43 @@ const EmployeeDashboard = () => {
 
   const statusOptions = settings?.orderStatuses || ['Printing', 'Cutting', 'Ready To Dispatch', 'Delivered'];
 
+  let displayedOrders = orders.filter(order => {
+    if (order.status !== 'Delivered') return true;
+    const pendingAmount = (order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0);
+    const isFullyPaid = pendingAmount <= 0;
+    return !isFullyPaid;
+  });
+
+  if (filter === 'ready') {
+    displayedOrders = displayedOrders.filter(o => o.status === 'Ready To Dispatch');
+  } else if (filter === 'payment_pending') {
+    displayedOrders = displayedOrders.filter(o => o.totalAmount > 0 && (o.advanceAmount + (o.balanceAmount || 0)) < o.totalAmount);
+  }
+
   return (
     <Layout>
-      <div className="d-flex justify-content-between align-items-center mb-5">
+      <div className="d-flex justify-content-between align-items-center mb-5 flex-wrap gap-3">
         <div>
           <h2 className="mb-1 fw-bold">
             {id ? (location.state?.employeeName ? `${location.state.employeeName} Orders` : 'Employee Orders') : 'My Orders'}
           </h2>
           <p className="text-muted mb-0">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
-        <Button variant="primary" onClick={handleShow} className="d-flex align-items-center">
-          <Plus size={18} className="me-2" /> Create Order
-        </Button>
+        <div className="d-flex gap-3 align-items-center">
+          <Form.Select value={filter} onChange={(e) => setFilter(e.target.value)} className="shadow-sm" style={{ minWidth: '170px' }}>
+            <option value="all">All Orders</option>
+            <option value="ready">Ready To Dispatch</option>
+            <option value="payment_pending">Pending Payment</option>
+          </Form.Select>
+          <Button variant="primary" onClick={handleShow} className="d-flex align-items-center">
+            <Plus size={18} className="me-2" /> Create Order
+          </Button>
+        </div>
       </div>
 
       <Card className="dashboard-card border-0 mb-4">
         <Card.Body className="p-0">
-          {orders.length === 0 ? (
+          {displayedOrders.length === 0 ? (
             <div className="p-5 text-center text-muted">
               <h5 className="fw-medium mb-3">No orders assigned</h5>
               <p className="mb-3">You currently have no orders assigned to you.</p>
@@ -182,7 +203,7 @@ const EmployeeDashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map((order) => (
+                  {displayedOrders.map((order) => (
                     <tr key={order._id}>
                       <td>{order.clientName}</td>
                         <td className="text-capitalize">{order.cardType}</td>
@@ -238,6 +259,7 @@ const EmployeeDashboard = () => {
 <option value="KVB">KVB</option>
 <option value="Dtdc Wallet">Dtdc Wallet</option>
 <option value="Cash">Cash</option>
+<option value="Discount Amount">Discount Amount</option>
                           </Form.Select>
                         )}
                       </td>
@@ -248,7 +270,7 @@ const EmployeeDashboard = () => {
                           value={order.status}
                           onChange={(e) => handleStatusChange(order._id, e.target.value)}
                           className="fw-medium border-primary text-primary shadow-sm"
-                          style={{ cursor: 'pointer', backgroundColor: 'transparent', maxWidth: '140px' }}
+                          style={{ cursor: 'pointer', backgroundColor: 'transparent', minWidth: '165px' }}
                         >
                           {statusOptions.map(opt => (
                             <option key={opt} value={opt} className="text-dark">{opt}</option>
@@ -262,7 +284,7 @@ const EmployeeDashboard = () => {
 
               {/* Mobile Cards View */}
               <div className="d-md-none">
-                {orders.map((order) => (
+                {displayedOrders.map((order) => (
                   <div key={order._id} className="p-3 border-bottom">
                     <div className="d-flex justify-content-between align-items-start mb-2">
                       <h6 className="fw-bold mb-0">{order.clientName}</h6>
@@ -313,6 +335,7 @@ const EmployeeDashboard = () => {
 <option value="KVB">KVB</option>
 <option value="Dtdc Wallet">Dtdc Wallet</option>
 <option value="Cash">Cash</option>
+<option value="Discount Amount">Discount Amount</option>
                           </Form.Select>
                         )}
                       </div>
@@ -347,11 +370,11 @@ const EmployeeDashboard = () => {
             <div className="row g-3">
               <div className="col-md-6">
                 <Form.Label>Client Name</Form.Label>
-                <Form.Control type="text" required value={formData.clientName} onChange={(e) => setFormData({ ...formData, clientName: e.target.value })} className="bg-light" />
+                <Form.Control type="text" required value={formData.clientName} onChange={(e) => setFormData({ ...formData, clientName: e.target.value ? e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1) : '' })} className="bg-light" />
               </div>
               <div className="col-md-6">
                 <Form.Label>Mobile Number</Form.Label>
-                <Form.Control type="text" required minLength={10} maxLength={10} pattern="\d{10}" title="Mobile number must be exactly 10 digits" value={formData.mobileNumber} onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value.replace(/\D/g, '').slice(0, 10) })} className="bg-light" />
+                <Form.Control type="text" required minLength={11} maxLength={11} pattern="\d{5} \d{5}" title="Mobile number must be exactly 10 digits with a space after the first 5" value={formData.mobileNumber} onChange={(e) => { const rawValue = e.target.value.replace(/\D/g, '').slice(0, 10); const formattedValue = rawValue.length > 5 ? `${rawValue.slice(0, 5)} ${rawValue.slice(5)}` : rawValue; setFormData({ ...formData, mobileNumber: formattedValue }); }} className="bg-light" />
               </div>
               <div className="col-12">
                 <Form.Label>Job</Form.Label>
@@ -398,6 +421,7 @@ const EmployeeDashboard = () => {
                       <option value="KVB">KVB</option>
                       <option value="Dtdc Wallet">Dtdc Wallet</option>
                       <option value="Cash">Cash</option>
+<option value="Discount Amount">Discount Amount</option>
                     </Form.Select>
                   </div>
                 </>
@@ -448,6 +472,7 @@ const EmployeeDashboard = () => {
                 <option value="KVB">KVB</option>
                 <option value="Dtdc Wallet">Dtdc Wallet</option>
                 <option value="Cash">Cash</option>
+<option value="Discount Amount">Discount Amount</option>
               </Form.Select>
             </Form.Group>
           </Modal.Body>

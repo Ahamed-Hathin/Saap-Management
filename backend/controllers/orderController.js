@@ -2,7 +2,7 @@ const Order = require('../models/Order');
 
 const createOrder = async (req, res) => {
   try {
-    const {
+    let {
       clientName,
       mobileNumber,
       cardType,
@@ -15,6 +15,10 @@ const createOrder = async (req, res) => {
       printingCompany,
       description,
     } = req.body;
+
+    if (clientName) {
+      clientName = clientName.charAt(0).toUpperCase() + clientName.slice(1);
+    }
 
     let assignedEmployeeId = assignedEmployee;
     if (req.user.role === 'Employee' || !assignedEmployeeId) {
@@ -80,10 +84,25 @@ const updateOrderStatus = async (req, res) => {
 
   if (order) {
     if (req.user.role === 'Admin' || req.user.role === 'Employee') {
+      if (req.body.clientName) {
+        order.clientName = req.body.clientName.charAt(0).toUpperCase() + req.body.clientName.slice(1);
+      }
+      order.mobileNumber = req.body.mobileNumber || order.mobileNumber;
+      order.cardType = req.body.cardType || order.cardType;
+      order.description = req.body.description !== undefined ? req.body.description : order.description;
       order.status = req.body.status || order.status;
       order.advanceReceived = req.body.paymentReceived !== undefined ? req.body.paymentReceived : order.advanceReceived;
       order.advanceAmount = req.body.advanceAmount !== undefined ? req.body.advanceAmount : order.advanceAmount;
-      order.balanceAmount = req.body.balanceAmount !== undefined ? req.body.balanceAmount : order.balanceAmount;
+      
+      if (req.body.newBalancePayments && Array.isArray(req.body.newBalancePayments)) {
+        if (!order.balancePayments) order.balancePayments = [];
+        order.balancePayments.push(...req.body.newBalancePayments);
+        const sumNew = req.body.newBalancePayments.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+        order.balanceAmount = (order.balanceAmount || 0) + sumNew;
+      } else if (req.body.balanceAmount !== undefined) {
+        order.balanceAmount = req.body.balanceAmount;
+      }
+
       order.totalAmount = req.body.totalAmount !== undefined ? req.body.totalAmount : order.totalAmount;
       order.paymentMethod = req.body.paymentMethod || order.paymentMethod;
       order.printingCompany = req.body.printingCompany || order.printingCompany;
@@ -165,7 +184,67 @@ const getDashboardStats = async (req, res) => {
    });
    const deliveredOrders = await Order.countDocuments({ ...baseQuery, status: 'Delivered' });
 
-   res.json({ totalOrders, pendingOrders, readyToDispatch, pendingPayments, deliveredOrders });
+   // Calculate Revenue Metrics
+   const revenueStats = await Order.aggregate([
+     { $match: baseQuery },
+     { 
+       $group: {
+         _id: null,
+         totalRevenue: { $sum: "$totalAmount" },
+         totalAdvance: { $sum: "$advanceAmount" },
+         totalBalance: { $sum: "$balanceAmount" }
+       }
+     }
+   ]);
+
+   let totalRevenue = 0;
+   let collectedRevenue = 0;
+   let pendingRevenue = 0;
+
+   if (revenueStats.length > 0) {
+     totalRevenue = revenueStats[0].totalRevenue || 0;
+     const advance = revenueStats[0].totalAdvance || 0;
+     const balance = revenueStats[0].totalBalance || 0;
+     collectedRevenue = advance + balance;
+     pendingRevenue = totalRevenue - collectedRevenue;
+   }
+
+   // Chart Data Generation
+   const chartDataRaw = await Order.aggregate([
+     { $match: baseQuery },
+     {
+       $group: {
+         _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+         orders: { $sum: 1 },
+         revenue: { $sum: "$totalAmount" }
+       }
+     },
+     { $sort: { _id: 1 } }
+   ]);
+
+   const chartData = chartDataRaw.map(item => ({
+     date: item._id,
+     orders: item.orders,
+     revenue: item.revenue
+   }));
+
+   const recentOrders = await Order.find(baseQuery)
+     .sort({ createdAt: -1 })
+     .limit(5)
+     .populate('assignedEmployee', 'name');
+
+   res.json({ 
+     totalOrders, 
+     pendingOrders, 
+     readyToDispatch, 
+     pendingPayments, 
+     deliveredOrders,
+     totalRevenue,
+     collectedRevenue,
+     pendingRevenue,
+     chartData,
+     recentOrders
+   });
 };
 
 const deleteOrder = async (req, res) => {
