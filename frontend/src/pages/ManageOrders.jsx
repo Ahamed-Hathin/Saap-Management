@@ -403,22 +403,7 @@ const ManageOrders = () => {
                           onChange={(e) => handlePaymentToggle(order, e.target.checked)}
                           className={`fw-medium mb-0 ${(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'text-success' : 'text-danger'}`}
                         />
-                        {order.advanceReceived && !((order.totalAmount > 0) && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) && (
-                          <Form.Select
-                            size="sm"
-                            value={order.paymentMethod}
-                            onChange={(e) => handlePaymentMethodChange(order._id, e.target.value)}
-                            className="mt-1"
-                            style={{ minWidth: '90px' }}
-                          >
-                            <option value="GPay">GPay</option>
-                            <option value="B-Gpay">B-Gpay</option>
-                            <option value="KVB">KVB</option>
-                            <option value="Dtdc Wallet">Dtdc Wallet</option>
-                            <option value="Cash">Cash</option>
-                            <option value="Discount Amount">Discount Amount</option>
-                          </Form.Select>
-                        )}
+
                       </td>
                       <td>
                         {order.assignedEmployee?.name || '-'}
@@ -508,21 +493,7 @@ const ManageOrders = () => {
                           onChange={(e) => handlePaymentToggle(order, e.target.checked)}
                           className={`fw-medium mb-0 me-2 ${(order.totalAmount > 0 && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) ? 'text-success' : 'text-danger'}`}
                         />
-                        {order.advanceReceived && !((order.totalAmount > 0) && (order.advanceAmount + (order.balanceAmount || 0)) >= order.totalAmount) && (
-                          <Form.Select
-                            size="sm"
-                            value={order.paymentMethod}
-                            onChange={(e) => handlePaymentMethodChange(order._id, e.target.value)}
-                            className="w-auto"
-                          >
-                            <option value="GPay">GPay</option>
-                            <option value="B-Gpay">B-Gpay</option>
-                            <option value="KVB">KVB</option>
-                            <option value="Dtdc Wallet">Dtdc Wallet</option>
-                            <option value="Cash">Cash</option>
-                            <option value="Discount Amount">Discount Amount</option>
-                          </Form.Select>
-                        )}
+
                       </div>
                     </div>
                     <div className="d-flex flex-wrap gap-2 mt-2">
