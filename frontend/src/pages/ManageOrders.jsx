@@ -158,6 +158,15 @@ const ManageOrders = () => {
   };
 
   const handleDownloadPDF = async (order, index) => {
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 3000,
+      icon: 'info',
+      title: 'Invoice generation started...'
+    });
+
     const doc = new jsPDF();
     const serialNum = order.serialNumber || (orders.length - index);
 
@@ -201,17 +210,7 @@ const ManageOrders = () => {
     doc.text(order.mobileNumber || '-', 35, 78);
 
     let leftY = 84;
-    if (order.description) {
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(0, 0, 0);
-      doc.text('Description:', 20, leftY);
-      
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(0, 0, 0);
-      const splitDesc = doc.splitTextToSize(order.description, 80);
-      doc.text(splitDesc, 20, leftY + 5);
-      leftY += 5 + (splitDesc.length * 4.5);
-    }
+    // Description moved to table
 
     // Right side: Date
     doc.setFontSize(12);
@@ -226,7 +225,10 @@ const ManageOrders = () => {
     doc.text(dateStr, 135, 65);
 
     // --- Table ---
-    const itemDesc = order.cardType || '-';
+    let itemDesc = order.cardType || '-';
+    if (order.description) {
+      itemDesc += `\n\nDescription: ${order.description}`;
+    }
     
     autoTable(doc, {
       startY: Math.max(95, leftY + 10),
@@ -436,18 +438,18 @@ const ManageOrders = () => {
           <h3 className="mb-1 fw-bold">Manage Orders</h3>
           <p className="text-muted mb-0 small">Track and manage all card orders</p>
         </div>
-        <div className="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2">
+        <div className="d-flex flex-column align-items-stretch align-items-sm-end gap-2">
+          <Button variant="primary" onClick={handleShow} className="d-flex align-items-center justify-content-center text-nowrap shadow-sm">
+            <Plus size={18} className="me-2" /> Create Order
+          </Button>
           <Form.Control
             type="search"
             placeholder="Search Orders..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="shadow-sm border-light bg-white"
-            style={{ minWidth: '250px' }}
+            style={{ minWidth: '250px', maxWidth: '100%' }}
           />
-          <Button variant="primary" onClick={handleShow} className="d-flex align-items-center justify-content-center text-nowrap shadow-sm">
-            <Plus size={18} className="me-2" /> Create Order
-          </Button>
         </div>
       </div>
 
