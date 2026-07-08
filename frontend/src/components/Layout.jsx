@@ -3,7 +3,7 @@ import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Navbar, Nav, Button, Modal } from 'react-bootstrap';
-import { LayoutDashboard, Users, ShoppingCart, LogOut, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingCart, LogOut, Settings, ClipboardList } from 'lucide-react';
 
 const Layout = ({ children }) => {
   const { user, logout } = useContext(AuthContext);
@@ -53,6 +53,9 @@ const Layout = ({ children }) => {
                 <NavLink to="/admin/employees" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                   <Users className="me-3" size={20} /> Employees
                 </NavLink>
+                <NavLink to="/admin/tasks" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                  <ClipboardList className="me-3" size={20} /> Tasks
+                </NavLink>
                 <NavLink to="/admin/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                   <Settings className="me-3" size={20} /> Settings
                 </NavLink>
@@ -67,6 +70,9 @@ const Layout = ({ children }) => {
                     <Users className="me-3" size={20} /> {emp.name}
                   </NavLink>
                 ))}
+                <NavLink to="/employee/tasks" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                  <ClipboardList className="me-3" size={20} /> Tasks
+                </NavLink>
                 <NavLink to="/employee/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                   <Settings className="me-3" size={20} /> Settings
                 </NavLink>
@@ -98,6 +104,10 @@ const Layout = ({ children }) => {
                   <Users size={24} className="d-block mx-auto mb-1" />
                   <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Team</span>
                 </NavLink>
+                <NavLink to="/admin/tasks" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
+                  <ClipboardList size={24} className="d-block mx-auto mb-1" />
+                  <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Tasks</span>
+                </NavLink>
                 <NavLink to="/admin/settings" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
                   <Settings size={24} className="d-block mx-auto mb-1" />
                   <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Settings</span>
@@ -115,6 +125,10 @@ const Layout = ({ children }) => {
                     <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>{emp.name}</span>
                   </NavLink>
                 ))}
+                <NavLink to="/employee/tasks" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
+                  <ClipboardList size={24} className="d-block mx-auto mb-1" />
+                  <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Tasks</span>
+                </NavLink>
                 <NavLink to="/employee/settings" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
                   <Settings size={24} className="d-block mx-auto mb-1" />
                   <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Settings</span>

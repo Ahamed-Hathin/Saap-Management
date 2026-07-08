@@ -205,7 +205,10 @@ const EmployeeDashboard = () => {
                 <tbody>
                   {displayedOrders.map((order) => (
                     <tr key={order._id}>
-                      <td>{order.clientName}</td>
+                      <td>
+                        <div className="fw-medium">{order.clientName}</div>
+                        {order.mobileNumber && <div className="text-muted small">{order.mobileNumber}</div>}
+                      </td>
                         <td className="text-capitalize">{order.cardType}</td>
                         <td>
                           {order.designImage ? (

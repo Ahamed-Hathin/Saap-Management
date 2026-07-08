@@ -8,6 +8,7 @@ import ManageEmployees from './pages/ManageEmployees';
 import ManageOrders from './pages/ManageOrders';
 import OrderDetails from './pages/OrderDetails';
 import Settings from './pages/Settings';
+import Tasks from './pages/Tasks';
 const PrivateRoute = ({ children, role }) => {
   const { user, loading, logout } = useContext(AuthContext);
 
@@ -48,11 +49,13 @@ function App() {
         <Route path="/admin/dashboard" element={<PrivateRoute role="Admin"><AdminDashboard /></PrivateRoute>} />
         <Route path="/admin/employees" element={<PrivateRoute role="Admin"><ManageEmployees /></PrivateRoute>} />
         <Route path="/admin/orders" element={<PrivateRoute role="Admin"><ManageOrders /></PrivateRoute>} />
+        <Route path="/admin/tasks" element={<PrivateRoute role="Admin"><Tasks /></PrivateRoute>} />
         <Route path="/admin/settings" element={<PrivateRoute role="Admin"><Settings /></PrivateRoute>} />
 
         {/* Employee Routes */}
         <Route path="/employee/orders" element={<PrivateRoute role="Employee"><EmployeeDashboard /></PrivateRoute>} />
         <Route path="/employee/user/:id" element={<PrivateRoute role="Employee"><EmployeeDashboard /></PrivateRoute>} />
+        <Route path="/employee/tasks" element={<PrivateRoute role="Employee"><Tasks /></PrivateRoute>} />
         <Route path="/employee/settings" element={<PrivateRoute role="Employee"><Settings /></PrivateRoute>} />
         
         {/* Shared Routes */}

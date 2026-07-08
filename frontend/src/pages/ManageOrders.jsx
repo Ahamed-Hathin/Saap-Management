@@ -7,7 +7,10 @@ import { Plus, Trash2, Download } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Swal from 'sweetalert2';
+import * as pdfjsLib from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
 
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 const ManageOrders = () => {
   const [orders, setOrders] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -154,7 +157,7 @@ const ManageOrders = () => {
     }
   };
 
-  const handleDownloadPDF = (order, index) => {
+  const handleDownloadPDF = async (order, index) => {
     const doc = new jsPDF();
     const serialNum = order.serialNumber || (orders.length - index);
 
@@ -292,7 +295,44 @@ const ManageOrders = () => {
 
     // Footer completely removed as requested
 
-    doc.save(`Invoice_${serialNum}_${(order.clientName || 'Client').replace(/\s+/g, '_')}.pdf`);
+    // Generate PDF array buffer
+    const pdfArrayBuffer = doc.output('arraybuffer');
+    
+    // Convert to image
+    try {
+      const loadingTask = pdfjsLib.getDocument({ data: pdfArrayBuffer });
+      const pdf = await loadingTask.promise;
+      const page = await pdf.getPage(1);
+      
+      // Use scale for high-resolution image
+      const scale = 3; 
+      const viewport = page.getViewport({ scale });
+      
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+      
+      const renderContext = {
+        canvasContext: context,
+        viewport: viewport,
+      };
+      
+      await page.render(renderContext).promise;
+      
+      const imgData = canvas.toDataURL('image/png');
+      
+      // Trigger download
+      const link = document.createElement('a');
+      link.href = imgData;
+      link.download = `Invoice_${serialNum}_${(order.clientName || 'Client').replace(/\s+/g, '_')}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Error converting PDF to image:', err);
+      Swal.fire('Error', 'Failed to generate image invoice', 'error');
+    }
   };
 
   const statusOptions = settings?.orderStatuses || ['Printing', 'Cutting', 'Ready To Dispatch', 'Delivered'];
@@ -513,7 +553,7 @@ const ManageOrders = () => {
                           <Link to={`/orders/${order._id}`}>
                             <Button variant="outline-primary" size="sm" className="fw-medium">View / Edit</Button>
                           </Link>
-                          <Button variant="outline-info" size="sm" onClick={() => handleDownloadPDF(order, index)} title="Download PDF">
+                          <Button variant="outline-info" size="sm" onClick={() => handleDownloadPDF(order, index)} title="Download Image">
                             <Download size={16} />
                           </Button>
                           <Button variant="outline-danger" size="sm" onClick={() => handleDelete(order._id)}>
@@ -595,7 +635,7 @@ const ManageOrders = () => {
                       <Link to={`/orders/${order._id}`} className="flex-grow-1">
                         <Button variant="outline-primary" size="sm" className="w-100 fw-medium">View / Edit</Button>
                       </Link>
-                      <Button variant="outline-info" size="sm" onClick={() => handleDownloadPDF(order, orders.indexOf(order))} title="Download PDF">
+                      <Button variant="outline-info" size="sm" onClick={() => handleDownloadPDF(order, orders.indexOf(order))} title="Download Image">
                         <Download size={16} />
                       </Button>
                       <Button variant="outline-danger" size="sm" onClick={() => handleDelete(order._id)}>
