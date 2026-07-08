@@ -182,22 +182,23 @@ const ManageOrders = () => {
 
     // --- Information Section ---
     // Left side: Invoice to
-    doc.setFontSize(10);
+    doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
     doc.text('Invoice to:', 20, 65);
     
-    doc.setFontSize(11);
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "bold");
     doc.text(order.clientName || 'Client Name', 20, 72);
     
-    doc.setFontSize(9);
+    doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
     doc.text('Mobile:', 20, 78);
     
-    doc.setFont("helvetica", "normal");
+    doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
-    doc.text(order.mobileNumber || '-', 32, 78);
+    doc.text(order.mobileNumber || '-', 35, 78);
 
     let leftY = 84;
     if (order.description) {
@@ -205,7 +206,7 @@ const ManageOrders = () => {
       doc.setTextColor(0, 0, 0);
       doc.text('Description:', 20, leftY);
       
-      doc.setFont("helvetica", "normal");
+      doc.setFont("helvetica", "bold");
       doc.setTextColor(0, 0, 0);
       const splitDesc = doc.splitTextToSize(order.description, 80);
       doc.text(splitDesc, 20, leftY + 5);
@@ -213,13 +214,13 @@ const ManageOrders = () => {
     }
 
     // Right side: Date
-    doc.setFontSize(10);
+    doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
     doc.text('Date', 120, 65);
     
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
     const dateStr = order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB');
     doc.text(dateStr, 135, 65);
@@ -238,12 +239,13 @@ const ManageOrders = () => {
         fillColor: [50, 54, 63],
         textColor: 255,
         fontStyle: 'bold',
-        fontSize: 10,
+        fontSize: 12,
         halign: 'center'
       },
       bodyStyles: {
         textColor: [0, 0, 0],
-        fontSize: 9,
+        fontSize: 11,
+        fontStyle: 'bold',
         halign: 'center'
       },
       columnStyles: {
@@ -264,7 +266,7 @@ const ManageOrders = () => {
     // --- Footer Section ---
 
     // Payment Summary instead of Payment Info
-    doc.setFontSize(9);
+    doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
     doc.text('Payment Summary:', 20, finalY + 12);
@@ -274,8 +276,8 @@ const ManageOrders = () => {
     const methodStr = (order.paymentMethod && order.paymentMethod !== 'None') ? ` (${order.paymentMethod})` : '';
     const pendingBalance = Math.max(0, (order.totalAmount || 0) - advanceAmount - balancePaid);
 
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
     
     doc.text('Total Amount:', 20, finalY + 18);
@@ -288,7 +290,7 @@ const ManageOrders = () => {
     doc.text(`Rs. ${pendingBalance}`, 50, finalY + 28);
 
     // Thank you for your business
-    doc.setFontSize(10);
+    doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
     doc.text('Thank you for your business', 20, finalY + 40);
