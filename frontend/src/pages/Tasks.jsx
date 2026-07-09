@@ -82,7 +82,7 @@ const Tasks = () => {
   };
 
   const renderTaskTable = (taskList) => (
-    <div className="w-100">
+    <div className="table-responsive">
       <Table className="table-custom mb-0">
         <thead>
           <tr style={{ letterSpacing: '1px', textTransform: 'uppercase' }}>
