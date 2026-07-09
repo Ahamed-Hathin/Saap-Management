@@ -83,7 +83,7 @@ const Tasks = () => {
 
   const renderTaskTable = (taskList) => (
     <div className="table-responsive">
-      <Table className="table-custom mb-0">
+      <Table className="table-custom mb-0" size="sm">
         <thead>
           <tr style={{ letterSpacing: '1px', textTransform: 'uppercase' }}>
             <th>Title</th>
@@ -106,7 +106,7 @@ const Tasks = () => {
                 </Badge>
               </td>
               <td className="text-end">
-                <div className="d-flex justify-content-end gap-2 flex-wrap">
+                <div className="d-flex flex-column align-items-end gap-1">
                   <Button 
                     variant={task.status === 'pending' ? 'outline-success' : 'outline-warning'} 
                     size="sm" 
