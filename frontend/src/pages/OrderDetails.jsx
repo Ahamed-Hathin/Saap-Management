@@ -177,7 +177,7 @@ const OrderDetails = () => {
               <Row className="mb-3">
                 <Col sm={4} className="text-muted">Client Name</Col>
                 <Col sm={8}>
-                  {isEditing ? <Form.Control value={editForm.clientName} onChange={(e) => setEditForm({...editForm, clientName: e.target.value})} /> : order.clientName}
+                  {isEditing ? <Form.Control value={editForm.clientName} onChange={(e) => setEditForm({...editForm, clientName: e.target.value ? e.target.value.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : ''})} /> : order.clientName}
                 </Col>
               </Row>
               <Row className="mb-3">

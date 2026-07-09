@@ -373,7 +373,7 @@ const EmployeeDashboard = () => {
             <div className="row g-3">
               <div className="col-md-6">
                 <Form.Label>Client Name</Form.Label>
-                <Form.Control type="text" required value={formData.clientName} onChange={(e) => setFormData({ ...formData, clientName: e.target.value ? e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1) : '' })} className="bg-light" />
+                <Form.Control type="text" required value={formData.clientName} onChange={(e) => setFormData({ ...formData, clientName: e.target.value ? e.target.value.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : '' })} className="bg-light" />
               </div>
               <div className="col-md-6">
                 <Form.Label>Mobile Number</Form.Label>

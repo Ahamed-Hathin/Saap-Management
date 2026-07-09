@@ -167,12 +167,12 @@ const ManageOrders = () => {
       title: 'Invoice generation started...'
     });
 
-    const doc = new jsPDF();
+    const doc = new jsPDF({ format: [210, 180] });
     const serialNum = order.serialNumber || (orders.length - index);
 
     // --- Header ---
     // Brand Name
-    doc.setFontSize(22);
+    doc.setFontSize(26);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
     doc.text('SAPP Creation', 20, 26);
@@ -181,7 +181,7 @@ const ManageOrders = () => {
     doc.setFillColor(253, 192, 47); // Yellowish color
     doc.rect(20, 40, 95, 10, 'F'); // Left bar
     
-    doc.setFontSize(28);
+    doc.setFontSize(32);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(0, 0, 0);
     doc.text('INVOICE', 120, 48);
@@ -191,34 +191,35 @@ const ManageOrders = () => {
 
     // --- Information Section ---
     // Left side: Invoice to
-    doc.setFontSize(12);
+    doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
     doc.text('Invoice to:', 20, 65);
     
-    doc.setFontSize(13);
+    doc.setFontSize(15);
     doc.setFont("helvetica", "bold");
     doc.text(order.clientName || 'Client Name', 20, 72);
     
-    doc.setFontSize(11);
+    doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
     doc.text('Mobile:', 20, 78);
     
+    doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
-    doc.text(order.mobileNumber || '-', 35, 78);
+    doc.text(order.mobileNumber || '-', 40, 78);
 
     let leftY = 84;
     // Description moved to table
 
     // Right side: Date
-    doc.setFontSize(12);
+    doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
     doc.text('Date', 120, 65);
     
-    doc.setFontSize(11);
+    doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
     const dateStr = order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB');
@@ -227,35 +228,34 @@ const ManageOrders = () => {
     // --- Table ---
     let itemDesc = order.cardType || '-';
     if (order.description) {
-      itemDesc += `\n\nDescription: ${order.description}`;
+      itemDesc += `\n\n${order.description}`;
     }
     
     autoTable(doc, {
       startY: Math.max(95, leftY + 10),
-      head: [['SL.', 'Item Description', 'Price', 'Qty.', 'Total']],
+      head: [['SL.', 'Item Description', 'Price', 'Total']],
       body: [
-        ['1', itemDesc, `Rs. ${order.totalAmount || 0}`, '1', `Rs. ${order.totalAmount || 0}`]
+        ['1', itemDesc, `Rs. ${order.totalAmount || 0}`, `Rs. ${order.totalAmount || 0}`]
       ],
       theme: 'plain',
       headStyles: {
         fillColor: [50, 54, 63],
         textColor: 255,
         fontStyle: 'bold',
-        fontSize: 12,
+        fontSize: 14,
         halign: 'center'
       },
       bodyStyles: {
         textColor: [0, 0, 0],
-        fontSize: 11,
+        fontSize: 13,
         fontStyle: 'bold',
         halign: 'center'
       },
       columnStyles: {
         0: { halign: 'center', cellWidth: 20 },
         1: { halign: 'left' },
-        2: { halign: 'center', cellWidth: 30 },
-        3: { halign: 'center', cellWidth: 20 },
-        4: { halign: 'center', cellWidth: 30 }
+        2: { halign: 'center', cellWidth: 35 },
+        3: { halign: 'center', cellWidth: 35 }
       },
       alternateRowStyles: {
         fillColor: [245, 245, 245]
@@ -268,7 +268,7 @@ const ManageOrders = () => {
     // --- Footer Section ---
 
     // Payment Summary instead of Payment Info
-    doc.setFontSize(12);
+    doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
     doc.text('Payment Summary:', 20, finalY + 12);
@@ -278,24 +278,25 @@ const ManageOrders = () => {
     const methodStr = (order.paymentMethod && order.paymentMethod !== 'None') ? ` (${order.paymentMethod})` : '';
     const pendingBalance = Math.max(0, (order.totalAmount || 0) - advanceAmount - balancePaid);
 
-    doc.setFontSize(10);
+    doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
     
     doc.text('Total Amount:', 20, finalY + 18);
-    doc.text(`Rs. ${order.totalAmount || 0}`, 50, finalY + 18);
+    doc.text(`Rs. ${order.totalAmount || 0}`, 55, finalY + 18);
     
-    doc.text('Advance Paid:', 20, finalY + 23);
-    doc.text(`Rs. ${advanceAmount}${methodStr}`, 50, finalY + 23);
+    doc.text('Advance Paid:', 20, finalY + 24);
+    doc.text(`Rs. ${advanceAmount}${methodStr}`, 55, finalY + 24);
     
-    doc.text('Balance Amount:', 20, finalY + 28);
-    doc.text(`Rs. ${pendingBalance}`, 50, finalY + 28);
+    doc.setTextColor(255, 0, 0);
+    doc.text('Balance Amount:', 20, finalY + 30);
+    doc.text(`Rs. ${pendingBalance}`, 55, finalY + 30);
 
     // Thank you for your business
-    doc.setFontSize(12);
+    doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
-    doc.text('Thank you for your business', 20, finalY + 40);
+    doc.text('Thank you for your business', 20, finalY + 44);
 
     // Footer completely removed as requested
 
@@ -371,8 +372,17 @@ const ManageOrders = () => {
     }
   };
 
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const filterParam = searchParams.get('filter');
+
+  const handleFilterChange = (filterName) => {
+    if (filterName) {
+      searchParams.set('filter', filterName);
+    } else {
+      searchParams.delete('filter');
+    }
+    setSearchParams(searchParams);
+  };
   const dateFilterParam = searchParams.get('dateFilter');
   const startDateParam = searchParams.get('startDate');
   const endDateParam = searchParams.get('endDate');
@@ -451,6 +461,14 @@ const ManageOrders = () => {
             style={{ minWidth: '250px', maxWidth: '100%' }}
           />
         </div>
+      </div>
+
+      <div className="d-flex flex-wrap gap-2 mb-3">
+        <Button variant={!filterParam ? "primary" : "outline-primary"} size="sm" onClick={() => handleFilterChange('')}>All Orders</Button>
+        <Button variant={filterParam === 'pending' ? "primary" : "outline-primary"} size="sm" onClick={() => handleFilterChange('pending')}>Pending Orders</Button>
+        <Button variant={filterParam === 'ready' ? "primary" : "outline-primary"} size="sm" onClick={() => handleFilterChange('ready')}>Ready to Dispatch</Button>
+        <Button variant={filterParam === 'delivered' ? "primary" : "outline-primary"} size="sm" onClick={() => handleFilterChange('delivered')}>Delivered</Button>
+        <Button variant={filterParam === 'payment_pending' ? "primary" : "outline-primary"} size="sm" onClick={() => handleFilterChange('payment_pending')}>Payment Pending</Button>
       </div>
 
       <Card className="dashboard-card border-0 mb-4">
@@ -664,7 +682,7 @@ const ManageOrders = () => {
             <div className="row g-3">
               <div className="col-md-6">
                 <Form.Label>Client Name</Form.Label>
-                <Form.Control type="text" required value={formData.clientName} onChange={(e) => setFormData({ ...formData, clientName: e.target.value ? e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1) : '' })} className="bg-light" />
+                <Form.Control type="text" required value={formData.clientName} onChange={(e) => setFormData({ ...formData, clientName: e.target.value ? e.target.value.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : '' })} className="bg-light" />
               </div>
               <div className="col-md-6">
                 <Form.Label>Mobile Number</Form.Label>

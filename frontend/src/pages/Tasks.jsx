@@ -81,6 +81,54 @@ const Tasks = () => {
     }
   };
 
+  const renderTaskTable = (taskList) => (
+    <div className="w-100">
+      <Table className="table-custom mb-0">
+        <thead>
+          <tr style={{ letterSpacing: '1px', textTransform: 'uppercase' }}>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th className="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {taskList.map(task => (
+            <tr key={task._id}>
+              <td className="fw-medium">{task.title}</td>
+              <td>{task.description || '-'}</td>
+              <td>{task.createdAt ? new Date(task.createdAt).toLocaleDateString() : '-'}</td>
+              <td>
+                <Badge bg={task.status === 'completed' ? 'success' : 'warning'} className="px-3 py-2 rounded-pill fw-medium d-flex align-items-center" style={{ width: 'fit-content' }}>
+                  {task.status === 'completed' ? <CheckCircle size={14} className="me-1" /> : <Clock size={14} className="me-1" />}
+                  {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
+                </Badge>
+              </td>
+              <td className="text-end">
+                <div className="d-flex justify-content-end gap-2 flex-wrap">
+                  <Button 
+                    variant={task.status === 'pending' ? 'outline-success' : 'outline-warning'} 
+                    size="sm" 
+                    onClick={() => handleStatusChange(task._id, task.status)}
+                    className="text-nowrap"
+                  >
+                    Mark {task.status === 'pending' ? 'Complete' : 'Pending'}
+                  </Button>
+                  {user?.role === 'Admin' && (
+                    <Button variant="outline-danger" size="sm" onClick={() => handleDelete(task._id)} className="text-nowrap">
+                      Delete
+                    </Button>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </div>
+  );
+
   return (
     <Layout>
       <div className="d-flex justify-content-between align-items-center mb-5 flex-wrap gap-3">
@@ -95,64 +143,44 @@ const Tasks = () => {
         )}
       </div>
 
-      <Card className="dashboard-card border-0 mb-4">
-        <Card.Body className="p-0">
-          {tasks.length === 0 ? (
-            <div className="p-5 text-center text-muted">
-              <h5 className="fw-medium mb-3">No tasks found</h5>
-              <p className="mb-0">There are currently no tasks assigned.</p>
-            </div>
-          ) : (
-            <div className="table-responsive">
-              <Table className="table-custom mb-0">
-                <thead>
-                  <tr>
-                    <th>Title</th>
-                    <th>Description</th>
-                    {user?.role === 'Admin' && <th>Assigned To</th>}
-                    <th>Assigned By</th>
-                    <th>Status</th>
-                    <th>Due Date</th>
-                    <th className="text-end">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tasks.map(task => (
-                    <tr key={task._id}>
-                      <td className="fw-medium">{task.title}</td>
-                      <td>{task.description || '-'}</td>
-                      {user?.role === 'Admin' && <td>{task.assignedTo?.name || 'Unknown'}</td>}
-                      <td>{task.assignedBy?.name || 'Unknown'}</td>
-                      <td>
-                        <Badge bg={task.status === 'completed' ? 'success' : 'warning'} className="px-3 py-2 rounded-pill fw-medium d-flex align-items-center" style={{ width: 'fit-content' }}>
-                          {task.status === 'completed' ? <CheckCircle size={14} className="me-1" /> : <Clock size={14} className="me-1" />}
-                          {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
-                        </Badge>
-                      </td>
-                      <td>{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No Due Date'}</td>
-                      <td className="text-end">
-                        <Button 
-                          variant={task.status === 'pending' ? 'outline-success' : 'outline-warning'} 
-                          size="sm" 
-                          onClick={() => handleStatusChange(task._id, task.status)}
-                          className="me-2"
-                        >
-                          Mark {task.status === 'pending' ? 'Complete' : 'Pending'}
-                        </Button>
-                        {user?.role === 'Admin' && (
-                          <Button variant="outline-danger" size="sm" onClick={() => handleDelete(task._id)}>
-                            Delete
-                          </Button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </div>
-          )}
-        </Card.Body>
-      </Card>
+      {user?.role === 'Admin' ? (
+        <div className="row g-4">
+          {employees.map(emp => {
+            const empTasks = tasks.filter(t => t.assignedTo?._id === emp._id || t.assignedTo === emp._id);
+            return (
+              <div className="col-lg-6" key={emp._id}>
+                <Card className="dashboard-card border-0 h-100">
+                  <Card.Header className="bg-white border-0 pt-4 pb-0">
+                    <h5 className="fw-bold mb-0 text-primary">{emp.name}'s Tasks</h5>
+                  </Card.Header>
+                  <Card.Body>
+                    {empTasks.length === 0 ? (
+                      <div className="p-4 text-center text-muted">
+                        <p className="mb-0">No tasks assigned.</p>
+                      </div>
+                    ) : (
+                      renderTaskTable(empTasks)
+                    )}
+                  </Card.Body>
+                </Card>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <Card className="dashboard-card border-0 mb-4">
+          <Card.Body className="p-0">
+            {tasks.length === 0 ? (
+              <div className="p-5 text-center text-muted">
+                <h5 className="fw-medium mb-3">No tasks found</h5>
+                <p className="mb-0">There are currently no tasks assigned.</p>
+              </div>
+            ) : (
+              renderTaskTable(tasks)
+            )}
+          </Card.Body>
+        </Card>
+      )}
 
       <Modal show={showModal} onHide={() => setShowModal(false)} centered size="lg">
         <Modal.Header closeButton className="border-0 pb-0">
@@ -181,7 +209,7 @@ const Tasks = () => {
                 placeholder="Enter task details"
               />
             </Form.Group>
-            
+
             <div className="row">
               <div className="col-md-6 mb-3">
                 <Form.Group>
