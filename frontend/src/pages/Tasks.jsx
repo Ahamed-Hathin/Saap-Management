@@ -13,6 +13,7 @@ const Tasks = () => {
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({ title: '', description: '', assignedTo: '', dueDate: '' });
   const [loading, setLoading] = useState(false);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
 
   const fetchData = async () => {
     try {
@@ -137,18 +138,43 @@ const Tasks = () => {
           <p className="text-muted mb-0">Manage and track tasks efficiently.</p>
         </div>
         {user?.role === 'Admin' && (
-          <Button variant="primary" onClick={() => setShowModal(true)} className="d-flex align-items-center shadow-sm">
-            <Plus size={18} className="me-2" /> Assign New Task
-          </Button>
+          <div className="d-flex gap-3 align-items-center justify-content-between w-100 flex-wrap">
+            <div className="d-flex gap-2 align-items-center flex-wrap pb-1" style={{ flex: 1 }}>
+              <Button
+                variant={selectedEmployeeId === '' ? 'primary' : 'outline-primary'}
+                onClick={() => setSelectedEmployeeId('')}
+                className="text-nowrap"
+                style={{ fontWeight: 500 }}
+              >
+                All Employees
+              </Button>
+              {employees.map(emp => (
+                <Button
+                  key={emp._id}
+                  variant={selectedEmployeeId === emp._id ? 'primary' : 'outline-primary'}
+                  onClick={() => setSelectedEmployeeId(emp._id)}
+                  className="text-nowrap"
+                  style={{ fontWeight: 500 }}
+                >
+                  {emp.name}
+                </Button>
+              ))}
+            </div>
+            <Button variant="primary" onClick={() => setShowModal(true)} className="d-flex align-items-center shadow-sm text-nowrap px-4 py-2">
+              <Plus size={18} className="me-2" /> Assign New Task
+            </Button>
+          </div>
         )}
       </div>
 
       {user?.role === 'Admin' ? (
         <div className="row g-4">
-          {employees.map(emp => {
+          {employees
+            .filter(emp => selectedEmployeeId === '' || emp._id === selectedEmployeeId)
+            .map(emp => {
             const empTasks = tasks.filter(t => t.assignedTo?._id === emp._id || t.assignedTo === emp._id);
             return (
-              <div className="col-lg-6" key={emp._id}>
+              <div className="col-12" key={emp._id}>
                 <Card className="dashboard-card border-0 h-100">
                   <Card.Header className="bg-white border-0 pt-4 pb-0">
                     <h5 className="fw-bold mb-0 text-primary">{emp.name}'s Tasks</h5>

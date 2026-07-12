@@ -293,10 +293,10 @@ const ManageOrders = () => {
     doc.text(`Rs. ${pendingBalance}`, 55, finalY + 30);
 
     // Thank you for your business
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 0, 0);
-    doc.text('Thank you for your business', 20, finalY + 44);
+    doc.setFontSize(18);
+    doc.setFont("times", "italic");
+    doc.setTextColor(253, 192, 47); // Yellowish color matching the bars
+    doc.text('Thank you for your business!', 105, finalY + 44, { align: 'center' });
 
     // Footer completely removed as requested
 
@@ -336,7 +336,18 @@ const ManageOrders = () => {
       document.body.removeChild(link);
     } catch (err) {
       console.error('Error converting PDF to image:', err);
-      Swal.fire('Error', 'Failed to generate image invoice', 'error');
+      // Fallback for older browsers where pdfjs image conversion fails
+      try {
+        doc.save(`Invoice_${serialNum}_${(order.clientName || 'Client').replace(/\s+/g, '_')}.pdf`);
+        Swal.fire({
+          icon: 'info',
+          title: 'Downloaded as PDF',
+          text: 'Image generation is not supported on this device/browser, so the invoice was downloaded as a PDF instead.'
+        });
+      } catch (fallbackErr) {
+        console.error('PDF fallback failed:', fallbackErr);
+        Swal.fire('Error', 'Failed to generate invoice', 'error');
+      }
     }
   };
 
