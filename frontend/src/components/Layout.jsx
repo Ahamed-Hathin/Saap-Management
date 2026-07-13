@@ -3,7 +3,7 @@ import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Navbar, Nav, Button, Modal } from 'react-bootstrap';
-import { LayoutDashboard, Users, ShoppingCart, LogOut, Settings, ClipboardList, UserCheck } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingCart, LogOut, Settings, ClipboardList, UserCheck, Receipt } from 'lucide-react';
 
 const Layout = ({ children }) => {
   const { user, logout } = useContext(AuthContext);
@@ -58,6 +58,9 @@ const Layout = ({ children }) => {
                 </NavLink>
                 <NavLink to="/clients" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                   <UserCheck className="me-3" size={20} /> Clients
+                </NavLink>
+                <NavLink to="/admin/expenses" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                  <Receipt className="me-3" size={20} /> Expenses
                 </NavLink>
                 <NavLink to="/admin/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                   <Settings className="me-3" size={20} /> Settings
@@ -117,6 +120,10 @@ const Layout = ({ children }) => {
                 <NavLink to="/clients" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
                   <UserCheck size={24} className="d-block mx-auto mb-1" />
                   <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Clients</span>
+                </NavLink>
+                <NavLink to="/admin/expenses" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
+                  <Receipt size={24} className="d-block mx-auto mb-1" />
+                  <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Expenses</span>
                 </NavLink>
                 <NavLink to="/admin/settings" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
                   <Settings size={24} className="d-block mx-auto mb-1" />

@@ -19,7 +19,8 @@ const AdminDashboard = () => {
     pendingRevenue: 0,
     paymentBreakdown: {},
     chartData: [],
-    recentOrders: []
+    recentOrders: [],
+    totalExpense: 0
   });
   const [showIncomeModal, setShowIncomeModal] = useState(false);
   const [filter, setFilter] = useState(localStorage.getItem('globalDateFilter') || 'all');
@@ -51,7 +52,8 @@ const AdminDashboard = () => {
         pendingRevenue: data.pendingRevenue || 0,
         paymentBreakdown: data.paymentBreakdown || {},
         chartData: data.chartData || [],
-        recentOrders: data.recentOrders || []
+        recentOrders: data.recentOrders || [],
+        totalExpense: data.totalExpense || 0
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -239,6 +241,19 @@ const AdminDashboard = () => {
                 <div>
                   <h6 className="text-muted text-uppercase mb-1" style={{ fontSize: '0.75rem', letterSpacing: '0.5px', fontWeight: 600 }}>Pending Amount</h6>
                   <h4 className="fw-bold mb-0 text-dark">₹{stats.pendingRevenue.toLocaleString()}</h4>
+                </div>
+              </Card.Body>
+            </Card>
+
+            {/* Total Expense */}
+            <Card className="border shadow-sm rounded-4 border-light bg-white flex-grow-1" style={{ cursor: 'pointer' }} onClick={() => navigate('/admin/expenses')}>
+              <Card.Body className="d-flex align-items-center p-3">
+                <div className="rounded-3 d-flex align-items-center justify-content-center me-3" style={{ width: '48px', height: '48px', backgroundColor: '#fef2f2', color: '#dc2626' }}>
+                  <TrendingUp size={24} style={{ transform: 'scaleY(-1)' }} />
+                </div>
+                <div>
+                  <h6 className="text-muted text-uppercase mb-1" style={{ fontSize: '0.75rem', letterSpacing: '0.5px', fontWeight: 600 }}>Total Expense</h6>
+                  <h4 className="fw-bold mb-0 text-dark">₹{(stats.totalExpense || 0).toLocaleString()}</h4>
                 </div>
               </Card.Body>
             </Card>

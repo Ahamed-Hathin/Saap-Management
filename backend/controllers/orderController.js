@@ -1,4 +1,5 @@
 const Order = require('../models/Order');
+const Expense = require('../models/Expense');
 
 const createOrder = async (req, res) => {
   try {
@@ -164,6 +165,11 @@ const getDashboardStats = async (req, res) => {
      dateFilter = { createdAt: { $gte: start, $lte: end } };
    }
 
+   let expenseFilter = {};
+   if (dateFilter.createdAt) {
+     expenseFilter.date = dateFilter.createdAt;
+   }
+
    let baseQuery = { ...dateFilter };
    if (req.user.role !== 'Admin') {
      baseQuery.assignedEmployee = req.user._id;
@@ -261,6 +267,9 @@ const getDashboardStats = async (req, res) => {
      .limit(5)
      .populate('assignedEmployee', 'name');
 
+   const expenses = await Expense.find(expenseFilter, 'amount');
+   const totalExpense = expenses.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+
    res.json({ 
      totalOrders, 
      pendingOrders, 
@@ -272,7 +281,8 @@ const getDashboardStats = async (req, res) => {
      pendingRevenue,
      paymentBreakdown,
      chartData,
-     recentOrders
+     recentOrders,
+     totalExpense
    });
 };
 
