@@ -177,7 +177,7 @@ const OrderDetails = () => {
               <Row className="mb-3">
                 <Col sm={4} className="text-muted">Client Name</Col>
                 <Col sm={8}>
-                  {isEditing ? <Form.Control value={editForm.clientName} onChange={(e) => setEditForm({...editForm, clientName: e.target.value ? e.target.value.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : ''})} /> : order.clientName}
+                  {isEditing ? <Form.Control value={editForm.clientName} onChange={(e) => setEditForm({...editForm, clientName: e.target.value ? e.target.value.replace(/(^\\w|\\s\\w)/g, m => m.toUpperCase()) : ''})} /> : order.clientName}
                 </Col>
               </Row>
               <Row className="mb-3">
@@ -212,7 +212,7 @@ const OrderDetails = () => {
               <Row className="mb-3">
                 <Col sm={4} className="text-muted">Description</Col>
                 <Col sm={8} style={{ whiteSpace: 'pre-line' }}>
-                  {isEditing ? <Form.Control as="textarea" rows={3} value={editForm.description} onChange={(e) => setEditForm({...editForm, description: e.target.value})} /> : (order.description || '-')}
+                  {isEditing ? <Form.Control as="textarea" rows={3} value={editForm.description} onChange={(e) => setEditForm({...editForm, description: e.target.value ? e.target.value.replace(/(^\\w|\\s\\w)/g, m => m.toUpperCase()) : ''})} /> : (order.description || '-')}
                 </Col>
               </Row>
 

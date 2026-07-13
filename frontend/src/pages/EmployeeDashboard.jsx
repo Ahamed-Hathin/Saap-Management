@@ -19,6 +19,8 @@ const EmployeeDashboard = () => {
   const [paymentFormData, setPaymentFormData] = useState({ advanceAmount: '', balanceAmount: '', paymentMethod: 'GPay' });
   const [previewImage, setPreviewImage] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [clientSuggestions, setClientSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const [formData, setFormData] = useState({
     clientName: '',
@@ -147,7 +149,17 @@ const EmployeeDashboard = () => {
     if (order.status !== 'Delivered') return true;
     const pendingAmount = (order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0);
     const isFullyPaid = pendingAmount <= 0;
-    return !isFullyPaid;
+    
+    if (isFullyPaid) {
+      const today = new Date();
+      const updatedDate = new Date(order.updatedAt);
+      const isToday = updatedDate.getDate() === today.getDate() && 
+                      updatedDate.getMonth() === today.getMonth() && 
+                      updatedDate.getFullYear() === today.getFullYear();
+      return isToday;
+    }
+    
+    return true;
   });
 
   if (filter === 'ready') {
@@ -371,9 +383,49 @@ const EmployeeDashboard = () => {
           <Modal.Body className="px-4 pt-4">
             {error && <Alert variant="danger" className="border-0 bg-danger bg-opacity-10 text-danger">{error}</Alert>}
             <div className="row g-3">
-              <div className="col-md-6">
+              <div className="col-md-6 position-relative">
                 <Form.Label>Client Name</Form.Label>
-                <Form.Control type="text" required value={formData.clientName} onChange={(e) => setFormData({ ...formData, clientName: e.target.value ? e.target.value.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : '' })} className="bg-light" />
+                <div className="d-flex align-items-center mb-1">
+                  <Form.Control 
+                    type="text" 
+                    required 
+                    value={formData.clientName} 
+                    onChange={async (e) => { 
+                      const val = e.target.value;
+                      setFormData({ ...formData, clientName: val ? val.replace(/(^\\w|\\s\\w)/g, m => m.toUpperCase()) : '' });
+                      if (val.trim().length > 0) {
+                        try {
+                          const res = await api.get(`/clients/search?q=${val}`);
+                          setClientSuggestions(res.data);
+                          setShowSuggestions(res.data.length > 0);
+                        } catch (err) { console.error(err); }
+                      } else {
+                        setShowSuggestions(false);
+                      }
+                    }} 
+                    onFocus={() => { if(clientSuggestions.length > 0) setShowSuggestions(true); }}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    className="bg-light" 
+                  />
+                </div>
+                {showSuggestions && (
+                  <ul className="list-group position-absolute w-100 shadow-sm" style={{ zIndex: 1000 }}>
+                    {clientSuggestions.map(client => (
+                      <li 
+                        key={client._id} 
+                        className="list-group-item list-group-item-action cursor-pointer py-2"
+                        style={{ cursor: 'pointer' }}
+                        onMouseDown={() => {
+                          setFormData({ ...formData, clientName: client.clientName, mobileNumber: client.mobileNumber });
+                          setShowSuggestions(false);
+                        }}
+                      >
+                        <div className="fw-bold">{client.username}</div>
+                        <small className="text-muted">{client.clientName} - {client.mobileNumber}</small>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
               <div className="col-md-6">
                 <Form.Label>Mobile Number</Form.Label>
@@ -389,7 +441,7 @@ const EmployeeDashboard = () => {
               </div>
               <div className="col-12">
                 <Form.Label>Description (Optional)</Form.Label>
-                <Form.Control as="textarea" rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="bg-light" />
+                <Form.Control as="textarea" rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value ? e.target.value.replace(/(^\\w|\\s\\w)/g, m => m.toUpperCase()) : '' })} className="bg-light" />
               </div>
               <div className="col-12">
                 <Form.Label>Design Image (Optional)</Form.Label>

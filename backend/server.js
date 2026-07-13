@@ -38,6 +38,7 @@ app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/settings', require('./routes/settingsRoutes'));
 app.use('/api/tasks', require('./routes/taskRoutes'));
+app.use('/api/clients', require('./routes/clientRoutes'));
 
 app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 

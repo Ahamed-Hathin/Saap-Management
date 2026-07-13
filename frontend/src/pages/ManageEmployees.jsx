@@ -175,7 +175,7 @@ const ManageEmployees = () => {
             {error && <Alert variant="danger" className="border-0 bg-danger bg-opacity-10 text-danger">{error}</Alert>}
             <Form.Group className="mb-4">
               <Form.Label>Full Name</Form.Label>
-              <Form.Control type="text" required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="bg-light" />
+              <Form.Control type="text" required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value ? e.target.value.replace(/(^\w|\s\w)/g, m => m.toUpperCase()) : ''})} className="bg-light" />
             </Form.Group>
             <Form.Group className="mb-4">
               <Form.Label>Username</Form.Label>

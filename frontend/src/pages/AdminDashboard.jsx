@@ -105,7 +105,7 @@ const AdminDashboard = () => {
               value={filter} 
               onChange={(e) => setFilter(e.target.value)}
               className="border-0 shadow-none bg-transparent font-weight-medium text-dark"
-              style={{ width: '130px', cursor: 'pointer' }}
+              style={{ width: 'auto', minWidth: '140px', cursor: 'pointer' }}
             >
               <option value="all">All Time</option>
               <option value="today">Today</option>

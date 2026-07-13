@@ -25,6 +25,8 @@ const ManageOrders = () => {
   const [balancePayments, setBalancePayments] = useState([{ amount: '', method: '' }]);
   const [previewImage, setPreviewImage] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [clientSuggestions, setClientSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const [formData, setFormData] = useState({
     clientName: '',
@@ -398,6 +400,24 @@ const ManageOrders = () => {
   const startDateParam = searchParams.get('startDate');
   const endDateParam = searchParams.get('endDate');
 
+  const handleDateFilterChange = (val) => {
+    if (val && val !== 'all') {
+      searchParams.set('dateFilter', val);
+    } else {
+      searchParams.delete('dateFilter');
+      searchParams.delete('startDate');
+      searchParams.delete('endDate');
+    }
+    setSearchParams(searchParams);
+  };
+
+  const handleCustomDateChange = (start, end) => {
+    searchParams.set('dateFilter', 'custom');
+    if (start) searchParams.set('startDate', start);
+    if (end) searchParams.set('endDate', end);
+    setSearchParams(searchParams);
+  };
+
   let displayedOrders = orders;
 
   if (dateFilterParam && dateFilterParam !== 'all') {
@@ -474,12 +494,45 @@ const ManageOrders = () => {
         </div>
       </div>
 
-      <div className="d-flex flex-wrap gap-2 mb-3">
+      <div className="d-flex flex-wrap gap-2 mb-3 align-items-center">
         <Button variant={!filterParam ? "primary" : "outline-primary"} size="sm" onClick={() => handleFilterChange('')}>All Orders</Button>
         <Button variant={filterParam === 'pending' ? "primary" : "outline-primary"} size="sm" onClick={() => handleFilterChange('pending')}>Pending Orders</Button>
         <Button variant={filterParam === 'ready' ? "primary" : "outline-primary"} size="sm" onClick={() => handleFilterChange('ready')}>Ready to Dispatch</Button>
         <Button variant={filterParam === 'delivered' ? "primary" : "outline-primary"} size="sm" onClick={() => handleFilterChange('delivered')}>Delivered</Button>
         <Button variant={filterParam === 'payment_pending' ? "primary" : "outline-primary"} size="sm" onClick={() => handleFilterChange('payment_pending')}>Payment Pending</Button>
+        
+        <div className="ms-auto d-flex gap-2 align-items-center">
+          <Form.Select 
+            size="sm" 
+            style={{ width: 'auto', minWidth: '140px', cursor: 'pointer' }} 
+            value={dateFilterParam || 'all'} 
+            onChange={(e) => handleDateFilterChange(e.target.value)}
+          >
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="weekly">Last 7 Days</option>
+            <option value="monthly">Last 30 Days</option>
+            <option value="custom">Custom Date</option>
+          </Form.Select>
+
+          {dateFilterParam === 'custom' && (
+            <div className="d-flex gap-2 align-items-center">
+              <Form.Control 
+                type="date" 
+                size="sm" 
+                value={startDateParam || ''} 
+                onChange={(e) => handleCustomDateChange(e.target.value, endDateParam)} 
+              />
+              <span className="text-muted small">to</span>
+              <Form.Control 
+                type="date" 
+                size="sm" 
+                value={endDateParam || ''} 
+                onChange={(e) => handleCustomDateChange(startDateParam, e.target.value)} 
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       <Card className="dashboard-card border-0 mb-4">
@@ -691,9 +744,49 @@ const ManageOrders = () => {
           <Modal.Body className="px-4 pt-4">
             {error && <Alert variant="danger" className="border-0 bg-danger bg-opacity-10 text-danger">{error}</Alert>}
             <div className="row g-3">
-              <div className="col-md-6">
+              <div className="col-md-6 position-relative">
                 <Form.Label>Client Name</Form.Label>
-                <Form.Control type="text" required value={formData.clientName} onChange={(e) => setFormData({ ...formData, clientName: e.target.value ? e.target.value.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : '' })} className="bg-light" />
+                <div className="d-flex align-items-center mb-1">
+                  <Form.Control 
+                    type="text" 
+                    required 
+                    value={formData.clientName} 
+                    onChange={async (e) => { 
+                      const val = e.target.value;
+                      setFormData({ ...formData, clientName: val ? val.replace(/(^\\w|\\s\\w)/g, m => m.toUpperCase()) : '' });
+                      if (val.trim().length > 0) {
+                        try {
+                          const res = await api.get(`/clients/search?q=${val}`);
+                          setClientSuggestions(res.data);
+                          setShowSuggestions(res.data.length > 0);
+                        } catch (err) { console.error(err); }
+                      } else {
+                        setShowSuggestions(false);
+                      }
+                    }} 
+                    onFocus={() => { if(clientSuggestions.length > 0) setShowSuggestions(true); }}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    className="bg-light" 
+                  />
+                </div>
+                {showSuggestions && (
+                  <ul className="list-group position-absolute w-100 shadow-sm" style={{ zIndex: 1000 }}>
+                    {clientSuggestions.map(client => (
+                      <li 
+                        key={client._id} 
+                        className="list-group-item list-group-item-action cursor-pointer py-2"
+                        style={{ cursor: 'pointer' }}
+                        onMouseDown={() => {
+                          setFormData({ ...formData, clientName: client.clientName, mobileNumber: client.mobileNumber });
+                          setShowSuggestions(false);
+                        }}
+                      >
+                        <div className="fw-bold">{client.username}</div>
+                        <small className="text-muted">{client.clientName} - {client.mobileNumber}</small>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
               <div className="col-md-6">
                 <Form.Label>Mobile Number</Form.Label>
@@ -710,7 +803,7 @@ const ManageOrders = () => {
               </div>
               <div className="col-12">
                 <Form.Label>Description (Optional)</Form.Label>
-                <Form.Control as="textarea" rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="bg-light" />
+                <Form.Control as="textarea" rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value ? e.target.value.replace(/(^\\w|\\s\\w)/g, m => m.toUpperCase()) : '' })} className="bg-light" />
               </div>
               <div className="col-12">
                 <Form.Label>Design Image (Optional)</Form.Label>
