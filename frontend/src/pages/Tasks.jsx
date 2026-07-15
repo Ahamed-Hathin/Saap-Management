@@ -11,7 +11,7 @@ const Tasks = () => {
   const [tasks, setTasks] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({ title: '', description: '', assignedTo: '', dueDate: '' });
+  const [formData, setFormData] = useState({ title: '', description: '', assignedTo: '' });
   const [loading, setLoading] = useState(false);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
 
@@ -21,8 +21,7 @@ const Tasks = () => {
       setTasks(data);
       if (user?.role === 'Admin') {
         const res = await api.get('/users');
-        const emps = res.data.filter(emp => emp.role !== 'Admin');
-        setEmployees(emps);
+        setEmployees(res.data);
       }
     } catch (error) {
       console.error('Error fetching tasks', error);
@@ -40,7 +39,7 @@ const Tasks = () => {
     try {
       await api.post('/tasks', formData);
       setShowModal(false);
-      setFormData({ title: '', description: '', assignedTo: '', dueDate: '' });
+      setFormData({ title: '', description: '', assignedTo: '' });
       fetchData();
       Swal.fire('Success', 'Task created successfully', 'success');
     } catch (error) {
@@ -219,7 +218,7 @@ const Tasks = () => {
               <Form.Control 
                 type="text" 
                 value={formData.title} 
-                onChange={(e) => setFormData({...formData, title: e.target.value})} 
+                onChange={(e) => setFormData({...formData, title: e.target.value ? e.target.value.replace(/(^\w|\s\w)/g, m => m.toUpperCase()) : ''})} 
                 required 
                 placeholder="Enter task title"
               />
@@ -231,13 +230,13 @@ const Tasks = () => {
                 as="textarea" 
                 rows={3} 
                 value={formData.description} 
-                onChange={(e) => setFormData({...formData, description: e.target.value})} 
+                onChange={(e) => setFormData({...formData, description: e.target.value ? e.target.value.replace(/(^\w|\s\w)/g, m => m.toUpperCase()) : ''})} 
                 placeholder="Enter task details"
               />
             </Form.Group>
 
             <div className="row">
-              <div className="col-md-6 mb-3">
+              <div className="col-md-12 mb-3">
                 <Form.Group>
                   <Form.Label className="fw-medium">Assign To *</Form.Label>
                   <Form.Select 
@@ -250,16 +249,6 @@ const Tasks = () => {
                       <option key={emp._id} value={emp._id}>{emp.name}</option>
                     ))}
                   </Form.Select>
-                </Form.Group>
-              </div>
-              <div className="col-md-6 mb-3">
-                <Form.Group>
-                  <Form.Label className="fw-medium">Due Date</Form.Label>
-                  <Form.Control 
-                    type="date" 
-                    value={formData.dueDate} 
-                    onChange={(e) => setFormData({...formData, dueDate: e.target.value})} 
-                  />
                 </Form.Group>
               </div>
             </div>

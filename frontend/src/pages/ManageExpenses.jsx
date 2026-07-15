@@ -124,7 +124,7 @@ const ManageExpenses = () => {
                 type="text"
                 required
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value ? e.target.value.replace(/(^\w|\s\w)/g, m => m.toUpperCase()) : '' })}
                 className="bg-light border-0 py-2 px-3 rounded-3"
                 placeholder="e.g. Office Supplies"
               />
@@ -136,7 +136,7 @@ const ManageExpenses = () => {
                 rows={3}
                 required
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value ? e.target.value.replace(/(^\w|\s\w)/g, m => m.toUpperCase()) : '' })}
                 className="bg-light border-0 py-2 px-3 rounded-3"
                 placeholder="Detailed description of the expense"
               />

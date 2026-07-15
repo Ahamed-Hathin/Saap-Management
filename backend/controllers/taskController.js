@@ -28,7 +28,7 @@ const createTask = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to create tasks' });
     }
 
-    const { title, description, assignedTo, dueDate } = req.body;
+    const { title, description, assignedTo } = req.body;
     
     if (!title || !assignedTo) {
       return res.status(400).json({ message: 'Title and Assigned To are required' });
@@ -38,8 +38,7 @@ const createTask = async (req, res) => {
       title,
       description,
       assignedTo,
-      assignedBy: req.user._id,
-      dueDate
+      assignedBy: req.user._id
     });
 
     const createdTask = await task.save();

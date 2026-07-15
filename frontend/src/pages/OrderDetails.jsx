@@ -177,7 +177,7 @@ const OrderDetails = () => {
               <Row className="mb-3">
                 <Col sm={4} className="text-muted">Client Name</Col>
                 <Col sm={8}>
-                  {isEditing ? <Form.Control value={editForm.clientName} onChange={(e) => setEditForm({...editForm, clientName: e.target.value ? e.target.value.replace(/(^\\w|\\s\\w)/g, m => m.toUpperCase()) : ''})} /> : order.clientName}
+                  {isEditing ? <Form.Control value={editForm.clientName} onChange={(e) => setEditForm({...editForm, clientName: e.target.value ? e.target.value.replace(/(^\w|\s\w)/g, m => m.toUpperCase()) : ''})} /> : order.clientName}
                 </Col>
               </Row>
               <Row className="mb-3">
@@ -185,6 +185,10 @@ const OrderDetails = () => {
                 <Col sm={8}>
                   {isEditing ? (
                     <Form.Control 
+                      minLength={11}
+                      maxLength={11}
+                      pattern="\d{5} \d{5}"
+                      title="Mobile number must be exactly 10 digits with a space after the first 5"
                       value={editForm.mobileNumber} 
                       onChange={(e) => {
                         const rawValue = e.target.value.replace(/\D/g, '').slice(0, 10);
@@ -212,7 +216,7 @@ const OrderDetails = () => {
               <Row className="mb-3">
                 <Col sm={4} className="text-muted">Description</Col>
                 <Col sm={8} style={{ whiteSpace: 'pre-line' }}>
-                  {isEditing ? <Form.Control as="textarea" rows={3} value={editForm.description} onChange={(e) => setEditForm({...editForm, description: e.target.value ? e.target.value.replace(/(^\\w|\\s\\w)/g, m => m.toUpperCase()) : ''})} /> : (order.description || '-')}
+                  {isEditing ? <Form.Control as="textarea" rows={3} value={editForm.description} onChange={(e) => setEditForm({...editForm, description: e.target.value ? e.target.value.replace(/(^\w|\s\w)/g, m => m.toUpperCase()) : ''})} /> : (order.description || '-')}
                 </Col>
               </Row>
 

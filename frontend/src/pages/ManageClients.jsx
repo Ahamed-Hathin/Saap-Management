@@ -145,7 +145,7 @@ const ManageClients = () => {
                 type="text"
                 required
                 value={formData.clientName}
-                onChange={(e) => setFormData({ ...formData, clientName: e.target.value ? e.target.value.replace(/(^\\w|\\s\\w)/g, m => m.toUpperCase()) : '' })}
+                onChange={(e) => setFormData({ ...formData, clientName: e.target.value ? e.target.value.replace(/(^\w|\s\w)/g, m => m.toUpperCase()) : '' })}
                 className="bg-light border-0 py-2 px-3 rounded-3"
                 placeholder="Full Name"
               />
@@ -155,10 +155,14 @@ const ManageClients = () => {
               <Form.Control
                 type="text"
                 required
+                minLength={11}
+                maxLength={11}
+                pattern="\d{5} \d{5}"
+                title="Mobile number must be exactly 10 digits with a space after the first 5"
                 value={formData.mobileNumber}
-                onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })}
+                onChange={(e) => { const rawValue = e.target.value.replace(/\D/g, '').slice(0, 10); const formattedValue = rawValue.length > 5 ? `${rawValue.slice(0, 5)} ${rawValue.slice(5)}` : rawValue; setFormData({ ...formData, mobileNumber: formattedValue }); }}
                 className="bg-light border-0 py-2 px-3 rounded-3"
-                placeholder="Mobile Number"
+                placeholder="12345 67890"
               />
             </Form.Group>
           </Modal.Body>

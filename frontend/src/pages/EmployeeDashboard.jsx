@@ -392,7 +392,7 @@ const EmployeeDashboard = () => {
                     value={formData.clientName} 
                     onChange={async (e) => { 
                       const val = e.target.value;
-                      setFormData({ ...formData, clientName: val ? val.replace(/(^\\w|\\s\\w)/g, m => m.toUpperCase()) : '' });
+                      setFormData({ ...formData, clientName: val ? val.replace(/(^\w|\s\w)/g, m => m.toUpperCase()) : '' });
                       if (val.trim().length > 0) {
                         try {
                           const res = await api.get(`/clients/search?q=${val}`);
@@ -441,7 +441,7 @@ const EmployeeDashboard = () => {
               </div>
               <div className="col-12">
                 <Form.Label>Description (Optional)</Form.Label>
-                <Form.Control as="textarea" rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value ? e.target.value.replace(/(^\\w|\\s\\w)/g, m => m.toUpperCase()) : '' })} className="bg-light" />
+                <Form.Control as="textarea" rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value ? e.target.value.replace(/(^\w|\s\w)/g, m => m.toUpperCase()) : '' })} className="bg-light" />
               </div>
               <div className="col-12">
                 <Form.Label>Design Image (Optional)</Form.Label>
