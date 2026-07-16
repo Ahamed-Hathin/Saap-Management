@@ -495,6 +495,75 @@ const ManageOrders = () => {
     );
   }
 
+  const handleExportMonthlyReport = () => {
+    const headers = ['S.NO', 'TYPE', 'CUSTOMER NAME', 'NUMBER', 'DESCRIPTION', 'PAYMENT', 'STATUS', 'DATE'];
+    const csvRows = [headers.join(',')];
+
+    const now = new Date();
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Get walk-in orders only
+    const walkInOrders = orders.filter(order => {
+      const orderPhoneRaw = (order.mobileNumber || '').replace(/\D/g, '');
+      return !permanentClientPhones.has(orderPhoneRaw);
+    });
+
+    // 1. Carry Forward: created before current month AND (not delivered OR pending amount > 0)
+    const carryForwardOrders = walkInOrders.filter(o => {
+      const orderDate = new Date(o.createdAt);
+      const pendingAmount = (o.totalAmount || 0) - (o.advanceAmount || 0) - (o.balanceAmount || 0);
+      return orderDate < startOfCurrentMonth && (o.status !== 'Delivered' || pendingAmount > 0);
+    });
+
+    // 2. Current Month: created in current month AND delivered AND fully paid (pending <= 0)
+    const currentMonthOrders = walkInOrders.filter(o => {
+      const orderDate = new Date(o.createdAt);
+      const pendingAmount = (o.totalAmount || 0) - (o.advanceAmount || 0) - (o.balanceAmount || 0);
+      return orderDate >= startOfCurrentMonth && o.status === 'Delivered' && pendingAmount <= 0;
+    });
+
+    const reportOrders = [
+      ...carryForwardOrders.map(o => ({ ...o, reportType: 'Carry Forward' })), 
+      ...currentMonthOrders.map(o => ({ ...o, reportType: 'Current Month' }))
+    ];
+
+    reportOrders.forEach((order, index) => {
+      const sNo = index + 1;
+      
+      const escapeCsv = (str) => {
+        if (str === null || str === undefined) return '""';
+        const stringified = String(str);
+        return `"${stringified.replace(/"/g, '""')}"`;
+      };
+
+      const type = escapeCsv(order.reportType);
+      const customerName = escapeCsv(order.clientName);
+      const number = escapeCsv(order.mobileNumber);
+      const description = escapeCsv(order.description || '');
+      
+      const pendingAmount = (order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0);
+      const paymentStatus = pendingAmount > 0 ? `Pending (Rs. ${pendingAmount})` : 'Fully Paid';
+      const payment = escapeCsv(paymentStatus);
+      const status = escapeCsv(order.status || 'Pending');
+      const date = escapeCsv(new Date(order.createdAt).toLocaleDateString('en-GB'));
+
+      csvRows.push([sNo, type, customerName, number, description, payment, status, date].join(','));
+    });
+
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `monthly_report_${now.getMonth()+1}_${now.getFullYear()}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   const handleExportExcel = () => {
     const headers = ['S.NO', 'CUSTOMER NAME', 'NUMBER', 'DESCRIPTION', 'PAYMENT'];
     const csvRows = [headers.join(',')];
@@ -542,11 +611,14 @@ const ManageOrders = () => {
         </div>
         <div className="d-flex flex-column align-items-stretch align-items-sm-end gap-2">
           <div className="d-flex gap-2 w-100 justify-content-sm-end">
-            <Link to="/client-orders" className="flex-grow-1 flex-sm-grow-0">
-              <Button variant="outline-info" className="d-flex align-items-center justify-content-center text-nowrap shadow-sm w-100">
+            <Link to="/client-orders" className="flex-grow-1 flex-sm-grow-0 text-decoration-none">
+              <Button variant="outline-info" className="d-flex align-items-center justify-content-center text-nowrap shadow-sm w-100 h-100">
                 Client Orders
               </Button>
             </Link>
+            <Button variant="outline-secondary" onClick={handleExportMonthlyReport} className="d-flex align-items-center justify-content-center text-nowrap shadow-sm flex-grow-1 flex-sm-grow-0">
+              <Download size={18} className="me-2" /> Monthly Report
+            </Button>
             <Button variant="outline-success" onClick={handleExportExcel} className="d-flex align-items-center justify-content-center text-nowrap shadow-sm flex-grow-1 flex-sm-grow-0">
               <Download size={18} className="me-2" /> Export to Excel
             </Button>
