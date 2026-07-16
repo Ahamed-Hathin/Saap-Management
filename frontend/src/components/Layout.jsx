@@ -79,9 +79,11 @@ const Layout = ({ children }) => {
                 <NavLink to="/employee/tasks" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                   <ClipboardList className="me-3" size={20} /> Tasks
                 </NavLink>
-                <NavLink to="/clients" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                  <UserCheck className="me-3" size={20} /> Clients
-                </NavLink>
+                {user?.name?.toLowerCase() !== 'staff 2' && (
+                  <NavLink to="/clients" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                    <UserCheck className="me-3" size={20} /> Clients
+                  </NavLink>
+                )}
                 <NavLink to="/employee/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                   <Settings className="me-3" size={20} /> Settings
                 </NavLink>
@@ -146,10 +148,12 @@ const Layout = ({ children }) => {
                   <ClipboardList size={24} className="d-block mx-auto mb-1" />
                   <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Tasks</span>
                 </NavLink>
-                <NavLink to="/clients" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
-                  <UserCheck size={24} className="d-block mx-auto mb-1" />
-                  <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Clients</span>
-                </NavLink>
+                {user?.name?.toLowerCase() !== 'staff 2' && (
+                  <NavLink to="/clients" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
+                    <UserCheck size={24} className="d-block mx-auto mb-1" />
+                    <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Clients</span>
+                  </NavLink>
+                )}
                 <NavLink to="/employee/settings" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
                   <Settings size={24} className="d-block mx-auto mb-1" />
                   <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Settings</span>

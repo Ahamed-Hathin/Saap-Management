@@ -387,6 +387,7 @@ const ManageOrders = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const filterParam = searchParams.get('filter');
+  const employeeFilterParam = searchParams.get('employee');
 
   const handleFilterChange = (filterName) => {
     if (filterName) {
@@ -407,6 +408,15 @@ const ManageOrders = () => {
       searchParams.delete('dateFilter');
       searchParams.delete('startDate');
       searchParams.delete('endDate');
+    }
+    setSearchParams(searchParams);
+  };
+
+  const handleEmployeeFilterChange = (val) => {
+    if (val && val !== 'all') {
+      searchParams.set('employee', val);
+    } else {
+      searchParams.delete('employee');
     }
     setSearchParams(searchParams);
   };
@@ -453,13 +463,17 @@ const ManageOrders = () => {
   }
 
   if (filterParam === 'pending') {
-    displayedOrders = displayedOrders.filter(o => o.status !== 'Delivered');
+    displayedOrders = displayedOrders.filter(o => o.status !== 'Delivered' && o.status !== 'Ready To Dispatch');
   } else if (filterParam === 'ready') {
     displayedOrders = displayedOrders.filter(o => o.status === 'Ready To Dispatch');
   } else if (filterParam === 'payment_pending') {
     displayedOrders = displayedOrders.filter(o => o.totalAmount > 0 && (o.advanceAmount + (o.balanceAmount || 0)) < o.totalAmount);
   } else if (filterParam === 'delivered') {
     displayedOrders = displayedOrders.filter(o => o.status === 'Delivered');
+  }
+
+  if (employeeFilterParam && employeeFilterParam !== 'all') {
+    displayedOrders = displayedOrders.filter(o => o.assignedEmployee && (o.assignedEmployee._id === employeeFilterParam || o.assignedEmployee === employeeFilterParam));
   }
 
   if (searchQuery.trim()) {
@@ -472,6 +486,44 @@ const ManageOrders = () => {
     );
   }
 
+  const handleExportExcel = () => {
+    const headers = ['S.NO', 'CUSTOMER NAME', 'NUMBER', 'DESCRIPTION', 'PAYMENT'];
+    const csvRows = [headers.join(',')];
+
+    displayedOrders.forEach((order, index) => {
+      const sNo = displayedOrders.length - index;
+      
+      const escapeCsv = (str) => {
+        if (str === null || str === undefined) return '""';
+        const stringified = String(str);
+        return `"${stringified.replace(/"/g, '""')}"`;
+      };
+
+      const customerName = escapeCsv(order.clientName);
+      const number = escapeCsv(order.mobileNumber);
+      const description = escapeCsv(order.description || '');
+      
+      const pendingAmount = (order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0);
+      const paymentStatus = pendingAmount > 0 ? `Pending (Rs. ${pendingAmount})` : 'Fully Paid';
+      const payment = escapeCsv(paymentStatus);
+
+      csvRows.push([sNo, customerName, number, description, payment].join(','));
+    });
+
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'orders_export.csv');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   return (
     <Layout>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
@@ -480,9 +532,14 @@ const ManageOrders = () => {
           <p className="text-muted mb-0 small">Track and manage all card orders</p>
         </div>
         <div className="d-flex flex-column align-items-stretch align-items-sm-end gap-2">
-          <Button variant="primary" onClick={handleShow} className="d-flex align-items-center justify-content-center text-nowrap shadow-sm">
-            <Plus size={18} className="me-2" /> Create Order
-          </Button>
+          <div className="d-flex gap-2 w-100 justify-content-sm-end">
+            <Button variant="outline-success" onClick={handleExportExcel} className="d-flex align-items-center justify-content-center text-nowrap shadow-sm flex-grow-1 flex-sm-grow-0">
+              <Download size={18} className="me-2" /> Export to Excel
+            </Button>
+            <Button variant="primary" onClick={handleShow} className="d-flex align-items-center justify-content-center text-nowrap shadow-sm flex-grow-1 flex-sm-grow-0">
+              <Plus size={18} className="me-2" /> Create Order
+            </Button>
+          </div>
           <Form.Control
             type="search"
             placeholder="Search Orders..."
@@ -501,7 +558,18 @@ const ManageOrders = () => {
         <Button variant={filterParam === 'delivered' ? "primary" : "outline-primary"} size="sm" onClick={() => handleFilterChange('delivered')}>Delivered</Button>
         <Button variant={filterParam === 'payment_pending' ? "primary" : "outline-primary"} size="sm" onClick={() => handleFilterChange('payment_pending')}>Payment Pending</Button>
         
-        <div className="ms-auto d-flex gap-2 align-items-center">
+        <div className="ms-auto d-flex gap-2 align-items-center flex-wrap">
+          <Form.Select
+            size="sm"
+            style={{ width: 'auto', minWidth: '140px', cursor: 'pointer' }}
+            value={employeeFilterParam || 'all'}
+            onChange={(e) => handleEmployeeFilterChange(e.target.value)}
+          >
+            <option value="all">All Employees</option>
+            {employees.map(emp => (
+              <option key={emp._id} value={emp._id}>{emp.name}</option>
+            ))}
+          </Form.Select>
           <Form.Select 
             size="sm" 
             style={{ width: 'auto', minWidth: '140px', cursor: 'pointer' }} 

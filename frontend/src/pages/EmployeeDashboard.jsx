@@ -3,7 +3,7 @@ import Layout from '../components/Layout';
 import { Row, Col, Card, Table, Badge, Button, Modal, Form, Alert } from 'react-bootstrap';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import api from '../services/api';
-import { ShoppingBag, CheckCircle, Clock, Plus } from 'lucide-react';
+import { ShoppingBag, CheckCircle, Clock, Plus, Search } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 const EmployeeDashboard = () => {
@@ -19,6 +19,7 @@ const EmployeeDashboard = () => {
   const [paymentFormData, setPaymentFormData] = useState({ advanceAmount: '', balanceAmount: '', paymentMethod: 'GPay' });
   const [previewImage, setPreviewImage] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [clientSuggestions, setClientSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -168,6 +169,14 @@ const EmployeeDashboard = () => {
     displayedOrders = displayedOrders.filter(o => o.totalAmount > 0 && (o.advanceAmount + (o.balanceAmount || 0)) < o.totalAmount);
   }
 
+  if (searchTerm) {
+    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+    displayedOrders = displayedOrders.filter(order => 
+      (order.clientName && order.clientName.toLowerCase().includes(lowerCaseSearchTerm)) ||
+      (order.mobileNumber && order.mobileNumber.includes(lowerCaseSearchTerm))
+    );
+  }
+
   return (
     <Layout>
       <div className="d-flex justify-content-between align-items-center mb-5 flex-wrap gap-3">
@@ -177,13 +186,41 @@ const EmployeeDashboard = () => {
           </h2>
           <p className="text-muted mb-0">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
-        <div className="d-flex gap-3 align-items-center">
-          <Form.Select value={filter} onChange={(e) => setFilter(e.target.value)} className="shadow-sm" style={{ minWidth: '170px' }}>
-            <option value="all">All Orders</option>
-            <option value="ready">Ready To Dispatch</option>
-            <option value="payment_pending">Pending Payment</option>
-          </Form.Select>
-          <Button variant="primary" onClick={handleShow} className="d-flex align-items-center">
+        <div className="d-flex gap-3 align-items-center flex-wrap">
+          <div className="position-relative">
+            <Search size={18} className="position-absolute text-muted" style={{ top: '50%', left: '12px', transform: 'translateY(-50%)' }} />
+            <Form.Control
+              type="text"
+              placeholder="Search orders..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="shadow-sm ps-5"
+            />
+          </div>
+          <div className="d-flex gap-2 flex-wrap">
+            <Button 
+              variant={filter === 'all' ? 'primary' : 'outline-primary'} 
+              onClick={() => setFilter('all')}
+              className="fw-medium shadow-sm"
+            >
+              All Orders
+            </Button>
+            <Button 
+              variant={filter === 'ready' ? 'primary' : 'outline-primary'} 
+              onClick={() => setFilter('ready')}
+              className="fw-medium shadow-sm"
+            >
+              Ready To Dispatch
+            </Button>
+            <Button 
+              variant={filter === 'payment_pending' ? 'primary' : 'outline-primary'} 
+              onClick={() => setFilter('payment_pending')}
+              className="fw-medium shadow-sm"
+            >
+              Pending Payment
+            </Button>
+          </div>
+          <Button variant="primary" onClick={handleShow} className="d-flex align-items-center text-nowrap">
             <Plus size={18} className="me-2" /> Create Order
           </Button>
         </div>
