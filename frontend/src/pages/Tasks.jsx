@@ -11,7 +11,7 @@ const Tasks = () => {
   const [tasks, setTasks] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({ title: '', description: '', assignedTo: '' });
+  const [formData, setFormData] = useState({ title: '', description: '', assignedTo: '', isImportant: false });
   const [loading, setLoading] = useState(false);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
 
@@ -39,7 +39,7 @@ const Tasks = () => {
     try {
       await api.post('/tasks', formData);
       setShowModal(false);
-      setFormData({ title: '', description: '', assignedTo: '' });
+      setFormData({ title: '', description: '', assignedTo: '', isImportant: false });
       fetchData();
       Swal.fire('Success', 'Task created successfully', 'success');
     } catch (error) {
@@ -96,7 +96,12 @@ const Tasks = () => {
         <tbody>
           {taskList.map(task => (
             <tr key={task._id}>
-              <td className="fw-medium">{task.title}</td>
+              <td className="fw-medium">
+                {task.title}
+                {task.isImportant && (
+                  <Badge bg="danger" className="ms-2 py-1 px-2 rounded-pill" style={{ fontSize: '0.65rem', verticalAlign: 'text-bottom' }}>Important</Badge>
+                )}
+              </td>
               <td>{task.description || '-'}</td>
               <td>{task.createdAt ? new Date(task.createdAt).toLocaleDateString() : '-'}</td>
               <td>
@@ -249,6 +254,17 @@ const Tasks = () => {
                       <option key={emp._id} value={emp._id}>{emp.name}</option>
                     ))}
                   </Form.Select>
+                </Form.Group>
+              </div>
+              <div className="col-md-12 mb-3">
+                <Form.Group controlId="formBasicCheckbox">
+                  <Form.Check 
+                    type="checkbox" 
+                    label="Mark as Important Task" 
+                    className="fw-medium text-danger"
+                    checked={formData.isImportant}
+                    onChange={(e) => setFormData({...formData, isImportant: e.target.checked})}
+                  />
                 </Form.Group>
               </div>
             </div>
