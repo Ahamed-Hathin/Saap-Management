@@ -11,6 +11,7 @@ import Settings from './pages/Settings';
 import Tasks from './pages/Tasks';
 import ManageClients from './pages/ManageClients';
 import ClientDetails from './pages/ClientDetails';
+import ClientOrders from './pages/ClientOrders';
 import ManageExpenses from './pages/ManageExpenses';
 const PrivateRoute = ({ children, role }) => {
   const { user, loading, logout } = useContext(AuthContext);
@@ -65,6 +66,7 @@ function App() {
         {/* Shared Routes */}
         <Route path="/clients" element={<PrivateRoute><ManageClients /></PrivateRoute>} />
         <Route path="/clients/:id" element={<PrivateRoute><ClientDetails /></PrivateRoute>} />
+        <Route path="/client-orders" element={<PrivateRoute><ClientOrders /></PrivateRoute>} />
         <Route path="/orders/:id" element={<PrivateRoute><OrderDetails /></PrivateRoute>} />
       </Routes>
     </Router>

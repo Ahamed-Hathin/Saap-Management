@@ -11,7 +11,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
-const ManageOrders = () => {
+const ClientOrders = () => {
   const [orders, setOrders] = useState([]);
   const [clients, setClients] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -363,7 +363,7 @@ const ManageOrders = () => {
   
   let displayedOrders = orders.filter(order => {
     const orderPhoneRaw = (order.mobileNumber || '').replace(/\D/g, '');
-    return !permanentClientPhones.has(orderPhoneRaw);
+    return permanentClientPhones.has(orderPhoneRaw);
   });
 
   const handleSubmit = async (e) => {
@@ -537,14 +537,14 @@ const ManageOrders = () => {
     <Layout>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
         <div>
-          <h3 className="mb-1 fw-bold">Manage Orders</h3>
-          <p className="text-muted mb-0 small">Track and manage all card orders</p>
+          <h3 className="mb-1 fw-bold">Client Orders</h3>
+          <p className="text-muted mb-0 small">Track and manage all permanent client orders</p>
         </div>
         <div className="d-flex flex-column align-items-stretch align-items-sm-end gap-2">
           <div className="d-flex gap-2 w-100 justify-content-sm-end">
-            <Link to="/client-orders" className="flex-grow-1 flex-sm-grow-0">
+            <Link to="/admin/orders" className="flex-grow-1 flex-sm-grow-0">
               <Button variant="outline-info" className="d-flex align-items-center justify-content-center text-nowrap shadow-sm w-100">
-                Client Orders
+                Walk-in Orders
               </Button>
             </Link>
             <Button variant="outline-success" onClick={handleExportExcel} className="d-flex align-items-center justify-content-center text-nowrap shadow-sm flex-grow-1 flex-sm-grow-0">
@@ -633,6 +633,7 @@ const ManageOrders = () => {
                 <thead>
                   <tr>
                     <th>S.No</th>
+                    <th>Username</th>
                     <th>Customer Name</th>
                     <th>Number</th>
                     <th>Job</th>
@@ -645,9 +646,14 @@ const ManageOrders = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {displayedOrders.map((order, index) => (
+                  {displayedOrders.map((order, index) => {
+                    const orderPhoneRaw = (order.mobileNumber || '').replace(/\D/g, '');
+                    const matchingClient = clients.find(c => c.mobileNumber.replace(/\D/g, '') === orderPhoneRaw);
+                    const username = matchingClient ? matchingClient.username : '-';
+                    return (
                     <tr key={order._id}>
                       <td>{displayedOrders.length - index}</td>
+                      <td className="fw-bold text-primary">{username}</td>
                       <td>{order.clientName}</td>
                       <td>{order.mobileNumber}</td>
                       <td className="text-capitalize">{order.cardType}</td>
@@ -730,16 +736,23 @@ const ManageOrders = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </Table>
 
               {/* Mobile Cards View */}
-              <div className="d-md-none">
-                {displayedOrders.map((order) => (
-                  <div key={order._id} className="p-3 border-bottom">
+              <div className="d-md-none d-flex flex-column gap-3">
+                {displayedOrders.map((order) => {
+                  const orderPhoneRaw = (order.mobileNumber || '').replace(/\D/g, '');
+                  const matchingClient = clients.find(c => c.mobileNumber.replace(/\D/g, '') === orderPhoneRaw);
+                  const username = matchingClient ? matchingClient.username : '-';
+                  return (
+                  <div key={order._id} className="bg-white p-3 rounded-4 shadow-sm border border-light position-relative">
                     <div className="d-flex justify-content-between align-items-start mb-2">
-                      <h6 className="fw-bold mb-0">{order.clientName}</h6>
+                      <div>
+                        <h6 className="fw-bold mb-0 text-dark">{order.clientName} <span className="text-primary">({username})</span></h6>
+                        <span className="text-muted small">#{order.serialNumber}</span>
+                      </div>
                     </div>
                     {order.designImage && (
                       <div className="mb-2">
@@ -811,7 +824,7 @@ const ManageOrders = () => {
                       </Button>
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
             </>
           )}
@@ -1060,4 +1073,4 @@ const ManageOrders = () => {
   );
 };
 
-export default ManageOrders;
+export default ClientOrders;
