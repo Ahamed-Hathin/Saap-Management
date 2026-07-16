@@ -81,7 +81,7 @@ const ClientDetails = () => {
           </Card>
         </Col>
 
-        <Col md={4} lg={2}>
+        <Col md={3} lg={2}>
           <Card className="border-0 shadow-sm rounded-4 h-100 text-center">
             <Card.Body className="p-4">
               <div className="bg-info bg-opacity-10 text-info p-2 rounded-circle d-inline-block mb-3">
@@ -93,7 +93,19 @@ const ClientDetails = () => {
           </Card>
         </Col>
 
-        <Col md={4} lg={3}>
+        <Col md={3} lg={2}>
+          <Card className="border-0 shadow-sm rounded-4 h-100 text-center">
+            <Card.Body className="p-4">
+              <div className="bg-primary bg-opacity-10 text-primary p-2 rounded-circle d-inline-block mb-3">
+                <IndianRupee size={20} />
+              </div>
+              <h6 className="text-muted fw-bold text-uppercase" style={{ fontSize: '0.75rem' }}>Total Amount</h6>
+              <h3 className="fw-bold mb-0 text-primary">₹{summary.totalBilled.toLocaleString()}</h3>
+            </Card.Body>
+          </Card>
+        </Col>
+
+        <Col md={3} lg={2}>
           <Card className="border-0 shadow-sm rounded-4 h-100 text-center">
             <Card.Body className="p-4">
               <div className="bg-success bg-opacity-10 text-success p-2 rounded-circle d-inline-block mb-3">
@@ -105,7 +117,7 @@ const ClientDetails = () => {
           </Card>
         </Col>
 
-        <Col md={4} lg={3}>
+        <Col md={3} lg={2}>
           <Card className="border-0 shadow-sm rounded-4 h-100 text-center">
             <Card.Body className="p-4">
               <div className="bg-danger bg-opacity-10 text-danger p-2 rounded-circle d-inline-block mb-3">

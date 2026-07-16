@@ -3,7 +3,13 @@ import Layout from '../components/Layout';
 import { Row, Col, Card, Table, Badge, Button, Modal, Form, Alert } from 'react-bootstrap';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import api from '../services/api';
-import { ShoppingBag, CheckCircle, Clock, Plus, Search } from 'lucide-react';
+import { ShoppingBag, CheckCircle, Clock, Plus, Search, Trash2, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as pdfjsLib from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 import Swal from 'sweetalert2';
 
 const EmployeeDashboard = () => {
@@ -16,7 +22,8 @@ const EmployeeDashboard = () => {
   const [error, setError] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState(null);
-  const [paymentFormData, setPaymentFormData] = useState({ advanceAmount: '', balanceAmount: '', paymentMethod: 'GPay' });
+  const [paymentFormData, setPaymentFormData] = useState({ advanceAmount: '', paymentMethod: '' });
+  const [balancePayments, setBalancePayments] = useState([{ amount: '', method: '' }]);
   const [previewImage, setPreviewImage] = useState(null);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -122,25 +129,178 @@ const EmployeeDashboard = () => {
     setSelectedOrderForPayment(order);
     setPaymentFormData({ 
       advanceAmount: order.advanceAmount || '', 
-      balanceAmount: order.balanceAmount || '', 
-      paymentMethod: order.paymentMethod || 'GPay' 
+      paymentMethod: order.paymentMethod || '' 
     });
+    setBalancePayments([{ amount: '', method: '' }]);
     setShowPaymentModal(true);
   };
 
   const handlePaymentSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.put(`/orders/${selectedOrderForPayment._id}`, { 
-        paymentReceived: true, 
+      const validPayments = balancePayments.filter(p => p.amount && p.method);
+      const payload = {
+        paymentReceived: true,
         advanceAmount: Number(paymentFormData.advanceAmount),
-        balanceAmount: Number(paymentFormData.balanceAmount),
-        paymentMethod: paymentFormData.paymentMethod
-      });
+        paymentMethod: paymentFormData.paymentMethod || 'None'
+      };
+      if (validPayments.length > 0) {
+        payload.newBalancePayments = validPayments;
+      }
+
+      await api.put(`/orders/${selectedOrderForPayment._id}`, payload);
       setShowPaymentModal(false);
       fetchData();
     } catch (err) {
       Swal.fire('Error', 'Error saving payment', 'error');
+    }
+  };
+
+  const handleDownloadPDF = async (order, index) => {
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 3000,
+      icon: 'info',
+      title: 'Invoice generation started...'
+    });
+
+    const doc = new jsPDF({ format: [210, 180] });
+    const serialNum = order.serialNumber || (orders.length - index);
+
+    doc.setFontSize(26);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text('SAPP Creation', 20, 26);
+
+    doc.setFillColor(253, 192, 47);
+    doc.rect(20, 40, 95, 10, 'F');
+    
+    doc.setFontSize(32);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 0, 0);
+    doc.text('INVOICE', 120, 48);
+    
+    doc.setFillColor(253, 192, 47);
+    doc.rect(172, 40, 18, 10, 'F');
+
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text('Invoice to:', 20, 65);
+    
+    doc.setFontSize(15);
+    doc.setFont("helvetica", "bold");
+    doc.text(order.clientName || 'Client Name', 20, 72);
+    
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text('Mobile:', 20, 78);
+    
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text(order.mobileNumber || '-', 40, 78);
+
+    let leftY = 84;
+
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text('Date', 120, 65);
+    
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    const dateStr = order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB');
+    doc.text(dateStr, 135, 65);
+
+    let itemDesc = order.cardType || '-';
+    if (order.description) {
+      itemDesc += `\n\n${order.description}`;
+    }
+    
+    autoTable(doc, {
+      startY: Math.max(95, leftY + 10),
+      head: [['SL.', 'Item Description', 'Price', 'Total']],
+      body: [
+        ['1', itemDesc, `Rs. ${order.totalAmount || 0}`, `Rs. ${order.totalAmount || 0}`]
+      ],
+      theme: 'plain',
+      headStyles: { fillColor: [50, 54, 63], textColor: 255, fontStyle: 'bold', fontSize: 14, halign: 'center' },
+      bodyStyles: { textColor: [0, 0, 0], fontSize: 13, fontStyle: 'bold', halign: 'center' },
+      columnStyles: { 0: { halign: 'center', cellWidth: 20 }, 1: { halign: 'left' }, 2: { halign: 'center', cellWidth: 35 }, 3: { halign: 'center', cellWidth: 35 } },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+      margin: { left: 20, right: 20 }
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 10;
+
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text('Payment Summary:', 20, finalY + 12);
+    
+    const advanceAmount = order.advanceAmount || 0;
+    const balancePaid = order.balanceAmount || 0;
+    const methodStr = (order.paymentMethod && order.paymentMethod !== 'None') ? ` (${order.paymentMethod})` : '';
+    const pendingBalance = Math.max(0, (order.totalAmount || 0) - advanceAmount - balancePaid);
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    
+    doc.text('Total Amount:', 20, finalY + 18);
+    doc.text(`Rs. ${order.totalAmount || 0}`, 55, finalY + 18);
+    
+    doc.text('Advance Paid:', 20, finalY + 24);
+    doc.text(`Rs. ${advanceAmount}${methodStr}`, 55, finalY + 24);
+    
+    doc.setTextColor(255, 0, 0);
+    doc.text('Balance Amount:', 20, finalY + 30);
+    doc.text(`Rs. ${pendingBalance}`, 55, finalY + 30);
+
+    doc.setFontSize(18);
+    doc.setFont("times", "italic");
+    doc.setTextColor(253, 192, 47);
+    doc.text('Thank you for your business!', 105, finalY + 44, { align: 'center' });
+
+    const pdfArrayBuffer = doc.output('arraybuffer');
+    
+    try {
+      const loadingTask = pdfjsLib.getDocument({ data: pdfArrayBuffer });
+      const pdf = await loadingTask.promise;
+      const page = await pdf.getPage(1);
+      
+      const scale = 3; 
+      const viewport = page.getViewport({ scale });
+      
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+      
+      const renderContext = { canvasContext: context, viewport: viewport };
+      
+      await page.render(renderContext).promise;
+      
+      const imgData = canvas.toDataURL('image/png');
+      
+      const link = document.createElement('a');
+      link.href = imgData;
+      link.download = `Invoice_${serialNum}_${(order.clientName || 'Client').replace(/\s+/g, '_')}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      try {
+        doc.save(`Invoice_${serialNum}_${(order.clientName || 'Client').replace(/\s+/g, '_')}.pdf`);
+        Swal.fire({ icon: 'info', title: 'Downloaded as PDF', text: 'Image generation is not supported on this device/browser, so the invoice was downloaded as a PDF instead.' });
+      } catch (fallbackErr) {
+        Swal.fire('Error', 'Failed to generate invoice', 'error');
+      }
     }
   };
 
@@ -163,7 +323,9 @@ const EmployeeDashboard = () => {
     return true;
   });
 
-  if (filter === 'ready') {
+  if (filter === 'pending') {
+    displayedOrders = displayedOrders.filter(o => o.status !== 'Delivered' && o.status !== 'Ready To Dispatch');
+  } else if (filter === 'ready') {
     displayedOrders = displayedOrders.filter(o => o.status === 'Ready To Dispatch');
   } else if (filter === 'payment_pending') {
     displayedOrders = displayedOrders.filter(o => o.totalAmount > 0 && (o.advanceAmount + (o.balanceAmount || 0)) < o.totalAmount);
@@ -204,6 +366,13 @@ const EmployeeDashboard = () => {
               className="fw-medium shadow-sm"
             >
               All Orders
+            </Button>
+            <Button 
+              variant={filter === 'pending' ? 'primary' : 'outline-primary'} 
+              onClick={() => setFilter('pending')}
+              className="fw-medium shadow-sm"
+            >
+              Pending Orders
             </Button>
             <Button 
               variant={filter === 'ready' ? 'primary' : 'outline-primary'} 
@@ -252,7 +421,7 @@ const EmployeeDashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {displayedOrders.map((order) => (
+                  {displayedOrders.map((order, index) => (
                     <tr key={order._id}>
                       <td>
                         <div className="fw-medium">{order.clientName}</div>
@@ -285,7 +454,7 @@ const EmployeeDashboard = () => {
                       <td>
                         <div className="small fw-bold mb-1">
                           {((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0)) > 0 ? (
-                            <span className="text-danger">₹{((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0))} Pending</span>
+                            <span className="text-danger">₹{((order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0))}</span>
                           ) : (
                             <span className="text-success">Fully Paid</span>
                           )}
@@ -317,17 +486,22 @@ const EmployeeDashboard = () => {
                       </td>
                       <td>{new Date(order.createdAt).toLocaleDateString()}</td>
                       <td className="text-end">
-                        <Form.Select
-                          size="sm"
-                          value={order.status}
-                          onChange={(e) => handleStatusChange(order._id, e.target.value)}
-                          className="fw-medium border-primary text-primary shadow-sm"
-                          style={{ cursor: 'pointer', backgroundColor: 'transparent', minWidth: '165px' }}
-                        >
-                          {statusOptions.map(opt => (
-                            <option key={opt} value={opt} className="text-dark">{opt}</option>
-                          ))}
-                        </Form.Select>
+                        <div className="d-flex justify-content-end align-items-center gap-2">
+                          <Form.Select
+                            size="sm"
+                            value={order.status}
+                            onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                            className="fw-medium border-primary text-primary shadow-sm"
+                            style={{ cursor: 'pointer', backgroundColor: 'transparent', minWidth: '165px' }}
+                          >
+                            {statusOptions.map(opt => (
+                              <option key={opt} value={opt} className="text-dark">{opt}</option>
+                            ))}
+                          </Form.Select>
+                          <Button variant="outline-info" size="sm" onClick={() => handleDownloadPDF(order, index)} title="Download Image">
+                            <Download size={16} />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -336,7 +510,7 @@ const EmployeeDashboard = () => {
 
               {/* Mobile Cards View */}
               <div className="d-md-none">
-                {displayedOrders.map((order) => (
+                {displayedOrders.map((order, index) => (
                   <div key={order._id} className="p-3 border-bottom">
                     <div className="d-flex justify-content-between align-items-start mb-2">
                       <h6 className="fw-bold mb-0">{order.clientName}</h6>
@@ -393,17 +567,22 @@ const EmployeeDashboard = () => {
                       </div>
                       <strong>Date:</strong> {new Date(order.createdAt).toLocaleDateString()}
                     </div>
-                    <Form.Select
-                      size="sm"
-                      value={order.status}
-                      onChange={(e) => handleStatusChange(order._id, e.target.value)}
-                      className="fw-medium border-primary text-primary mt-2 shadow-sm"
-                      style={{ cursor: 'pointer', backgroundColor: 'transparent' }}
-                    >
-                      {statusOptions.map(opt => (
-                        <option key={opt} value={opt} className="text-dark">{opt}</option>
-                      ))}
-                    </Form.Select>
+                    <div className="d-flex align-items-center gap-2 mt-2">
+                      <Form.Select
+                        size="sm"
+                        value={order.status}
+                        onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                        className="fw-medium border-primary text-primary shadow-sm w-auto flex-grow-1"
+                        style={{ cursor: 'pointer', backgroundColor: 'transparent' }}
+                      >
+                        {statusOptions.map(opt => (
+                          <option key={opt} value={opt} className="text-dark">{opt}</option>
+                        ))}
+                      </Form.Select>
+                      <Button variant="outline-info" size="sm" onClick={() => handleDownloadPDF(order, index)} title="Download Image">
+                        <Download size={16} />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -535,15 +714,6 @@ const EmployeeDashboard = () => {
         <Form onSubmit={handlePaymentSubmit}>
           <Modal.Body className="px-4 pt-4">
             <Form.Group className="mb-3">
-              <Form.Label>Amount</Form.Label>
-              <Form.Control 
-                type="number" 
-                value={paymentFormData.balanceAmount} 
-                onChange={(e) => setPaymentFormData({ ...paymentFormData, balanceAmount: e.target.value })} 
-                className="bg-light"
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
               <Form.Label>Advance Amount</Form.Label>
               <Form.Control 
                 type="number" 
@@ -553,20 +723,69 @@ const EmployeeDashboard = () => {
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label>Payment Method</Form.Label>
+              <Form.Label>Advance Payment Method</Form.Label>
               <Form.Select 
+                required={Number(paymentFormData.advanceAmount) > 0}
                 value={paymentFormData.paymentMethod} 
                 onChange={(e) => setPaymentFormData({ ...paymentFormData, paymentMethod: e.target.value })}
                 className="bg-light"
               >
+                <option value="">Select Payment Method</option>
                 <option value="GPay">GPay</option>
                 <option value="B-Gpay">B-Gpay</option>
                 <option value="KVB">KVB</option>
                 <option value="Dtdc Wallet">Dtdc Wallet</option>
                 <option value="Cash">Cash</option>
-<option value="Discount Amount">Discount Amount</option>
+                <option value="Discount Amount">Discount Amount</option>
               </Form.Select>
             </Form.Group>
+
+            <h6 className="fw-bold mb-3 mt-4">Balance Payments</h6>
+            {balancePayments.map((bp, i) => (
+              <div key={i} className="d-flex gap-2 mb-3">
+                <Form.Control
+                  type="number"
+                  placeholder="Amount"
+                  required={!!bp.method}
+                  value={bp.amount}
+                  onChange={(e) => {
+                    const newBps = [...balancePayments];
+                    newBps[i].amount = e.target.value;
+                    setBalancePayments(newBps);
+                  }}
+                  className="bg-light"
+                />
+                <Form.Select
+                  required={!!bp.amount}
+                  value={bp.method}
+                  onChange={(e) => {
+                    const newBps = [...balancePayments];
+                    newBps[i].method = e.target.value;
+                    setBalancePayments(newBps);
+                  }}
+                  className="bg-light"
+                >
+                  <option value="">Method</option>
+                  <option value="GPay">GPay</option>
+                  <option value="B-Gpay">B-Gpay</option>
+                  <option value="KVB">KVB</option>
+                  <option value="Dtdc Wallet">Dtdc Wallet</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Discount Amount">Discount Amount</option>
+                </Form.Select>
+                {balancePayments.length > 1 && (
+                  <Button variant="outline-danger" onClick={() => {
+                    const newBps = balancePayments.filter((_, idx) => idx !== i);
+                    setBalancePayments(newBps);
+                  }}>
+                    <Trash2 size={16} />
+                  </Button>
+                )}
+              </div>
+            ))}
+            <Button variant="outline-primary" size="sm" onClick={() => setBalancePayments([...balancePayments, { amount: '', method: '' }])}>
+              <Plus size={16} className="me-1" /> Add Payment Split
+            </Button>
           </Modal.Body>
           <Modal.Footer className="border-0 px-4 pb-4">
             <Button variant="light" onClick={() => setShowPaymentModal(false)} className="fw-medium">Cancel</Button>

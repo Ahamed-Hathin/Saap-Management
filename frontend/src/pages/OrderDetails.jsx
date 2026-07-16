@@ -242,7 +242,7 @@ const OrderDetails = () => {
                       {order.balancePayments && order.balancePayments.length > 0 && (
                         <div className="small text-muted mt-1">
                           {order.balancePayments.map((bp, i) => (
-                            <div key={i}>₹{bp.amount} ({bp.method}) on {new Date(bp.date).toLocaleDateString()}</div>
+                            <div key={i}>{new Date(bp.date).toLocaleDateString()} - ₹{bp.amount} ({bp.method})</div>
                           ))}
                         </div>
                       )}
