@@ -5,7 +5,8 @@ const Expense = require('../models/Expense');
 // @access  Admin
 exports.getExpenses = async (req, res) => {
   try {
-    const expenses = await Expense.find().sort({ date: -1 });
+    const filter = req.query.name ? { name: req.query.name } : {};
+    const expenses = await Expense.find(filter).sort({ date: -1 });
     res.json(expenses);
   } catch (error) {
     res.status(500).json({ message: 'Server error fetching expenses', error: error.message });
@@ -17,16 +18,17 @@ exports.getExpenses = async (req, res) => {
 // @access  Admin
 exports.createExpense = async (req, res) => {
   try {
-    const { name, description, amount } = req.body;
+    const { name, description, amount, balancePayments } = req.body;
 
-    if (!name || !description || !amount) {
-      return res.status(400).json({ message: 'Please provide name, description, and amount' });
+    if (!name || !amount) {
+      return res.status(400).json({ message: 'Please provide name and amount' });
     }
 
     const expense = new Expense({
       name,
       description,
       amount,
+      balancePayments: balancePayments || [],
     });
 
     const createdExpense = await expense.save();
@@ -51,5 +53,28 @@ exports.deleteExpense = async (req, res) => {
     res.json({ message: 'Expense removed' });
   } catch (error) {
     res.status(500).json({ message: 'Server error deleting expense', error: error.message });
+  }
+};
+
+// @desc    Update an expense
+// @route   PUT /api/expenses/:id
+// @access  Admin
+exports.updateExpense = async (req, res) => {
+  try {
+    const expense = await Expense.findById(req.params.id);
+
+    if (!expense) {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+
+    if (req.body.name) expense.name = req.body.name;
+    if (req.body.description) expense.description = req.body.description;
+    if (req.body.amount) expense.amount = req.body.amount;
+    if (req.body.balancePayments) expense.balancePayments = req.body.balancePayments;
+
+    const updatedExpense = await expense.save();
+    res.json(updatedExpense);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error updating expense', error: error.message });
   }
 };

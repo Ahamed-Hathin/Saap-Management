@@ -142,7 +142,6 @@ const ClientDetails = () => {
               <th className="py-3 px-4 text-muted font-monospace text-uppercase" style={{fontSize: '0.85rem'}}>Job Type</th>
               <th className="py-3 px-4 text-muted font-monospace text-uppercase" style={{fontSize: '0.85rem'}}>Status</th>
               <th className="py-3 px-4 text-muted font-monospace text-uppercase text-end" style={{fontSize: '0.85rem'}}>Total</th>
-              <th className="py-3 px-4 text-muted font-monospace text-uppercase" style={{fontSize: '0.85rem'}}>Payment Breakdown</th>
               <th className="py-3 px-4 text-muted font-monospace text-uppercase text-end" style={{fontSize: '0.85rem'}}>Pending</th>
             </tr>
           </thead>
@@ -179,28 +178,13 @@ const ClientDetails = () => {
                     </Badge>
                   </td>
                   <td className="py-3 px-4 text-end fw-bold">₹{order.totalAmount || 0}</td>
-                  <td className="py-3 px-4">
-                    {order.advanceAmount > 0 && (
-                      <div className="small fw-medium text-success mb-1">
-                        Adv: ₹{order.advanceAmount} <span className="text-muted fw-normal">({order.paymentMethod || 'None'})</span>
-                        <div className="text-muted" style={{ fontSize: '0.75rem' }}>{new Date(order.createdAt).toLocaleDateString('en-GB')}</div>
-                      </div>
-                    )}
-                    {order.balancePayments && order.balancePayments.length > 0 && order.balancePayments.map((bp, i) => (
-                      <div key={i} className="small fw-medium text-success mb-1">
-                        Bal: ₹{bp.amount} <span className="text-muted fw-normal">({bp.method || 'None'})</span>
-                        <div className="text-muted" style={{ fontSize: '0.75rem' }}>{bp.date ? new Date(bp.date).toLocaleDateString('en-GB') : '-'}</div>
-                      </div>
-                    ))}
-                    {orderPaid === 0 && <span className="text-muted small">No payments yet</span>}
-                  </td>
                   <td className="py-3 px-4 text-end fw-bold text-danger">₹{orderPending}</td>
                 </tr>
               );
             })}
             {orders.length === 0 && (
               <tr>
-                <td colSpan="7" className="text-center py-5 text-muted">
+                <td colSpan="6" className="text-center py-5 text-muted">
                   No orders found for this client.
                 </td>
               </tr>

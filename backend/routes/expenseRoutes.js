@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getExpenses, createExpense, deleteExpense } = require('../controllers/expenseController');
+const { getExpenses, createExpense, deleteExpense, updateExpense } = require('../controllers/expenseController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
 router.route('/')
@@ -8,6 +8,7 @@ router.route('/')
   .post(protect, admin, createExpense);
 
 router.route('/:id')
+  .put(protect, admin, updateExpense)
   .delete(protect, admin, deleteExpense);
 
 module.exports = router;

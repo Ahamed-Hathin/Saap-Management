@@ -8,12 +8,26 @@ const expenseSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    required: true,
+    required: false,
   },
   amount: {
     type: Number,
     required: true,
   },
+  balancePayments: [{
+    amount: {
+      type: Number,
+      required: true,
+    },
+    method: {
+      type: String,
+      required: true,
+    },
+    date: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   date: {
     type: Date,
     default: Date.now,
