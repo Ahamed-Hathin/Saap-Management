@@ -111,17 +111,18 @@ const Tasks = () => {
                 </Badge>
               </td>
               <td className="text-end">
-                <div className="d-flex flex-column align-items-end gap-1">
+                <div className="d-flex flex-column gap-1 ms-auto" style={{ width: 'fit-content' }}>
                   <Button 
                     variant={task.status === 'pending' ? 'outline-success' : 'outline-warning'} 
                     size="sm" 
                     onClick={() => handleStatusChange(task._id, task.status)}
                     className="text-nowrap"
+                    style={{ minWidth: '135px' }}
                   >
                     Mark {task.status === 'pending' ? 'Complete' : 'Pending'}
                   </Button>
                   {user?.role === 'Admin' && (
-                    <Button variant="outline-danger" size="sm" onClick={() => handleDelete(task._id)} className="text-nowrap">
+                    <Button variant="outline-danger" size="sm" onClick={() => handleDelete(task._id)} className="text-nowrap" style={{ minWidth: '135px' }}>
                       Delete
                     </Button>
                   )}

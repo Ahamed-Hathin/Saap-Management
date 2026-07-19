@@ -127,13 +127,13 @@ const ExpenseHistory = () => {
                   <td className="py-3 px-4 fw-bold text-danger">₹{balance.toLocaleString('en-IN')}</td>
                   <td className="py-3 px-4">
                     {balance > 0.01 ? (
-                      <Button variant="outline-success" size="sm" className="me-2" onClick={() => handleOpenPayModal(expense)}>
-                        Pay Balance
+                      <Button variant="outline-success" size="sm" className="me-2" style={{ width: '85px' }} onClick={() => handleOpenPayModal(expense)}>
+                        Pay
                       </Button>
                     ) : (
-                      <span className="badge bg-success me-2">Completed</span>
+                      <span className="btn btn-success btn-sm me-2 fw-medium" style={{ width: '90px', cursor: 'default', pointerEvents: 'none' }}>Completed</span>
                     )}
-                    <Button variant="outline-danger" size="sm" onClick={() => handleDelete(expense._id)}>
+                    <Button variant="outline-danger" size="sm" onClick={() => handleDelete(expense._id)} style={{ width: '90px' }}>
                       Delete
                     </Button>
                   </td>
