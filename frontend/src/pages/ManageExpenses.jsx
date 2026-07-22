@@ -25,10 +25,8 @@ const ManageExpenses = () => {
   const [payFormData, setPayFormData] = useState({ amount: '', method: 'Cash' });
   const [showViewPaymentsModal, setShowViewPaymentsModal] = useState(false);
   const [viewPaymentsExpense, setViewPaymentsExpense] = useState(null);
-
-  useEffect(() => {
-    fetchExpenses();
-  }, []);
+  const [showDescModal, setShowDescModal] = useState(false);
+  const [descModalContent, setDescModalContent] = useState('');
 
   const fetchExpenses = async () => {
     try {
@@ -39,6 +37,10 @@ const ManageExpenses = () => {
       Swal.fire('Error', 'Failed to fetch expenses', 'error');
     }
   };
+
+  useEffect(() => {
+    fetchExpenses();
+  }, []);
 
   const handleShow = () => {
     setFormData({ name: '', description: '', amount: '', balancePayments: [{ amount: '', method: 'Cash' }] });
@@ -72,6 +74,11 @@ const ManageExpenses = () => {
   const handleViewPayments = (expense) => {
     setViewPaymentsExpense(expense);
     setShowViewPaymentsModal(true);
+  };
+
+  const handleViewDescription = (desc) => {
+    setDescModalContent(desc);
+    setShowDescModal(true);
   };
 
   const handlePaySubmit = async (e) => {
@@ -264,7 +271,23 @@ const ManageExpenses = () => {
                       {expense.name}
                     </span>
                   </td>
-                  <td className="py-3 px-4">{expense.description}</td>
+                  <td className="py-3 px-4">
+                    {expense.description && expense.description.length > 25 ? (
+                      <>
+                        {expense.description.substring(0, 25)}...
+                        <span 
+                          role="button" 
+                          className="text-primary ms-1" 
+                          style={{ cursor: 'pointer', fontSize: '0.85rem', textDecoration: 'underline' }} 
+                          onClick={() => handleViewDescription(expense.description)}
+                        >
+                          View
+                        </span>
+                      </>
+                    ) : (
+                      expense.description
+                    )}
+                  </td>
                   <td className="py-3 px-4 fw-bold text-dark">₹{expense.amount.toLocaleString('en-IN')}</td>
                   <td className="py-3 px-4 fw-bold text-success">
                     {paid > 0 ? (
@@ -283,16 +306,18 @@ const ManageExpenses = () => {
                   </td>
                   <td className="py-3 px-4 fw-bold text-danger">₹{balance.toLocaleString('en-IN')}</td>
                   <td className="py-3 px-4">
-                    {balance > 0.01 ? (
-                      <Button variant="outline-success" size="sm" className="me-2" style={{ width: '85px' }} onClick={() => handleOpenPayModal(expense)}>
-                        Pay
+                    <div className="d-flex flex-wrap gap-2">
+                      {balance > 0.01 ? (
+                        <Button variant="outline-success" size="sm" style={{ minWidth: '75px' }} onClick={() => handleOpenPayModal(expense)}>
+                          Pay
+                        </Button>
+                      ) : (
+                        <span className="btn btn-success btn-sm fw-medium" style={{ minWidth: '85px', cursor: 'default', pointerEvents: 'none' }}>Completed</span>
+                      )}
+                      <Button variant="outline-danger" size="sm" onClick={() => handleDelete(expense._id)} style={{ minWidth: '75px' }}>
+                        Delete
                       </Button>
-                    ) : (
-                      <span className="btn btn-success btn-sm me-2 fw-medium" style={{ width: '90px', cursor: 'default', pointerEvents: 'none' }}>Completed</span>
-                    )}
-                    <Button variant="outline-danger" size="sm" onClick={() => handleDelete(expense._id)} style={{ width: '90px' }}>
-                      Delete
-                    </Button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -509,7 +534,21 @@ const ManageExpenses = () => {
           )}
         </Modal.Body>
         <Modal.Footer className="border-0 pt-0">
-          <Button variant="light" onClick={() => setShowViewPaymentsModal(false)} className="px-4 py-2 rounded-3 fw-medium">
+          <Button variant="secondary" onClick={() => setShowViewPaymentsModal(false)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={showDescModal} onHide={() => setShowDescModal(false)} centered>
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-bold">Description</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="text-secondary mb-0" style={{ whiteSpace: 'pre-wrap' }}>{descModalContent}</p>
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0">
+          <Button variant="light" onClick={() => setShowDescModal(false)} className="px-4 py-2 rounded-3 fw-medium">
             Close
           </Button>
         </Modal.Footer>
