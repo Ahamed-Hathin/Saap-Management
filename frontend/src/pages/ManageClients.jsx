@@ -95,7 +95,11 @@ const ManageClients = () => {
           <tbody>
             {clients.map((client) => (
               <tr key={client._id}>
-                <td className="py-3 px-4 fw-bold text-primary">{client.username}</td>
+                <td className="py-3 px-4 fw-bold">
+                  <Link to={`/clients/${client._id}`} className="text-decoration-none text-primary">
+                    {client.username}
+                  </Link>
+                </td>
                 <td className="py-3 px-4 fw-medium">{client.clientName}</td>
                 <td className="py-3 px-4 text-secondary">{client.mobileNumber}</td>
                 <td className="py-3 px-4">

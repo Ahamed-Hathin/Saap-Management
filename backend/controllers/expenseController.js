@@ -78,3 +78,58 @@ exports.updateExpense = async (req, res) => {
     res.status(500).json({ message: 'Server error updating expense', error: error.message });
   }
 };
+
+// @desc    Pay bulk amount for expenses with specific name
+// @route   POST /api/expenses/pay-bulk
+// @access  Admin
+exports.payBulkExpenses = async (req, res) => {
+  try {
+    const { name, amount, method } = req.body;
+    if (!name || !amount || !method) {
+      return res.status(400).json({ message: 'Please provide name, amount, and method' });
+    }
+
+    let remainingAmount = Number(amount);
+    if (remainingAmount <= 0) {
+      return res.status(400).json({ message: 'Amount must be greater than 0' });
+    }
+
+    // Find all expenses for this name, oldest first
+    const expenses = await Expense.find({ name }).sort({ date: 1 });
+
+    const updatedExpenses = [];
+
+    for (let expense of expenses) {
+      if (remainingAmount <= 0) break;
+
+      let totalPaid = 0;
+      if (expense.balancePayments && Array.isArray(expense.balancePayments)) {
+        totalPaid = expense.balancePayments.reduce((sum, payment) => sum + payment.amount, 0);
+      }
+
+      const pendingAmount = expense.amount - totalPaid;
+
+      if (pendingAmount > 0) {
+        const paymentAmount = Math.min(pendingAmount, remainingAmount);
+        
+        if (!expense.balancePayments) {
+          expense.balancePayments = [];
+        }
+        
+        expense.balancePayments.push({
+          amount: paymentAmount,
+          method: method,
+          date: new Date()
+        });
+        
+        remainingAmount -= paymentAmount;
+        await expense.save();
+        updatedExpenses.push(expense);
+      }
+    }
+
+    res.json({ message: 'Bulk payment applied successfully', updatedExpenses, remainingAmount });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error processing bulk payment', error: error.message });
+  }
+};

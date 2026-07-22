@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import Layout from '../components/Layout';
 import { Row, Col, Card, Table, Badge, Button, Modal, Form, Alert } from 'react-bootstrap';
 import { Link, useLocation, useParams } from 'react-router-dom';
@@ -10,9 +10,11 @@ import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+import { AuthContext } from '../context/AuthContext';
 import Swal from 'sweetalert2';
 
 const EmployeeDashboard = () => {
+  const { user } = useContext(AuthContext);
   const location = useLocation();
   const { id } = useParams();
   const [orders, setOrders] = useState([]);
@@ -167,7 +169,7 @@ const EmployeeDashboard = () => {
     });
 
     const doc = new jsPDF({ format: [210, 180] });
-    const serialNum = order.serialNumber || (orders.length - index);
+    const serialNum = order.serialNumber;
 
     doc.setFontSize(26);
     doc.setFont("helvetica", "bold");
@@ -337,6 +339,11 @@ const EmployeeDashboard = () => {
       (order.clientName && order.clientName.toLowerCase().includes(lowerCaseSearchTerm)) ||
       (order.mobileNumber && order.mobileNumber.includes(lowerCaseSearchTerm))
     );
+  }
+  
+  const isFiltered = filter !== 'all';
+  if (isFiltered) {
+    displayedOrders = displayedOrders.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
   }
 
   return (
@@ -609,7 +616,10 @@ const EmployeeDashboard = () => {
                     onChange={async (e) => { 
                       const val = e.target.value;
                       setFormData({ ...formData, clientName: val ? val.replace(/(^\w|\s\w)/g, m => m.toUpperCase()) : '' });
-                      if (val.trim().length > 0) {
+                      
+                      const isStaff2 = user && user.name && user.name.toLowerCase() === 'staff 2';
+                      
+                      if (val.trim().length > 0 && !isStaff2) {
                         try {
                           const res = await api.get(`/clients/search?q=${val}`);
                           setClientSuggestions(res.data);

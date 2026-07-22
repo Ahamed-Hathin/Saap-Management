@@ -4,6 +4,7 @@ import { Table, Button, Card, Modal, Form } from 'react-bootstrap';
 import api from '../services/api';
 import Swal from 'sweetalert2';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Wallet, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const ExpenseHistory = () => {
   const { name } = useParams();
@@ -14,6 +15,9 @@ const ExpenseHistory = () => {
   const [payFormData, setPayFormData] = useState({ amount: '', method: 'Cash' });
   const [showViewPaymentsModal, setShowViewPaymentsModal] = useState(false);
   const [viewPaymentsExpense, setViewPaymentsExpense] = useState(null);
+
+  const [showGlobalPayModal, setShowGlobalPayModal] = useState(false);
+  const [globalPayFormData, setGlobalPayFormData] = useState({ amount: '', method: 'Cash' });
 
   useEffect(() => {
     fetchExpenses();
@@ -56,6 +60,23 @@ const ExpenseHistory = () => {
     }
   };
 
+  const handleGlobalPaySubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/expenses/pay-bulk', {
+        name,
+        amount: Number(globalPayFormData.amount),
+        method: globalPayFormData.method
+      });
+      Swal.fire('Success', 'Global Payment applied successfully', 'success');
+      setShowGlobalPayModal(false);
+      fetchExpenses();
+    } catch (err) {
+      console.error(err);
+      Swal.fire('Error', err.response?.data?.message || 'Failed to apply global payment', 'error');
+    }
+  };
+
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this expense?')) {
       try {
@@ -70,22 +91,59 @@ const ExpenseHistory = () => {
   };
 
   const totalAmount = expenses.reduce((acc, curr) => acc + curr.amount, 0);
+  const totalPaid = expenses.reduce((acc, curr) => {
+    const paid = curr.balancePayments?.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0) || 0;
+    return acc + paid;
+  }, 0);
+  const pendingAmount = totalAmount - totalPaid;
 
   return (
     <Layout>
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <Button variant="outline-secondary" className="me-3" onClick={() => navigate(-1)}>
-            &larr; Back
+          <Button 
+            variant="white" 
+            className="me-3 shadow-sm rounded-circle d-inline-flex justify-content-center align-items-center" 
+            style={{ width: '40px', height: '40px', border: '1px solid #eaeaea' }}
+            onClick={() => navigate(-1)}
+            title="Go Back"
+          >
+            <ArrowLeft size={18} className="text-secondary" />
           </Button>
-          <h2 className="fw-bold mb-0 d-inline-block align-middle">History: {name}</h2>
+          <h2 className="fw-bold mb-0 d-inline-block align-middle">{name}</h2>
         </div>
       </div>
 
       <Card className="border-0 shadow-sm rounded-4 overflow-hidden mb-4">
         <Card.Body className="bg-light d-flex justify-content-between align-items-center p-4">
-          <h5 className="mb-0 text-muted fw-bold">Total Spent on {name}</h5>
-          <h3 className="mb-0 fw-bold text-danger">₹{totalAmount.toLocaleString('en-IN')}</h3>
+          <div className="d-flex flex-wrap gap-3">
+            <div className="bg-white px-4 py-3 rounded-4 shadow-sm border" style={{ minWidth: '180px' }}>
+              <div className="d-flex align-items-center mb-1">
+                <Wallet size={16} className="text-secondary me-2" />
+                <h6 className="mb-0 text-muted fw-bold" style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Spent</h6>
+              </div>
+              <h3 className="mb-0 fw-bold text-dark mt-2">₹{totalAmount.toLocaleString('en-IN')}</h3>
+            </div>
+            
+            <div className="bg-white px-4 py-3 rounded-4 shadow-sm border" style={{ minWidth: '180px' }}>
+              <div className="d-flex align-items-center mb-1">
+                <CheckCircle2 size={16} className="text-success me-2" />
+                <h6 className="mb-0 text-muted fw-bold" style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Paid</h6>
+              </div>
+              <h3 className="mb-0 fw-bold text-success mt-2">₹{totalPaid.toLocaleString('en-IN')}</h3>
+            </div>
+            
+            <div className="bg-white px-4 py-3 rounded-4 shadow-sm border" style={{ minWidth: '180px' }}>
+              <div className="d-flex align-items-center mb-1">
+                <AlertCircle size={16} className="text-danger me-2" />
+                <h6 className="mb-0 text-muted fw-bold" style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pending Balance</h6>
+              </div>
+              <h3 className="mb-0 fw-bold text-danger mt-2">₹{pendingAmount.toLocaleString('en-IN')}</h3>
+            </div>
+          </div>
+          <Button variant="primary" onClick={() => { setGlobalPayFormData({ amount: '', method: 'Cash' }); setShowGlobalPayModal(true); }}>
+            Pay
+          </Button>
         </Card.Body>
       </Card>
 
@@ -227,6 +285,49 @@ const ExpenseHistory = () => {
             Close
           </Button>
         </Modal.Footer>
+      </Modal>
+
+      <Modal show={showGlobalPayModal} onHide={() => setShowGlobalPayModal(false)} centered>
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-bold">Pay for {name}</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleGlobalPaySubmit}>
+          <Modal.Body>
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-medium text-secondary small">Total Amount</Form.Label>
+              <Form.Control
+                type="number"
+                required
+                min="0"
+                value={globalPayFormData.amount}
+                onChange={(e) => setGlobalPayFormData({ ...globalPayFormData, amount: e.target.value })}
+                className="bg-light border-0 py-2 px-3 rounded-3"
+                placeholder="0.00"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-medium text-secondary small">Method</Form.Label>
+              <Form.Select
+                value={globalPayFormData.method}
+                onChange={(e) => setGlobalPayFormData({ ...globalPayFormData, method: e.target.value })}
+                className="bg-light border-0 py-2 px-3 rounded-3"
+              >
+                <option value="Cash">Cash</option>
+                <option value="Card">Card</option>
+                <option value="UPI">UPI</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+              </Form.Select>
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer className="border-0 pt-0">
+            <Button variant="light" onClick={() => setShowGlobalPayModal(false)} className="px-4 py-2 rounded-3 fw-medium">
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" className="px-4 py-2 rounded-3 fw-medium shadow-sm">
+              Submit Payment
+            </Button>
+          </Modal.Footer>
+        </Form>
       </Modal>
     </Layout>
   );

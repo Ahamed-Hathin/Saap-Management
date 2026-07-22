@@ -3,10 +3,14 @@ import Layout from '../components/Layout';
 import { Table, Button, Form, Modal, Card } from 'react-bootstrap';
 import api from '../services/api';
 import Swal from 'sweetalert2';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const ManageExpenses = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const dateFilterParam = searchParams.get('dateFilter') || 'all';
+  const startDateParam = searchParams.get('startDate');
+  const endDateParam = searchParams.get('endDate');
   const [expenses, setExpenses] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -115,7 +119,62 @@ const ManageExpenses = () => {
     }
   };
 
-  const totalAmount = expenses.reduce((acc, curr) => acc + curr.amount, 0);
+  const handleDateFilterChange = (val) => {
+    searchParams.set('dateFilter', val);
+    if (val !== 'custom') {
+      searchParams.delete('startDate');
+      searchParams.delete('endDate');
+    }
+    setSearchParams(searchParams);
+  };
+
+  const handleCustomDateChange = (start, end) => {
+    searchParams.set('dateFilter', 'custom');
+    if (start) searchParams.set('startDate', start);
+    if (end) searchParams.set('endDate', end);
+    setSearchParams(searchParams);
+  };
+
+  let displayedExpenses = expenses;
+
+  if (dateFilterParam && dateFilterParam !== 'all') {
+    const now = new Date();
+    let start, end;
+    if (dateFilterParam === 'today') {
+      start = new Date(now.setHours(0, 0, 0, 0));
+      end = new Date(new Date().setHours(23, 59, 59, 999));
+    } else if (dateFilterParam === 'yesterday') {
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      start = new Date(yesterday.setHours(0, 0, 0, 0));
+      end = new Date(new Date(yesterday).setHours(23, 59, 59, 999));
+    } else if (dateFilterParam === 'weekly') {
+      start = new Date(now);
+      start.setDate(now.getDate() - 7);
+      start.setHours(0, 0, 0, 0);
+    } else if (dateFilterParam === 'monthly') {
+      start = new Date(now);
+      start.setDate(now.getDate() - 30);
+      start.setHours(0, 0, 0, 0);
+    } else if (dateFilterParam === 'custom' && startDateParam && endDateParam) {
+      start = new Date(startDateParam);
+      start.setHours(0, 0, 0, 0);
+      end = new Date(endDateParam);
+      end.setHours(23, 59, 59, 999);
+    }
+
+    if (start) {
+      displayedExpenses = displayedExpenses.filter(e => {
+        const expenseDate = new Date(e.date || e.createdAt);
+        if (end) {
+          return expenseDate >= start && expenseDate <= end;
+        }
+        return expenseDate >= start;
+      });
+    }
+  }
+
+  const totalAmount = displayedExpenses.reduce((acc, curr) => acc + curr.amount, 0);
   
   const currentTotalPaid = formData.balancePayments.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
   const currentBalanceAmount = (parseFloat(formData.amount) || 0) - currentTotalPaid;
@@ -124,11 +183,48 @@ const ManageExpenses = () => {
 
   return (
     <Layout>
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <h2 className="fw-bold mb-0">Manage Expenses</h2>
-        <Button variant="primary" onClick={handleShow} className="px-4 py-2 rounded-3 fw-medium shadow-sm">
-          + Add Expense
-        </Button>
+        <div className="d-flex gap-2 align-items-center flex-wrap">
+          <div className="d-flex gap-2 align-items-center bg-white rounded shadow-sm border p-1">
+            <Form.Select 
+              size="sm" 
+              style={{ width: 'auto', minWidth: '140px', cursor: 'pointer' }} 
+              value={dateFilterParam} 
+              onChange={(e) => handleDateFilterChange(e.target.value)}
+              className="border-0 shadow-none bg-transparent font-weight-medium text-dark"
+            >
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="weekly">Last 7 Days</option>
+              <option value="monthly">Last 30 Days</option>
+              <option value="custom">Custom Date</option>
+            </Form.Select>
+
+            {dateFilterParam === 'custom' && (
+              <div className="d-flex gap-2 border-start ps-2 ms-1">
+                <Form.Control 
+                  type="date" 
+                  size="sm"
+                  value={startDateParam || ''} 
+                  onChange={(e) => handleCustomDateChange(e.target.value, endDateParam)}
+                  className="border-0 bg-transparent shadow-none text-secondary"
+                />
+                <Form.Control 
+                  type="date" 
+                  size="sm"
+                  value={endDateParam || ''} 
+                  onChange={(e) => handleCustomDateChange(startDateParam, e.target.value)}
+                  className="border-0 bg-transparent shadow-none text-secondary"
+                />
+              </div>
+            )}
+          </div>
+          <Button variant="primary" onClick={handleShow} className="px-4 py-2 rounded-3 fw-medium shadow-sm">
+            + Add Expense
+          </Button>
+        </div>
       </div>
 
       <Card className="border-0 shadow-sm rounded-4 overflow-hidden mb-4">
@@ -152,7 +248,7 @@ const ManageExpenses = () => {
             </tr>
           </thead>
           <tbody>
-            {expenses.map((expense) => {
+            {displayedExpenses.map((expense) => {
               const paid = expense.balancePayments?.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0) || 0;
               const balance = expense.amount - paid;
               return (
@@ -202,10 +298,10 @@ const ManageExpenses = () => {
                 </tr>
               );
             })}
-            {expenses.length === 0 && (
+            {displayedExpenses.length === 0 && (
               <tr>
                 <td colSpan="7" className="text-center py-5 text-muted">
-                  No expenses found. Click "Add Expense" to record one.
+                  No expenses found.
                 </td>
               </tr>
             )}

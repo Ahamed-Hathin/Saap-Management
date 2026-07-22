@@ -173,7 +173,7 @@ const ClientOrders = () => {
     });
 
     const doc = new jsPDF({ format: [210, 180] });
-    const serialNum = order.serialNumber || (orders.length - index);
+    const serialNum = order.serialNumber;
 
     // --- Header ---
     // Brand Name
@@ -445,6 +445,11 @@ const ClientOrders = () => {
     if (dateFilterParam === 'today') {
       start = new Date(now.setHours(0, 0, 0, 0));
       end = new Date(new Date().setHours(23, 59, 59, 999));
+    } else if (dateFilterParam === 'yesterday') {
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      start = new Date(yesterday.setHours(0, 0, 0, 0));
+      end = new Date(new Date(yesterday).setHours(23, 59, 59, 999));
     } else if (dateFilterParam === 'weekly') {
       start = new Date(now);
       start.setDate(now.getDate() - 7);
@@ -463,12 +468,10 @@ const ClientOrders = () => {
     if (start) {
       displayedOrders = displayedOrders.filter(o => {
         const orderCreatedDate = new Date(o.createdAt);
-        const orderUpdatedDate = new Date(o.updatedAt || o.createdAt);
         if (end) {
-          return (orderCreatedDate >= start && orderCreatedDate <= end) || 
-                 (orderUpdatedDate >= start && orderUpdatedDate <= end);
+          return orderCreatedDate >= start && orderCreatedDate <= end;
         }
-        return orderCreatedDate >= start || orderUpdatedDate >= start;
+        return orderCreatedDate >= start;
       });
     }
   }
@@ -495,6 +498,10 @@ const ClientOrders = () => {
       (o.serialNumber && String(o.serialNumber).includes(q)) ||
       (o.cardType && o.cardType.toLowerCase().includes(q))
     );
+  }
+  const isFiltered = (filterParam && filterParam !== 'all') || (dateFilterParam && dateFilterParam !== 'all') || (employeeFilterParam && employeeFilterParam !== 'all');
+  if (isFiltered) {
+    displayedOrders = displayedOrders.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
   }
 
   const handleExportMonthlyReport = () => {
@@ -621,6 +628,7 @@ const ClientOrders = () => {
           >
             <option value="all">All Time</option>
             <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
             <option value="weekly">Last 7 Days</option>
             <option value="monthly">Last 30 Days</option>
             <option value="custom">Custom Date</option>

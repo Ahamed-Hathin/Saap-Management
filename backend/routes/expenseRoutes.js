@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { getExpenses, createExpense, deleteExpense, updateExpense } = require('../controllers/expenseController');
+const { getExpenses, createExpense, deleteExpense, updateExpense, payBulkExpenses } = require('../controllers/expenseController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
 router.route('/')
   .get(protect, admin, getExpenses)
   .post(protect, admin, createExpense);
+
+router.post('/pay-bulk', protect, admin, payBulkExpenses);
 
 router.route('/:id')
   .put(protect, admin, updateExpense)

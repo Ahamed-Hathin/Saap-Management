@@ -4,6 +4,7 @@ import { Card, Row, Col, Badge, Form, Button, Alert, Modal } from 'react-bootstr
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
+import { ArrowLeft } from 'lucide-react';
 
 const OrderDetails = () => {
   const { id } = useParams();
@@ -141,6 +142,9 @@ const OrderDetails = () => {
 
   return (
     <Layout>
+      <Button variant="link" onClick={() => navigate(-1)} className="text-decoration-none text-dark fw-bold mb-4 d-inline-flex align-items-center p-0">
+        <ArrowLeft size={20} className="me-2" /> Back
+      </Button>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
         <h3 className="mb-0 fw-bold">Order Details #{order._id.substring(0, 8)}</h3>
         <span className={`badge-custom badge-${order.status === 'Delivered' ? 'success' : 'primary'} fs-6 py-2 px-3`}>

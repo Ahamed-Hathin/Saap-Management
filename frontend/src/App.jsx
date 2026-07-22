@@ -14,7 +14,7 @@ import ClientDetails from './pages/ClientDetails';
 import ClientOrders from './pages/ClientOrders';
 import ManageExpenses from './pages/ManageExpenses';
 import ExpenseHistory from './pages/ExpenseHistory';
-const PrivateRoute = ({ children, role }) => {
+const PrivateRoute = ({ children, role, excludeUser }) => {
   const { user, loading, logout } = useContext(AuthContext);
 
   if (loading) return <div>Loading...</div>;
@@ -22,6 +22,16 @@ const PrivateRoute = ({ children, role }) => {
   if (!user) return <Navigate to="/login" />;
 
   if (role && user.role !== role) {
+    return (
+      <div className="p-5 text-center">
+        <h4>Unauthorized Access</h4>
+        <p>You don't have permission to view this page.</p>
+        <button className="btn btn-primary" onClick={() => { logout(); window.location.href = '/login'; }}>Logout</button>
+      </div>
+    );
+  }
+
+  if (excludeUser && user.name?.toLowerCase() === excludeUser.toLowerCase()) {
     return (
       <div className="p-5 text-center">
         <h4>Unauthorized Access</h4>
@@ -66,10 +76,13 @@ function App() {
         <Route path="/employee/settings" element={<PrivateRoute role="Employee"><Settings /></PrivateRoute>} />
         
         {/* Shared Routes */}
-        <Route path="/clients" element={<PrivateRoute><ManageClients /></PrivateRoute>} />
-        <Route path="/clients/:id" element={<PrivateRoute><ClientDetails /></PrivateRoute>} />
-        <Route path="/client-orders" element={<PrivateRoute><ClientOrders /></PrivateRoute>} />
+        <Route path="/clients" element={<PrivateRoute excludeUser="staff 2"><ManageClients /></PrivateRoute>} />
+        <Route path="/clients/:id" element={<PrivateRoute excludeUser="staff 2"><ClientDetails /></PrivateRoute>} />
+        <Route path="/client-orders" element={<PrivateRoute excludeUser="staff 2"><ClientOrders /></PrivateRoute>} />
         <Route path="/orders/:id" element={<PrivateRoute><OrderDetails /></PrivateRoute>} />
+        
+        {/* Catch-all Route */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );

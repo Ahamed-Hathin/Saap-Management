@@ -147,6 +147,12 @@ const getDashboardStats = async (req, res) => {
      const startOfDay = new Date(now.setHours(0, 0, 0, 0));
      const endOfDay = new Date(new Date().setHours(23, 59, 59, 999));
      dateFilter = { createdAt: { $gte: startOfDay, $lte: endOfDay } };
+   } else if (filter === 'yesterday') {
+     const yesterday = new Date(now);
+     yesterday.setDate(yesterday.getDate() - 1);
+     const startOfYesterday = new Date(yesterday.setHours(0, 0, 0, 0));
+     const endOfYesterday = new Date(new Date(yesterday).setHours(23, 59, 59, 999));
+     dateFilter = { createdAt: { $gte: startOfYesterday, $lte: endOfYesterday } };
    } else if (filter === 'weekly') {
      const startOfWeek = new Date(now);
      startOfWeek.setDate(now.getDate() - 7);
