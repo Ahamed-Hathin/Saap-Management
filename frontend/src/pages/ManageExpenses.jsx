@@ -186,10 +186,9 @@ const ManageExpenses = () => {
       <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <h2 className="fw-bold mb-0">Manage Expenses</h2>
         <div className="d-flex gap-2 align-items-center flex-wrap">
-          <div className="d-flex gap-2 align-items-center bg-white rounded shadow-sm border p-1">
+          <div className="d-flex gap-2 align-items-center bg-white rounded-3 shadow-sm border px-2">
             <Form.Select 
-              size="sm" 
-              style={{ width: 'auto', minWidth: '140px', cursor: 'pointer' }} 
+              style={{ width: 'auto', minWidth: '140px', cursor: 'pointer', height: '42px' }} 
               value={dateFilterParam} 
               onChange={(e) => handleDateFilterChange(e.target.value)}
               className="border-0 shadow-none bg-transparent font-weight-medium text-dark"
@@ -221,7 +220,7 @@ const ManageExpenses = () => {
               </div>
             )}
           </div>
-          <Button variant="primary" onClick={handleShow} className="px-4 py-2 rounded-3 fw-medium shadow-sm">
+          <Button variant="primary" onClick={handleShow} className="px-4 rounded-3 fw-medium shadow-sm d-flex align-items-center justify-content-center" style={{ height: '42px' }}>
             + Add Expense
           </Button>
         </div>
@@ -258,7 +257,7 @@ const ManageExpenses = () => {
                     <span 
                       role="button" 
                       onClick={() => navigate(`/admin/expenses/history/${encodeURIComponent(expense.name)}`)}
-                      style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                      style={{ cursor: 'pointer' }}
                       className="text-primary"
                       title="View Expense History"
                     >

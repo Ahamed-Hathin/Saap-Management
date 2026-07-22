@@ -4,7 +4,7 @@ import { Table, Button, Card, Modal, Form } from 'react-bootstrap';
 import api from '../services/api';
 import Swal from 'sweetalert2';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Wallet, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Wallet, CheckCircle2, AlertCircle, Plus } from 'lucide-react';
 
 const ExpenseHistory = () => {
   const { name } = useParams();
@@ -19,9 +19,13 @@ const ExpenseHistory = () => {
   const [showGlobalPayModal, setShowGlobalPayModal] = useState(false);
   const [globalPayFormData, setGlobalPayFormData] = useState({ amount: '', method: 'Cash' });
 
-  useEffect(() => {
-    fetchExpenses();
-  }, [name]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addFormData, setAddFormData] = useState({
+    name: name,
+    description: '',
+    amount: '',
+    balancePayments: [{ amount: '', method: 'Cash' }]
+  });
 
   const fetchExpenses = async () => {
     try {
@@ -31,6 +35,44 @@ const ExpenseHistory = () => {
       console.error(err);
       Swal.fire('Error', 'Failed to fetch expenses history', 'error');
     }
+  };
+
+  useEffect(() => {
+    fetchExpenses();
+  }, [name]);
+  const handleAddSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const validPayments = addFormData.balancePayments.filter(p => p.amount !== '' && parseFloat(p.amount) > 0);
+      const dataToSubmit = { ...addFormData, name: name, balancePayments: validPayments };
+      
+      await api.post('/expenses', dataToSubmit);
+      Swal.fire('Success', 'Expense added successfully', 'success');
+      setShowAddModal(false);
+      setAddFormData({ name: name, description: '', amount: '', balancePayments: [{ amount: '', method: 'Cash' }] });
+      fetchExpenses();
+    } catch (err) {
+      console.error(err);
+      Swal.fire('Error', err.response?.data?.message || 'Error saving expense', 'error');
+    }
+  };
+
+  const handleAddPaymentChange = (index, field, value) => {
+    const updatedPayments = [...addFormData.balancePayments];
+    updatedPayments[index][field] = value;
+    setAddFormData({ ...addFormData, balancePayments: updatedPayments });
+  };
+
+  const handleAddSplit = () => {
+    setAddFormData({
+      ...addFormData,
+      balancePayments: [...addFormData.balancePayments, { amount: '', method: 'Cash' }]
+    });
+  };
+
+  const handleRemoveSplit = (index) => {
+    const updatedPayments = addFormData.balancePayments.filter((_, i) => i !== index);
+    setAddFormData({ ...addFormData, balancePayments: updatedPayments });
   };
 
   const handleOpenPayModal = (expense) => {
@@ -112,6 +154,9 @@ const ExpenseHistory = () => {
           </Button>
           <h2 className="fw-bold mb-0 d-inline-block align-middle">{name}</h2>
         </div>
+        <Button variant="primary" className="shadow-sm fw-medium px-3 rounded-3 d-flex align-items-center gap-2" onClick={() => setShowAddModal(true)}>
+          <Plus size={18} /> Add Expense
+        </Button>
       </div>
 
       <Card className="border-0 shadow-sm rounded-4 overflow-hidden mb-4">
@@ -173,7 +218,7 @@ const ExpenseHistory = () => {
                       <span 
                         role="button" 
                         onClick={() => handleViewPayments(expense)}
-                        style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                        style={{ cursor: 'pointer' }}
                         title="Click to view payment details"
                       >
                         ₹{paid.toLocaleString('en-IN')}
@@ -325,6 +370,90 @@ const ExpenseHistory = () => {
             </Button>
             <Button variant="primary" type="submit" className="px-4 py-2 rounded-3 fw-medium shadow-sm">
               Submit Payment
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      <Modal show={showAddModal} onHide={() => setShowAddModal(false)} centered backdrop="static" size="lg">
+        <Form onSubmit={handleAddSubmit}>
+          <Modal.Header closeButton className="border-0 pb-0">
+            <Modal.Title className="fw-bold fs-4">Add Expense for {name}</Modal.Title>
+          </Modal.Header>
+          <Modal.Body className="px-4">
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold text-dark small mb-2">Description <span className="text-muted fw-normal">(Optional)</span></Form.Label>
+              <Form.Control
+                type="text"
+                value={addFormData.description}
+                onChange={(e) => setAddFormData({ ...addFormData, description: e.target.value })}
+                className="bg-light border-0 py-2 px-3 rounded-3"
+                placeholder="E.g. Electricity Bill"
+              />
+            </Form.Group>
+            
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold text-dark small mb-2">Total Amount <span className="text-danger">*</span></Form.Label>
+              <Form.Control
+                type="number"
+                required
+                min="0"
+                value={addFormData.amount}
+                onChange={(e) => setAddFormData({ ...addFormData, amount: e.target.value })}
+                className="bg-light border-0 py-2 px-3 rounded-3"
+                placeholder="0.00"
+              />
+            </Form.Group>
+            
+            <div className="mb-3">
+              <Form.Label className="fw-bold text-dark small mb-2">Initial Payments</Form.Label>
+              {addFormData.balancePayments.map((payment, index) => (
+                <div key={index} className="d-flex gap-2 mb-2 align-items-center">
+                  <Form.Control
+                    type="number"
+                    min="0"
+                    placeholder="Amount Paid"
+                    value={payment.amount}
+                    onChange={(e) => handleAddPaymentChange(index, 'amount', e.target.value)}
+                    className="bg-light border-0 py-2 px-3 rounded-3"
+                    style={{ flex: 1 }}
+                  />
+                  <Form.Select
+                    value={payment.method}
+                    onChange={(e) => handleAddPaymentChange(index, 'method', e.target.value)}
+                    className="bg-light border-0 py-2 px-3 rounded-3"
+                    style={{ flex: 1 }}
+                  >
+                    <option value="Cash">Cash</option>
+                    <option value="Card">Card</option>
+                    <option value="UPI">UPI</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                  </Form.Select>
+                  {index > 0 && (
+                    <Button variant="outline-danger" className="px-2" onClick={() => handleRemoveSplit(index)}>
+                      &times;
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button variant="outline-primary" size="sm" onClick={handleAddSplit} className="mt-1">
+                + Add Payment Split
+              </Button>
+            </div>
+            
+            <div className="d-flex justify-content-between align-items-center p-3 bg-light rounded-3 mt-3">
+              <span className="fw-medium text-secondary">Balance Remaining:</span>
+              <span className={`fw-bold fs-5 ${(Number(addFormData.amount) || 0) - addFormData.balancePayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) > 0 ? 'text-danger' : 'text-success'}`}>
+                ₹{((Number(addFormData.amount) || 0) - addFormData.balancePayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)).toLocaleString('en-IN')}
+              </span>
+            </div>
+          </Modal.Body>
+          <Modal.Footer className="border-0 pt-0 px-4 pb-4">
+            <Button variant="light" onClick={() => setShowAddModal(false)} className="px-4 py-2 rounded-3 fw-medium">
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" className="px-4 py-2 rounded-3 fw-medium shadow-sm">
+              Save Expense
             </Button>
           </Modal.Footer>
         </Form>
