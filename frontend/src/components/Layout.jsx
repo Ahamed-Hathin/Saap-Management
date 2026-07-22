@@ -92,8 +92,24 @@ const Layout = ({ children }) => {
           </Nav>
         </Col>
         <Col md={10} className="d-flex flex-column vh-100">
-          <Navbar className="glass-navbar px-4 py-3 d-md-none sticky-top">
-            <Navbar.Brand className="brand fw-bold">SAPP Creation</Navbar.Brand>
+          <Navbar className="glass-navbar px-4 py-3 d-md-none sticky-top d-flex justify-content-between align-items-center">
+            <Navbar.Brand className="brand fw-bold m-0">SAPP Creation</Navbar.Brand>
+            <div className="d-flex gap-3 align-items-center">
+              {user?.role === 'Admin' ? (
+                <>
+                  <NavLink to="/admin/tasks" className={({ isActive }) => `text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
+                    <ClipboardList size={22} />
+                  </NavLink>
+                  <NavLink to="/admin/expenses" className={({ isActive }) => `text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
+                    <Receipt size={22} />
+                  </NavLink>
+                </>
+              ) : (
+                <NavLink to="/employee/tasks" className={({ isActive }) => `text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
+                  <ClipboardList size={22} />
+                </NavLink>
+              )}
+            </div>
           </Navbar>
           <div className="p-3 p-md-5 flex-grow-1 overflow-auto fade-in pb-5" style={{ backgroundColor: 'var(--bg-color)', paddingBottom: '80px' }}>
             {children}
@@ -111,21 +127,9 @@ const Layout = ({ children }) => {
                   <ShoppingCart size={24} className="d-block mx-auto mb-1" />
                   <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Orders</span>
                 </NavLink>
-                <NavLink to="/admin/employees" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
-                  <Users size={24} className="d-block mx-auto mb-1" />
-                  <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Team</span>
-                </NavLink>
-                <NavLink to="/admin/tasks" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
-                  <ClipboardList size={24} className="d-block mx-auto mb-1" />
-                  <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Tasks</span>
-                </NavLink>
                 <NavLink to="/clients" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
                   <UserCheck size={24} className="d-block mx-auto mb-1" />
                   <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Clients</span>
-                </NavLink>
-                <NavLink to="/admin/expenses" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
-                  <Receipt size={24} className="d-block mx-auto mb-1" />
-                  <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Expenses</span>
                 </NavLink>
                 <NavLink to="/admin/settings" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
                   <Settings size={24} className="d-block mx-auto mb-1" />
@@ -137,16 +141,6 @@ const Layout = ({ children }) => {
                 <NavLink to="/employee/orders" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
                   <ShoppingCart size={24} className="d-block mx-auto mb-1" />
                   <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>My Orders</span>
-                </NavLink>
-                {employees.map(emp => (
-                  <NavLink key={emp._id} to={`/employee/user/${emp._id}`} state={{ employeeName: emp.name }} className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
-                    <Users size={24} className="d-block mx-auto mb-1" />
-                    <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>{emp.name}</span>
-                  </NavLink>
-                ))}
-                <NavLink to="/employee/tasks" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
-                  <ClipboardList size={24} className="d-block mx-auto mb-1" />
-                  <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Tasks</span>
                 </NavLink>
                 {user?.name?.toLowerCase() !== 'staff 2' && (
                   <NavLink to="/clients" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>

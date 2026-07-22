@@ -23,6 +23,8 @@ const Settings = () => {
     orderStatuses: []
   });
 
+  const [employees, setEmployees] = useState([]);
+
   const [newJobType, setNewJobType] = useState('');
   const [newPrintingCompany, setNewPrintingCompany] = useState('');
   const [newOrderStatus, setNewOrderStatus] = useState('');
@@ -45,9 +47,21 @@ const Settings = () => {
       
       if (user.role === 'Admin') {
         fetchSettings();
+      } else if (user.role === 'Employee') {
+        fetchEmployees();
       }
     }
   }, [user]);
+
+  const fetchEmployees = async () => {
+    try {
+      const res = await api.get('/users');
+      const otherEmployees = res.data.filter(emp => emp._id !== user._id && emp.role !== 'Admin');
+      setEmployees(otherEmployees);
+    } catch (error) {
+      console.error('Error fetching employees', error);
+    }
+  };
 
   const fetchSettings = async () => {
     try {
@@ -260,6 +274,39 @@ const Settings = () => {
         </div>
 
         <div className="col-12 col-md-6 mb-4">
+          <div className="d-block d-md-none mb-4">
+            <Card className="dashboard-card border-0">
+              <Card.Body className="p-4 p-md-5">
+                <div className="d-flex align-items-center mb-4 pb-3 border-bottom">
+                  <div className="bg-info bg-opacity-10 text-info p-3 rounded-circle me-3">
+                    <User size={24} />
+                  </div>
+                  <div>
+                    <h5 className="fw-bold mb-1">Team Members</h5>
+                    <p className="text-muted small mb-0">Access team dashboards</p>
+                  </div>
+                </div>
+                <div className="d-flex flex-wrap gap-2">
+                  {user?.role === 'Admin' ? (
+                    <Button variant="outline-primary" onClick={() => navigate('/admin/employees')} className="w-100 py-3 fw-bold rounded-3 shadow-sm d-flex align-items-center justify-content-center">
+                      <Users className="me-2" size={20} /> Manage Team
+                    </Button>
+                  ) : (
+                    employees.length > 0 ? (
+                      employees.map(emp => (
+                        <Button key={emp._id} variant="outline-primary" onClick={() => navigate(`/employee/user/${emp._id}`, { state: { employeeName: emp.name } })} className="w-100 py-3 fw-bold rounded-3 shadow-sm d-flex align-items-center justify-content-center mb-2">
+                          <Users className="me-2" size={20} /> {emp.name}
+                        </Button>
+                      ))
+                    ) : (
+                      <div className="text-muted text-center w-100">No other team members found</div>
+                    )
+                  )}
+                </div>
+              </Card.Body>
+            </Card>
+          </div>
+
           {user?.role === 'Admin' && (
             <Card className="dashboard-card border-0 mb-4">
               <Card.Body className="p-4 p-md-5">
