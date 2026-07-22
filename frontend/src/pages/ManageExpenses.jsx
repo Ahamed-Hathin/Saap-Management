@@ -272,9 +272,9 @@ const ManageExpenses = () => {
                     </span>
                   </td>
                   <td className="py-3 px-4">
-                    {expense.description && expense.description.length > 25 ? (
+                    {expense.description && expense.description.length > 15 ? (
                       <>
-                        {expense.description.substring(0, 25)}...
+                        {expense.description.substring(0, 15)}...
                         <span 
                           role="button" 
                           className="text-primary ms-1" 
