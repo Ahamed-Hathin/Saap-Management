@@ -221,6 +221,7 @@ const getDashboardStats = async (req, res) => {
      if (adv > 0) {
        if (order.paymentMethod === 'Discount Amount') {
          orderDiscount += adv;
+         paymentBreakdown['Discount Amount'] = (paymentBreakdown['Discount Amount'] || 0) + adv;
        } else {
          orderCollected += adv;
          const method = (order.paymentMethod && order.paymentMethod !== 'None') ? order.paymentMethod : 'Cash';
@@ -234,6 +235,7 @@ const getDashboardStats = async (req, res) => {
          if (bpAmt > 0) {
            if (bp.method === 'Discount Amount') {
              orderDiscount += bpAmt;
+             paymentBreakdown['Discount Amount'] = (paymentBreakdown['Discount Amount'] || 0) + bpAmt;
            } else {
              orderCollected += bpAmt;
              const method = (bp.method && bp.method !== 'None') ? bp.method : 'Cash';
