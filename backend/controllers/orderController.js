@@ -146,34 +146,34 @@ const getDashboardStats = async (req, res) => {
    if (filter === 'today') {
      const startOfDay = new Date(now.setHours(0, 0, 0, 0));
      const endOfDay = new Date(new Date().setHours(23, 59, 59, 999));
-     dateFilter = { createdAt: { $gte: startOfDay, $lte: endOfDay } };
+     dateFilter = { updatedAt: { $gte: startOfDay, $lte: endOfDay } };
    } else if (filter === 'yesterday') {
      const yesterday = new Date(now);
      yesterday.setDate(yesterday.getDate() - 1);
      const startOfYesterday = new Date(yesterday.setHours(0, 0, 0, 0));
      const endOfYesterday = new Date(new Date(yesterday).setHours(23, 59, 59, 999));
-     dateFilter = { createdAt: { $gte: startOfYesterday, $lte: endOfYesterday } };
+     dateFilter = { updatedAt: { $gte: startOfYesterday, $lte: endOfYesterday } };
    } else if (filter === 'weekly') {
      const startOfWeek = new Date(now);
      startOfWeek.setDate(now.getDate() - 7);
      startOfWeek.setHours(0, 0, 0, 0);
-     dateFilter = { createdAt: { $gte: startOfWeek } };
+     dateFilter = { updatedAt: { $gte: startOfWeek } };
    } else if (filter === 'monthly') {
      const startOfMonth = new Date(now);
      startOfMonth.setDate(now.getDate() - 30);
      startOfMonth.setHours(0, 0, 0, 0);
-     dateFilter = { createdAt: { $gte: startOfMonth } };
+     dateFilter = { updatedAt: { $gte: startOfMonth } };
    } else if (filter === 'custom' && startDate && endDate) {
      const start = new Date(startDate);
      start.setHours(0, 0, 0, 0);
      const end = new Date(endDate);
      end.setHours(23, 59, 59, 999);
-     dateFilter = { createdAt: { $gte: start, $lte: end } };
+     dateFilter = { updatedAt: { $gte: start, $lte: end } };
    }
 
    let expenseFilter = {};
-   if (dateFilter.createdAt) {
-     expenseFilter.date = dateFilter.createdAt;
+   if (dateFilter.updatedAt) {
+     expenseFilter.date = dateFilter.updatedAt;
    }
 
    let baseQuery = { ...dateFilter };
@@ -182,7 +182,7 @@ const getDashboardStats = async (req, res) => {
    }
 
    const totalOrders = await Order.countDocuments(baseQuery);
-   const pendingOrders = await Order.countDocuments({ ...baseQuery, status: { $ne: 'Delivered' } });
+   const pendingOrders = await Order.countDocuments({ ...baseQuery, status: { $nin: ['Delivered', 'Ready To Dispatch'] } });
    const readyToDispatch = await Order.countDocuments({ ...baseQuery, status: 'Ready To Dispatch' });
    const pendingPayments = await Order.countDocuments({ 
      ...baseQuery, 
@@ -204,6 +204,7 @@ const getDashboardStats = async (req, res) => {
    let paymentBreakdown = {
      'GPay': 0,
      'B-Gpay': 0,
+     'NEFT': 0,
      'KVB': 0,
      'Dtdc Wallet': 0,
      'Cash': 0,

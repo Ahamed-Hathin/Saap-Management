@@ -484,6 +484,7 @@ const EmployeeDashboard = () => {
                           >
                             <option value="GPay">GPay</option>
 <option value="B-Gpay">B-Gpay</option>
+<option value="NEFT">NEFT</option>
 <option value="KVB">KVB</option>
 <option value="Dtdc Wallet">Dtdc Wallet</option>
 <option value="Cash">Cash</option>
@@ -565,6 +566,7 @@ const EmployeeDashboard = () => {
                           >
                             <option value="GPay">GPay</option>
 <option value="B-Gpay">B-Gpay</option>
+<option value="NEFT">NEFT</option>
 <option value="KVB">KVB</option>
 <option value="Dtdc Wallet">Dtdc Wallet</option>
 <option value="Cash">Cash</option>
@@ -699,6 +701,7 @@ const EmployeeDashboard = () => {
                     <Form.Select value={formData.paymentMethod} onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })} className="bg-light">
                       <option value="GPay">GPay</option>
                       <option value="B-Gpay">B-Gpay</option>
+<option value="NEFT">NEFT</option>
                       <option value="KVB">KVB</option>
                       <option value="Dtdc Wallet">Dtdc Wallet</option>
                       <option value="Cash">Cash</option>
@@ -743,6 +746,7 @@ const EmployeeDashboard = () => {
                 <option value="">Select Payment Method</option>
                 <option value="GPay">GPay</option>
                 <option value="B-Gpay">B-Gpay</option>
+<option value="NEFT">NEFT</option>
                 <option value="KVB">KVB</option>
                 <option value="Dtdc Wallet">Dtdc Wallet</option>
                 <option value="Cash">Cash</option>
@@ -778,6 +782,7 @@ const EmployeeDashboard = () => {
                   <option value="">Method</option>
                   <option value="GPay">GPay</option>
                   <option value="B-Gpay">B-Gpay</option>
+<option value="NEFT">NEFT</option>
                   <option value="KVB">KVB</option>
                   <option value="Dtdc Wallet">Dtdc Wallet</option>
                   <option value="Cash">Cash</option>

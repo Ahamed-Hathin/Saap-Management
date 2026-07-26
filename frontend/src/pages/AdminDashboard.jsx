@@ -95,19 +95,19 @@ const AdminDashboard = () => {
         </div>
         <div className="d-flex flex-column flex-sm-row gap-3 align-items-sm-center">
           <div className="d-flex gap-2">
-            <button onClick={() => navigate('/admin/orders')} className="btn btn-primary d-flex align-items-center gap-2 border-0 shadow-sm" style={{ fontWeight: 600 }}>
+            <button onClick={() => navigate('/admin/orders')} className="btn btn-primary d-flex align-items-center justify-content-center gap-2 border-0 shadow-sm" style={{ fontWeight: 600, height: '42px', padding: '0 16px' }}>
               <Plus size={18} /> <span className="d-none d-sm-inline">New Order</span>
             </button>
-            <button onClick={() => navigate('/admin/tasks')} className="btn btn-light d-flex align-items-center gap-2 border shadow-sm" style={{ fontWeight: 600, color: '#4f46e5' }}>
+            <button onClick={() => navigate('/admin/tasks')} className="btn btn-light d-flex align-items-center justify-content-center gap-2 border shadow-sm" style={{ fontWeight: 600, color: '#4f46e5', height: '42px', padding: '0 16px' }}>
               <CheckCircle size={18} /> <span className="d-none d-sm-inline">Tasks</span>
             </button>
           </div>
-          <div className="d-flex flex-wrap gap-2 align-items-center bg-white rounded shadow-sm border p-1">
+          <div className="d-flex flex-wrap gap-2 align-items-center bg-white rounded shadow-sm border px-2">
             <Form.Select 
               value={filter} 
               onChange={(e) => setFilter(e.target.value)}
               className="border-0 shadow-none bg-transparent font-weight-medium text-dark"
-              style={{ width: 'auto', minWidth: '140px', cursor: 'pointer' }}
+              style={{ width: 'auto', minWidth: '140px', cursor: 'pointer', height: '42px' }}
             >
               <option value="all">All Time</option>
               <option value="today">Today</option>

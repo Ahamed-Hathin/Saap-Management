@@ -40,7 +40,7 @@ const orderSchema = mongoose.Schema(
     balancePayments: [
       {
         amount: { type: Number, required: true },
-        method: { type: String, enum: ['None', 'GPay', 'B-Gpay', 'KVB', 'Dtdc Wallet', 'Cash', 'Discount Amount'], default: 'None' },
+        method: { type: String, enum: ['None', 'GPay', 'B-Gpay', 'KVB', 'Dtdc Wallet', 'Cash', 'Discount Amount', 'NEFT'], default: 'None' },
         date: { type: Date, default: Date.now }
       }
     ],
@@ -65,7 +65,7 @@ const orderSchema = mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ['None', 'GPay', 'B-Gpay', 'KVB', 'Dtdc Wallet', 'Cash', 'Discount Amount'],
+      enum: ['None', 'GPay', 'B-Gpay', 'KVB', 'Dtdc Wallet', 'Cash', 'Discount Amount', 'NEFT'],
       default: 'None',
     },
     printingCompany: {

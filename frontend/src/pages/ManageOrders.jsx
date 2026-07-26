@@ -967,6 +967,7 @@ const ManageOrders = () => {
                       <option value="">Select Payment Method</option>
                       <option value="GPay">GPay</option>
                       <option value="B-Gpay">B-Gpay</option>
+<option value="NEFT">NEFT</option>
                       <option value="KVB">KVB</option>
                       <option value="Dtdc Wallet">Dtdc Wallet</option>
                       <option value="Cash">Cash</option>
@@ -1013,6 +1014,7 @@ const ManageOrders = () => {
                 <option value="">Select Payment Method</option>
                 <option value="GPay">GPay</option>
                 <option value="B-Gpay">B-Gpay</option>
+<option value="NEFT">NEFT</option>
                 <option value="KVB">KVB</option>
                 <option value="Dtdc Wallet">Dtdc Wallet</option>
                 <option value="Cash">Cash</option>
@@ -1048,6 +1050,7 @@ const ManageOrders = () => {
                   <option value="">Method</option>
                   <option value="GPay">GPay</option>
                   <option value="B-Gpay">B-Gpay</option>
+<option value="NEFT">NEFT</option>
                   <option value="KVB">KVB</option>
                   <option value="Dtdc Wallet">Dtdc Wallet</option>
                   <option value="Cash">Cash</option>
