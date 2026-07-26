@@ -142,8 +142,8 @@ const Tasks = () => {
           <h2 className="mb-1 fw-bold">{user?.role === 'Admin' ? 'All Tasks' : 'My Tasks'}</h2>
           <p className="text-muted mb-0">Manage and track tasks efficiently.</p>
         </div>
-        {user?.role === 'Admin' && (
-          <div className="d-flex gap-3 align-items-center justify-content-between w-100 flex-wrap">
+        <div className="d-flex gap-3 align-items-center justify-content-between w-100 flex-wrap">
+          {user?.role === 'Admin' && (
             <div className="d-flex gap-2 align-items-center flex-wrap pb-1" style={{ flex: 1 }}>
               <Button
                 variant={selectedEmployeeId === '' ? 'primary' : 'outline-primary'}
@@ -165,11 +165,11 @@ const Tasks = () => {
                 </Button>
               ))}
             </div>
-            <Button variant="primary" onClick={() => setShowModal(true)} className="d-flex align-items-center shadow-sm text-nowrap px-4 py-2">
-              <Plus size={18} className="me-2" /> Assign New Task
-            </Button>
-          </div>
-        )}
+          )}
+          <Button variant="primary" onClick={() => setShowModal(true)} className={`d-flex align-items-center shadow-sm text-nowrap px-4 py-2 ${user?.role !== 'Admin' ? 'ms-auto' : ''}`}>
+            <Plus size={18} className="me-2" /> {user?.role === 'Admin' ? 'Assign New Task' : 'Add Task'}
+          </Button>
+        </div>
       </div>
 
       {user?.role === 'Admin' ? (
@@ -215,7 +215,7 @@ const Tasks = () => {
 
       <Modal show={showModal} onHide={() => setShowModal(false)} centered size="lg">
         <Modal.Header closeButton className="border-0 pb-0">
-          <Modal.Title className="fw-bold">Assign New Task</Modal.Title>
+          <Modal.Title className="fw-bold">{user?.role === 'Admin' ? 'Assign New Task' : 'Add New Task'}</Modal.Title>
         </Modal.Header>
         <Modal.Body className="pt-3">
           <Form onSubmit={handleSubmit}>
@@ -242,21 +242,23 @@ const Tasks = () => {
             </Form.Group>
 
             <div className="row">
-              <div className="col-md-12 mb-3">
-                <Form.Group>
-                  <Form.Label className="fw-medium">Assign To *</Form.Label>
-                  <Form.Select 
-                    value={formData.assignedTo} 
-                    onChange={(e) => setFormData({...formData, assignedTo: e.target.value})} 
-                    required
-                  >
-                    <option value="">Select Employee</option>
-                    {employees.map(emp => (
-                      <option key={emp._id} value={emp._id}>{emp.name}</option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-              </div>
+              {user?.role === 'Admin' && (
+                <div className="col-md-12 mb-3">
+                  <Form.Group>
+                    <Form.Label className="fw-medium">Assign To *</Form.Label>
+                    <Form.Select 
+                      value={formData.assignedTo} 
+                      onChange={(e) => setFormData({...formData, assignedTo: e.target.value})} 
+                      required
+                    >
+                      <option value="">Select Employee</option>
+                      {employees.map(emp => (
+                        <option key={emp._id} value={emp._id}>{emp.name}</option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </div>
+              )}
               <div className="col-md-12 mb-3">
                 <Form.Group controlId="formBasicCheckbox">
                   <Form.Check 
@@ -273,7 +275,7 @@ const Tasks = () => {
             <div className="d-flex justify-content-end mt-4">
               <Button variant="light" className="me-2 px-4" onClick={() => setShowModal(false)}>Cancel</Button>
               <Button variant="primary" type="submit" className="px-4" disabled={loading}>
-                {loading ? 'Assigning...' : 'Assign Task'}
+                {loading ? (user?.role === 'Admin' ? 'Assigning...' : 'Adding...') : (user?.role === 'Admin' ? 'Assign Task' : 'Add Task')}
               </Button>
             </div>
           </Form>

@@ -468,10 +468,12 @@ const ManageOrders = () => {
     if (start) {
       displayedOrders = displayedOrders.filter(o => {
         const orderCreatedDate = new Date(o.createdAt);
+        const orderUpdatedDate = new Date(o.updatedAt || o.createdAt);
         if (end) {
-          return orderCreatedDate >= start && orderCreatedDate <= end;
+          return (orderCreatedDate >= start && orderCreatedDate <= end) || 
+                 (orderUpdatedDate >= start && orderUpdatedDate <= end);
         }
-        return orderCreatedDate >= start;
+        return orderCreatedDate >= start || orderUpdatedDate >= start;
       });
     }
   }

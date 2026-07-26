@@ -24,20 +24,27 @@ const getTasks = async (req, res) => {
 // @access  Private (Admin only)
 const createTask = async (req, res) => {
   try {
-    if (req.user.role !== 'Admin') {
-      return res.status(403).json({ message: 'Not authorized to create tasks' });
-    }
-
     const { title, description, assignedTo, isImportant } = req.body;
     
-    if (!title || !assignedTo) {
-      return res.status(400).json({ message: 'Title and Assigned To are required' });
+    let targetAssignee = assignedTo;
+    
+    // If not Admin, they can only assign tasks to themselves
+    if (req.user.role !== 'Admin') {
+      targetAssignee = req.user._id;
+    } else {
+      if (!targetAssignee) {
+        return res.status(400).json({ message: 'Assigned To is required for Admins' });
+      }
+    }
+    
+    if (!title) {
+      return res.status(400).json({ message: 'Title is required' });
     }
 
     const task = new Task({
       title,
       description,
-      assignedTo,
+      assignedTo: targetAssignee,
       isImportant: isImportant || false,
       assignedBy: req.user._id
     });

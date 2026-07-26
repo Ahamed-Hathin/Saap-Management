@@ -27,6 +27,8 @@ const ManageExpenses = () => {
   const [viewPaymentsExpense, setViewPaymentsExpense] = useState(null);
   const [showDescModal, setShowDescModal] = useState(false);
   const [descModalContent, setDescModalContent] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('pending');
 
   const fetchExpenses = async () => {
     try {
@@ -181,6 +183,24 @@ const ManageExpenses = () => {
     }
   }
 
+  if (searchQuery.trim()) {
+    const lowerQuery = searchQuery.toLowerCase();
+    displayedExpenses = displayedExpenses.filter(e => 
+      e.name?.toLowerCase().includes(lowerQuery) || 
+      e.description?.toLowerCase().includes(lowerQuery)
+    );
+  }
+
+  if (statusFilter !== 'all') {
+    displayedExpenses = displayedExpenses.filter(e => {
+      const paid = e.balancePayments?.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0) || 0;
+      const balance = e.amount - paid;
+      if (statusFilter === 'pending') return balance > 0.01;
+      if (statusFilter === 'complete') return balance <= 0.01;
+      return true;
+    });
+  }
+
   const totalAmount = displayedExpenses.reduce((acc, curr) => acc + curr.amount, 0);
   
   const currentTotalPaid = formData.balancePayments.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
@@ -192,7 +212,33 @@ const ManageExpenses = () => {
     <Layout>
       <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <h2 className="fw-bold mb-0">Manage Expenses</h2>
-        <div className="d-flex gap-2 align-items-center flex-wrap">
+        <div className="d-flex gap-3 align-items-center flex-wrap">
+          <div className="bg-light p-1 rounded-3 border d-flex gap-1 align-items-center" style={{ height: '42px' }}>
+            <Button
+              variant={statusFilter === 'pending' ? 'white' : 'transparent'}
+              className={`border-0 rounded-2 ${statusFilter === 'pending' ? 'shadow-sm text-warning fw-bold bg-white' : 'text-secondary hover-bg-light'}`}
+              onClick={() => setStatusFilter('pending')}
+              style={{ height: '100%', minWidth: '100px', transition: 'all 0.2s' }}
+            >
+              Pending
+            </Button>
+            <Button
+              variant={statusFilter === 'complete' ? 'white' : 'transparent'}
+              className={`border-0 rounded-2 ${statusFilter === 'complete' ? 'shadow-sm text-success fw-bold bg-white' : 'text-secondary hover-bg-light'}`}
+              onClick={() => setStatusFilter('complete')}
+              style={{ height: '100%', minWidth: '100px', transition: 'all 0.2s' }}
+            >
+              Complete
+            </Button>
+          </div>
+          <Form.Control
+            type="text"
+            placeholder="Search expenses..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="rounded-3 shadow-sm border"
+            style={{ width: '250px', height: '42px' }}
+          />
           <div className="d-flex gap-2 align-items-center bg-white rounded-3 shadow-sm border px-2">
             <Form.Select 
               style={{ width: 'auto', minWidth: '140px', cursor: 'pointer', height: '42px' }} 
