@@ -143,7 +143,9 @@ const getDashboardStats = async (req, res) => {
    let dateFilter = {};
    const now = new Date();
 
-   if (filter === 'today') {
+   if (startDate && endDate && (filter === 'custom' || filter === 'today' || filter === 'yesterday' || filter === 'weekly' || filter === 'monthly')) {
+     dateFilter = { updatedAt: { $gte: new Date(startDate), $lte: new Date(endDate) } };
+   } else if (filter === 'today') {
      const startOfDay = new Date(now.setHours(0, 0, 0, 0));
      const endOfDay = new Date(new Date().setHours(23, 59, 59, 999));
      dateFilter = { updatedAt: { $gte: startOfDay, $lte: endOfDay } };
@@ -163,12 +165,6 @@ const getDashboardStats = async (req, res) => {
      startOfMonth.setDate(now.getDate() - 30);
      startOfMonth.setHours(0, 0, 0, 0);
      dateFilter = { updatedAt: { $gte: startOfMonth } };
-   } else if (filter === 'custom' && startDate && endDate) {
-     const start = new Date(startDate);
-     start.setHours(0, 0, 0, 0);
-     const end = new Date(endDate);
-     end.setHours(23, 59, 59, 999);
-     dateFilter = { updatedAt: { $gte: start, $lte: end } };
    }
 
    let expenseFilter = {};

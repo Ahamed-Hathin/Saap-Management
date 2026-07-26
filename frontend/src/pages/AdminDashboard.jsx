@@ -36,9 +36,36 @@ const AdminDashboard = () => {
   const fetchStats = async () => {
     try {
       let query = `?filter=${filter}`;
-      if (filter === 'custom') {
+      let start, end;
+      const now = new Date();
+      if (filter === 'today') {
+        start = new Date(now.setHours(0, 0, 0, 0));
+        end = new Date(new Date().setHours(23, 59, 59, 999));
+      } else if (filter === 'yesterday') {
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        start = new Date(yesterday.setHours(0, 0, 0, 0));
+        end = new Date(new Date(yesterday).setHours(23, 59, 59, 999));
+      } else if (filter === 'weekly') {
+        start = new Date(now);
+        start.setDate(now.getDate() - 7);
+        start.setHours(0, 0, 0, 0);
+        end = new Date();
+      } else if (filter === 'monthly') {
+        start = new Date(now);
+        start.setDate(now.getDate() - 30);
+        start.setHours(0, 0, 0, 0);
+        end = new Date();
+      } else if (filter === 'custom') {
         if (!customStartDate || !customEndDate) return;
-        query += `&startDate=${customStartDate}&endDate=${customEndDate}`;
+        start = new Date(customStartDate);
+        start.setHours(0, 0, 0, 0);
+        end = new Date(customEndDate);
+        end.setHours(23, 59, 59, 999);
+      }
+      
+      if (start && end) {
+        query += `&startDate=${start.toISOString()}&endDate=${end.toISOString()}`;
       }
       const { data } = await api.get(`/orders/dashboard-stats${query}`);
       setStats({
@@ -384,6 +411,8 @@ const AdminDashboard = () => {
                         outerRadius={90}
                         paddingAngle={5}
                         dataKey="value"
+                        onClick={(entry) => navigate(`/admin/payment-method/${entry.name}`)}
+                        style={{ cursor: 'pointer' }}
                       >
                         {Object.entries(stats.paymentBreakdown || {})
                           .filter(([_, val]) => val > 0)
@@ -422,8 +451,13 @@ const AdminDashboard = () => {
             </thead>
             <tbody>
               {Object.entries(stats.paymentBreakdown || {}).map(([method, amount]) => (
-                <tr key={method}>
-                  <td className="fw-medium">{method}</td>
+                <tr 
+                  key={method}
+                  onClick={() => { setShowIncomeModal(false); navigate(`/admin/payment-method/${method}`); }}
+                  style={{ cursor: 'pointer' }}
+                  className="table-active-hover"
+                >
+                  <td className="fw-medium text-primary" style={{ textDecoration: 'underline' }}>{method}</td>
                   <td className="text-end text-success fw-medium">₹{amount.toLocaleString()}</td>
                 </tr>
               ))}
