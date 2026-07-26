@@ -235,4 +235,6 @@ input[type=number] {
   -webkit-text-fill-color: transparent;
 }
 
-
+.placeholder-opacity-50::placeholder {
+  opacity: 0.4 !important;
+}

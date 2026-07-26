@@ -15,6 +15,7 @@ import ClientOrders from './pages/ClientOrders';
 import ManageExpenses from './pages/ManageExpenses';
 import ExpenseHistory from './pages/ExpenseHistory';
 import PaymentMethodDetails from './pages/PaymentMethodDetails';
+import ManageStack from './pages/ManageStack';
 const PrivateRoute = ({ children, role, excludeUser }) => {
   const { user, loading, logout } = useContext(AuthContext);
 
@@ -69,6 +70,7 @@ function App() {
         <Route path="/admin/tasks" element={<PrivateRoute role="Admin"><Tasks /></PrivateRoute>} />
         <Route path="/admin/expenses" element={<PrivateRoute role="Admin"><ManageExpenses /></PrivateRoute>} />
         <Route path="/admin/expenses/history/:name" element={<PrivateRoute role="Admin"><ExpenseHistory /></PrivateRoute>} />
+        <Route path="/admin/stack" element={<PrivateRoute role="Admin"><ManageStack /></PrivateRoute>} />
         <Route path="/admin/settings" element={<PrivateRoute role="Admin"><Settings /></PrivateRoute>} />
 
         {/* Employee Routes */}

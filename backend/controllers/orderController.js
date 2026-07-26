@@ -169,7 +169,7 @@ const getDashboardStats = async (req, res) => {
 
    let expenseFilter = {};
    if (dateFilter.updatedAt) {
-     expenseFilter.date = dateFilter.updatedAt;
+     expenseFilter.updatedAt = dateFilter.updatedAt;
    }
 
    let baseQuery = { ...dateFilter };
@@ -272,8 +272,41 @@ const getDashboardStats = async (req, res) => {
      .limit(5)
      .populate('assignedEmployee', 'name');
 
-   const expenses = await Expense.find(expenseFilter, 'amount');
-   const totalExpense = expenses.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+   const expenses = await Expense.find(expenseFilter);
+   let totalExpense = 0;
+   
+   const start = dateFilter.updatedAt?.$gte;
+   const end = dateFilter.updatedAt?.$lte;
+
+   expenses.forEach(expense => {
+     let expenseDate = new Date(expense.createdAt || expense.date);
+     let isMainInFilter = true;
+     if (start && end) {
+       isMainInFilter = expenseDate >= start && expenseDate <= end;
+     } else if (start) {
+       isMainInFilter = expenseDate >= start;
+     }
+
+     if (isMainInFilter) {
+       totalExpense += (expense.amount || 0);
+     }
+
+     if (expense.balancePayments && Array.isArray(expense.balancePayments)) {
+       expense.balancePayments.forEach(bp => {
+         let bpDate = new Date(bp.date || expense.updatedAt);
+         let isBpInFilter = true;
+         if (start && end) {
+           isBpInFilter = bpDate >= start && bpDate <= end;
+         } else if (start) {
+           isBpInFilter = bpDate >= start;
+         }
+         
+         if (isBpInFilter) {
+           totalExpense += (bp.amount || 0);
+         }
+       });
+     }
+   });
 
    res.json({ 
      totalOrders, 

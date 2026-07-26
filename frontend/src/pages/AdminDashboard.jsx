@@ -4,7 +4,7 @@ import Layout from '../components/Layout';
 import { Row, Col, Card, Form, ProgressBar, Table, Badge, Modal } from 'react-bootstrap';
 import api from '../services/api';
 import { ShoppingBag, CheckCircle, Clock, IndianRupee, Package, TrendingUp, DollarSign, Activity, FileText, Plus } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend, LabelList } from 'recharts';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -102,13 +102,39 @@ const AdminDashboard = () => {
         params.push(`endDate=${customEndDate}`);
       }
     }
-    return params.length > 0 ? `${url}?${params.join('&')}` : url;
+    if (params.length > 0) {
+      url += '?' + params.join('&');
+    }
+    return url;
+  };
+
+  const buildPaymentUrl = (method) => {
+    let url = `/admin/payment-method/${encodeURIComponent(method)}`;
+    let params = [];
+    if (filter !== 'all') {
+      params.push(`dateFilter=${filter}`);
+      if (filter === 'custom' && customStartDate && customEndDate) {
+        params.push(`startDate=${customStartDate}`);
+        params.push(`endDate=${customEndDate}`);
+      }
+    }
+    if (params.length > 0) {
+      url += '?' + params.join('&');
+    }
+    return url;
   };
 
   const getPercentage = (value) => {
     if (stats.totalOrders === 0) return 0;
     return Math.round((value / stats.totalOrders) * 100);
   };
+
+  const statusChartData = [
+    { name: 'Pending Order', value: stats.pendingOrders || 0, fill: '#d97706' },
+    { name: 'Ready to Dispatch', value: stats.readyToDispatch || 0, fill: '#0891b2' },
+    { name: 'Payment Pending', value: stats.pendingPayments || 0, fill: '#dc2626' },
+    { name: 'Delivered', value: stats.deliveredOrders || 0, fill: '#16a34a' }
+  ];
 
   return (
     <Layout>
@@ -294,33 +320,29 @@ const AdminDashboard = () => {
                 <div className="d-flex justify-content-between align-items-center mb-4">
                   <h5 className="fw-bold text-dark mb-0 d-flex align-items-center">
                     <Activity size={20} className="me-2 text-primary" />
-                    Revenue & Orders Overview
+                    Order Status Overview
                   </h5>
                 </div>
                 <div style={{ width: '100%', height: '320px' }}>
                   <ResponsiveContainer>
-                    <AreaChart data={stats.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
-                        </linearGradient>
-                        <linearGradient id="colorOrders" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 12 }} tickLine={false} axisLine={false} tickMargin={10} />
-                      <YAxis yAxisId="left" tick={{ fill: '#64748b', fontSize: 12 }} tickLine={false} axisLine={false} tickFormatter={(val) => `₹${val}`} />
-                      <YAxis yAxisId="right" orientation="right" tick={{ fill: '#64748b', fontSize: 12 }} tickLine={false} axisLine={false} />
+                    <BarChart data={statusChartData} margin={{ top: 25, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
+                      <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 13, fontWeight: 500 }} tickLine={false} axisLine={false} tickMargin={12} />
+                      <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} tickLine={false} axisLine={false} />
                       <Tooltip 
-                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} 
-                        itemStyle={{ fontWeight: 600 }}
+                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }} 
+                        itemStyle={{ fontWeight: 600, color: '#0f172a' }}
+                        cursor={{fill: '#f1f5f9'}}
                       />
-                      <Area yAxisId="left" type="monotone" dataKey="revenue" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" name="Revenue" />
-                      <Area yAxisId="right" type="monotone" dataKey="orders" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorOrders)" name="Orders" />
-                    </AreaChart>
+                      <Bar dataKey="value" radius={[6, 6, 6, 6]} barSize={55} animationDuration={1500}>
+                        <LabelList dataKey="value" position="top" fill="#475569" fontSize={14} fontWeight={600} offset={10} />
+                        {
+                          statusChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))
+                        }
+                      </Bar>
+                    </BarChart>
                   </ResponsiveContainer>
                 </div>
               </Card.Body>
@@ -411,7 +433,7 @@ const AdminDashboard = () => {
                         outerRadius={90}
                         paddingAngle={5}
                         dataKey="value"
-                        onClick={(entry) => navigate(`/admin/payment-method/${entry.name}`)}
+                        onClick={(entry) => navigate(buildPaymentUrl(entry.name))}
                         style={{ cursor: 'pointer' }}
                       >
                         {Object.entries(stats.paymentBreakdown || {})
@@ -453,7 +475,7 @@ const AdminDashboard = () => {
               {Object.entries(stats.paymentBreakdown || {}).map(([method, amount]) => (
                 <tr 
                   key={method}
-                  onClick={() => { setShowIncomeModal(false); navigate(`/admin/payment-method/${method}`); }}
+                  onClick={() => { setShowIncomeModal(false); navigate(buildPaymentUrl(method)); }}
                   style={{ cursor: 'pointer' }}
                   className="table-active-hover"
                 >

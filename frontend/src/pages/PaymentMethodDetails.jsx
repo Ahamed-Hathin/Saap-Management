@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { Card, Table, Spinner, Button, Form } from 'react-bootstrap';
 import { ArrowLeft, Eye, Calendar } from 'lucide-react';
@@ -11,9 +11,12 @@ const PaymentMethodDetails = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
-  const [customStartDate, setCustomStartDate] = useState('');
-  const [customEndDate, setCustomEndDate] = useState('');
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+
+  const [filter, setFilter] = useState(searchParams.get('dateFilter') || 'all');
+  const [customStartDate, setCustomStartDate] = useState(searchParams.get('startDate') || '');
+  const [customEndDate, setCustomEndDate] = useState(searchParams.get('endDate') || '');
 
   useEffect(() => {
     fetchOrders();
@@ -39,29 +42,29 @@ const PaymentMethodDetails = () => {
       const now = new Date();
       if (filter === 'today') {
         const startOfToday = new Date(now.setHours(0, 0, 0, 0));
-        filteredData = filteredData.filter(o => new Date(o.createdAt) >= startOfToday);
+        filteredData = filteredData.filter(o => new Date(o.updatedAt) >= startOfToday);
       } else if (filter === 'yesterday') {
         const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
         const start = new Date(yesterday.setHours(0, 0, 0, 0));
         const end = new Date(new Date(yesterday).setHours(23, 59, 59, 999));
-        filteredData = filteredData.filter(o => new Date(o.createdAt) >= start && new Date(o.createdAt) <= end);
+        filteredData = filteredData.filter(o => new Date(o.updatedAt) >= start && new Date(o.updatedAt) <= end);
       } else if (filter === 'weekly') {
         const start = new Date(now);
         start.setDate(now.getDate() - 7);
         start.setHours(0, 0, 0, 0);
-        filteredData = filteredData.filter(o => new Date(o.createdAt) >= start);
+        filteredData = filteredData.filter(o => new Date(o.updatedAt) >= start);
       } else if (filter === 'monthly') {
         const start = new Date(now);
         start.setDate(now.getDate() - 30);
         start.setHours(0, 0, 0, 0);
-        filteredData = filteredData.filter(o => new Date(o.createdAt) >= start);
+        filteredData = filteredData.filter(o => new Date(o.updatedAt) >= start);
       } else if (filter === 'custom' && customStartDate && customEndDate) {
         const start = new Date(customStartDate);
         start.setHours(0, 0, 0, 0);
         const end = new Date(customEndDate);
         end.setHours(23, 59, 59, 999);
-        filteredData = filteredData.filter(o => new Date(o.createdAt) >= start && new Date(o.createdAt) <= end);
+        filteredData = filteredData.filter(o => new Date(o.updatedAt) >= start && new Date(o.updatedAt) <= end);
       }
 
       const relevantOrders = filteredData.map(order => {
@@ -105,32 +108,7 @@ const PaymentMethodDetails = () => {
             <p className="text-muted mb-0">Total amount received: ₹{totalAmount.toLocaleString()}</p>
           </div>
         </div>
-        
-        <div className="d-flex align-items-center gap-2">
-          <div className="d-flex align-items-center bg-white border rounded p-1 shadow-sm">
-            <Calendar size={18} className="text-muted ms-2 me-1" />
-            <Form.Select 
-              value={filter} 
-              onChange={(e) => setFilter(e.target.value)} 
-              className="border-0 shadow-none fw-medium text-dark"
-              style={{ minWidth: '130px', cursor: 'pointer', backgroundColor: 'transparent' }}
-            >
-              <option value="all">All Time</option>
-              <option value="today">Today</option>
-              <option value="yesterday">Yesterday</option>
-              <option value="weekly">Last 7 Days</option>
-              <option value="monthly">Last 30 Days</option>
-              <option value="custom">Custom Range</option>
-            </Form.Select>
-          </div>
-          {filter === 'custom' && (
-            <div className="d-flex gap-2 align-items-center">
-              <Form.Control type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} />
-              <span className="text-muted fw-medium">to</span>
-              <Form.Control type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} />
-            </div>
-          )}
-        </div>
+
       </div>
 
       <Card className="border-0 shadow-sm rounded-4 overflow-hidden">

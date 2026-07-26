@@ -175,10 +175,26 @@ const ManageExpenses = () => {
     if (start) {
       displayedExpenses = displayedExpenses.filter(e => {
         const expenseDate = new Date(e.date || e.createdAt);
+        let isMainInFilter = true;
         if (end) {
-          return expenseDate >= start && expenseDate <= end;
+          isMainInFilter = expenseDate >= start && expenseDate <= end;
+        } else {
+          isMainInFilter = expenseDate >= start;
         }
-        return expenseDate >= start;
+
+        if (isMainInFilter) return true;
+
+        if (e.balancePayments && Array.isArray(e.balancePayments)) {
+          return e.balancePayments.some(bp => {
+            const bpDate = new Date(bp.date || e.updatedAt);
+            if (end) {
+              return bpDate >= start && bpDate <= end;
+            }
+            return bpDate >= start;
+          });
+        }
+        
+        return false;
       });
     }
   }
