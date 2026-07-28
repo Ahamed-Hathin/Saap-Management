@@ -18,11 +18,13 @@ const AdminDashboard = () => {
     collectedRevenue: 0,
     pendingRevenue: 0,
     paymentBreakdown: {},
+    expenseBreakdown: {},
     chartData: [],
     recentOrders: [],
     totalExpense: 0
   });
   const [showIncomeModal, setShowIncomeModal] = useState(false);
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [filter, setFilter] = useState(localStorage.getItem('globalDateFilter') || 'all');
   const [customStartDate, setCustomStartDate] = useState(localStorage.getItem('globalStartDate') || '');
   const [customEndDate, setCustomEndDate] = useState(localStorage.getItem('globalEndDate') || '');
@@ -78,6 +80,7 @@ const AdminDashboard = () => {
         collectedRevenue: data.collectedRevenue || 0,
         pendingRevenue: data.pendingRevenue || 0,
         paymentBreakdown: data.paymentBreakdown || {},
+        expenseBreakdown: data.expenseBreakdown || {},
         chartData: data.chartData || [],
         recentOrders: data.recentOrders || [],
         totalExpense: data.totalExpense || 0
@@ -110,6 +113,22 @@ const AdminDashboard = () => {
 
   const buildPaymentUrl = (method) => {
     let url = `/admin/payment-method/${encodeURIComponent(method)}`;
+    let params = [];
+    if (filter !== 'all') {
+      params.push(`dateFilter=${filter}`);
+      if (filter === 'custom' && customStartDate && customEndDate) {
+        params.push(`startDate=${customStartDate}`);
+        params.push(`endDate=${customEndDate}`);
+      }
+    }
+    if (params.length > 0) {
+      url += '?' + params.join('&');
+    }
+    return url;
+  };
+
+  const buildExpenseUrl = () => {
+    let url = `/admin/expenses`;
     let params = [];
     if (filter !== 'all') {
       params.push(`dateFilter=${filter}`);
@@ -300,7 +319,7 @@ const AdminDashboard = () => {
             </Card>
 
             {/* Total Expense */}
-            <Card className="border shadow-sm rounded-4 border-light bg-white flex-grow-1" style={{ cursor: 'pointer' }} onClick={() => navigate('/admin/expenses')}>
+            <Card className="border shadow-sm rounded-4 border-light bg-white flex-grow-1" style={{ cursor: 'pointer' }} onClick={() => setShowExpenseModal(true)}>
               <Card.Body className="d-flex align-items-center p-3">
                 <div className="rounded-3 d-flex align-items-center justify-content-center me-3" style={{ width: '48px', height: '48px', backgroundColor: '#fef2f2', color: '#dc2626' }}>
                   <TrendingUp size={24} style={{ transform: 'scaleY(-1)' }} />
@@ -486,6 +505,40 @@ const AdminDashboard = () => {
               <tr className="table-light">
                 <td className="fw-bold">Total Collected</td>
                 <td className="text-end fw-bold text-success fs-5">₹{stats.collectedRevenue.toLocaleString()}</td>
+              </tr>
+            </tbody>
+          </Table>
+        </Modal.Body>
+      </Modal>
+
+      {/* Expense Breakdown Modal */}
+      <Modal show={showExpenseModal} onHide={() => setShowExpenseModal(false)} centered>
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-bold fs-5">Expense Breakdown</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Table hover responsive className="mb-0 border rounded overflow-hidden">
+            <thead className="table-light">
+              <tr>
+                <th>Expense Category</th>
+                <th className="text-end">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(stats.expenseBreakdown || {}).map(([name, amount]) => (
+                <tr 
+                  key={name}
+                  onClick={() => { setShowExpenseModal(false); navigate(buildExpenseUrl()); }}
+                  style={{ cursor: 'pointer' }}
+                  className="table-active-hover"
+                >
+                  <td className="fw-medium text-danger" style={{ textDecoration: 'underline' }}>{name}</td>
+                  <td className="text-end text-danger fw-medium">₹{amount.toLocaleString()}</td>
+                </tr>
+              ))}
+              <tr className="table-light">
+                <td className="fw-bold">Total Expense</td>
+                <td className="text-end fw-bold text-danger fs-5">₹{(stats.totalExpense || 0).toLocaleString()}</td>
               </tr>
             </tbody>
           </Table>

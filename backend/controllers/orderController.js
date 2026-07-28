@@ -274,6 +274,7 @@ const getDashboardStats = async (req, res) => {
 
    const expenses = await Expense.find(expenseFilter);
    let totalExpense = 0;
+   let expenseBreakdown = {};
    
    const start = dateFilter.updatedAt?.$gte;
    const end = dateFilter.updatedAt?.$lte;
@@ -289,6 +290,7 @@ const getDashboardStats = async (req, res) => {
 
      if (isMainInFilter) {
        totalExpense += (expense.amount || 0);
+       expenseBreakdown[expense.name] = (expenseBreakdown[expense.name] || 0) + (expense.amount || 0);
      }
 
      if (expense.balancePayments && Array.isArray(expense.balancePayments)) {
@@ -303,6 +305,7 @@ const getDashboardStats = async (req, res) => {
          
          if (isBpInFilter) {
            totalExpense += (bp.amount || 0);
+           expenseBreakdown[expense.name] = (expenseBreakdown[expense.name] || 0) + (bp.amount || 0);
          }
        });
      }
@@ -318,6 +321,7 @@ const getDashboardStats = async (req, res) => {
      collectedRevenue,
      pendingRevenue,
      paymentBreakdown,
+     expenseBreakdown,
      chartData,
      recentOrders,
      totalExpense
