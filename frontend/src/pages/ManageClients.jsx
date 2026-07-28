@@ -89,6 +89,7 @@ const ManageClients = () => {
               <th className="py-3 px-4 text-muted font-monospace text-uppercase" style={{fontSize: '0.85rem'}}>Username</th>
               <th className="py-3 px-4 text-muted font-monospace text-uppercase" style={{fontSize: '0.85rem'}}>Client Name</th>
               <th className="py-3 px-4 text-muted font-monospace text-uppercase" style={{fontSize: '0.85rem'}}>Mobile Number</th>
+              <th className="py-3 px-4 text-muted font-monospace text-uppercase" style={{fontSize: '0.85rem'}}>Balance</th>
               <th className="py-3 px-4 text-muted font-monospace text-uppercase" style={{fontSize: '0.85rem'}}>Actions</th>
             </tr>
           </thead>
@@ -102,6 +103,13 @@ const ManageClients = () => {
                 </td>
                 <td className="py-3 px-4 fw-medium">{client.clientName}</td>
                 <td className="py-3 px-4 text-secondary">{client.mobileNumber}</td>
+                <td className="py-3 px-4">
+                  {client.pendingBalance > 0 ? (
+                    <span className="badge bg-danger">₹{client.pendingBalance}</span>
+                  ) : (
+                    <span className="badge bg-success">Settled</span>
+                  )}
+                </td>
                 <td className="py-3 px-4">
                   <Link to={`/clients/${client._id}`} className="btn btn-outline-primary btn-sm me-2">
                     View Details
@@ -117,7 +125,7 @@ const ManageClients = () => {
             ))}
             {clients.length === 0 && (
               <tr>
-                <td colSpan="4" className="text-center py-5 text-muted">
+                <td colSpan="5" className="text-center py-5 text-muted">
                   No permanent clients found. Click "Add Client" to create one.
                 </td>
               </tr>

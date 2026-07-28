@@ -24,8 +24,43 @@ const createClient = async (req, res) => {
 
 const getClients = async (req, res) => {
   try {
-    const clients = await Client.find({}).sort({ createdAt: -1 });
-    res.json(clients);
+    const clients = await Client.find({}).sort({ createdAt: -1 }).lean();
+    
+    const clientsWithBalance = await Promise.all(clients.map(async (client) => {
+      const rawMobile = client.mobileNumber.replace(/\D/g, '');
+      const formattedMobile = rawMobile.length > 5 ? `${rawMobile.slice(0, 5)} ${rawMobile.slice(5)}` : rawMobile;
+
+      const orders = await Order.find({
+        clientName: { $regex: new RegExp(`^${client.clientName.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+        $or: [
+          { mobileNumber: rawMobile },
+          { mobileNumber: formattedMobile },
+          { mobileNumber: client.mobileNumber }
+        ]
+      }).select('totalAmount advanceAmount balancePayments');
+
+      let totalBilled = 0;
+      let totalPaid = 0;
+
+      orders.forEach(order => {
+        totalBilled += (order.totalAmount || 0);
+        let orderPaid = order.advanceAmount || 0;
+        if (order.balancePayments && Array.isArray(order.balancePayments)) {
+          order.balancePayments.forEach(bp => {
+            orderPaid += (bp.amount || 0);
+          });
+        }
+        totalPaid += orderPaid;
+      });
+
+      const pendingBalance = totalBilled - totalPaid;
+      return {
+        ...client,
+        pendingBalance: pendingBalance > 0 ? pendingBalance : 0
+      };
+    }));
+
+    res.json(clientsWithBalance);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
