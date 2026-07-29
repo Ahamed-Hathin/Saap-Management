@@ -192,7 +192,22 @@ const getDashboardStats = async (req, res) => {
    });
    const deliveredOrders = await Order.countDocuments({ ...baseQuery, status: 'Delivered' });
 
-   const ordersForRevenue = await Order.find(baseQuery, 'totalAmount advanceAmount paymentMethod balancePayments');
+   const ordersForRevenue = await Order.find(baseQuery, 'totalAmount advanceAmount paymentMethod balancePayments createdAt');
+
+   let filterStart = null;
+   let filterEnd = null;
+   if (dateFilter.updatedAt) {
+     if (dateFilter.updatedAt.$gte) filterStart = new Date(dateFilter.updatedAt.$gte).getTime();
+     if (dateFilter.updatedAt.$lte) filterEnd = new Date(dateFilter.updatedAt.$lte).getTime();
+   }
+
+   const isDateInRange = (dateToCheck) => {
+     if (!filterStart && !filterEnd) return true;
+     const d = new Date(dateToCheck).getTime();
+     if (filterStart && d < filterStart) return false;
+     if (filterEnd && d > filterEnd) return false;
+     return true;
+   };
 
    let totalRevenue = 0;
    let collectedRevenue = 0;
@@ -210,18 +225,24 @@ const getDashboardStats = async (req, res) => {
    ordersForRevenue.forEach(order => {
      totalRevenue += (order.totalAmount || 0);
      
-     let orderCollected = 0;
-     let orderDiscount = 0;
+     let collectedInRange = 0;
+     let collectedTotal = 0;
+     let discountTotal = 0;
      
      const adv = order.advanceAmount || 0;
      if (adv > 0) {
        if (order.paymentMethod === 'Discount Amount') {
-         orderDiscount += adv;
-         paymentBreakdown['Discount Amount'] = (paymentBreakdown['Discount Amount'] || 0) + adv;
+         discountTotal += adv;
+         if (isDateInRange(order.createdAt)) {
+           paymentBreakdown['Discount Amount'] = (paymentBreakdown['Discount Amount'] || 0) + adv;
+         }
        } else {
-         orderCollected += adv;
-         const method = (order.paymentMethod && order.paymentMethod !== 'None') ? order.paymentMethod : 'Cash';
-         paymentBreakdown[method] = (paymentBreakdown[method] || 0) + adv;
+         collectedTotal += adv;
+         if (isDateInRange(order.createdAt)) {
+           collectedInRange += adv;
+           const method = (order.paymentMethod && order.paymentMethod !== 'None') ? order.paymentMethod : 'Cash';
+           paymentBreakdown[method] = (paymentBreakdown[method] || 0) + adv;
+         }
        }
      }
 
@@ -230,21 +251,26 @@ const getDashboardStats = async (req, res) => {
          const bpAmt = Number(bp.amount) || 0;
          if (bpAmt > 0) {
            if (bp.method === 'Discount Amount') {
-             orderDiscount += bpAmt;
-             paymentBreakdown['Discount Amount'] = (paymentBreakdown['Discount Amount'] || 0) + bpAmt;
+             discountTotal += bpAmt;
+             if (isDateInRange(bp.date)) {
+               paymentBreakdown['Discount Amount'] = (paymentBreakdown['Discount Amount'] || 0) + bpAmt;
+             }
            } else {
-             orderCollected += bpAmt;
-             const method = (bp.method && bp.method !== 'None') ? bp.method : 'Cash';
-             paymentBreakdown[method] = (paymentBreakdown[method] || 0) + bpAmt;
+             collectedTotal += bpAmt;
+             if (isDateInRange(bp.date)) {
+               collectedInRange += bpAmt;
+               const method = (bp.method && bp.method !== 'None') ? bp.method : 'Cash';
+               paymentBreakdown[method] = (paymentBreakdown[method] || 0) + bpAmt;
+             }
            }
          }
        });
      }
 
-     collectedRevenue += orderCollected;
+     collectedRevenue += collectedInRange;
      
      // Pending amount for this order (cannot be negative)
-     const orderPending = Math.max(0, (order.totalAmount || 0) - orderCollected - orderDiscount);
+     const orderPending = Math.max(0, (order.totalAmount || 0) - collectedTotal - discountTotal);
      pendingRevenue += orderPending;
    });
 

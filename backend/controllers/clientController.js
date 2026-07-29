@@ -132,9 +132,10 @@ const getClientOrders = async (req, res) => {
     const rawMobile = client.mobileNumber.replace(/\\D/g, '');
     const formattedMobile = rawMobile.length > 5 ? `${rawMobile.slice(0, 5)} ${rawMobile.slice(5)}` : rawMobile;
 
+    const nameRegex = new RegExp(`^\\s*${client.clientName.trim().replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}\\s*$`, 'i');
     const orders = await Order.find({
-      clientName: { $regex: new RegExp(`^${client.clientName.trim().replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}$`, 'i') },
       $or: [
+        { clientName: nameRegex },
         { mobileNumber: rawMobile },
         { mobileNumber: formattedMobile },
         { mobileNumber: client.mobileNumber }
@@ -189,9 +190,10 @@ const payAllClientOrders = async (req, res) => {
     const rawMobile = client.mobileNumber.replace(/\D/g, '');
     const formattedMobile = rawMobile.length > 5 ? `${rawMobile.slice(0, 5)} ${rawMobile.slice(5)}` : rawMobile;
 
+    const nameRegex = new RegExp(`^\\s*${client.clientName.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'i');
     const orders = await Order.find({
-      clientName: { $regex: new RegExp(`^${client.clientName.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
       $or: [
+        { clientName: nameRegex },
         { mobileNumber: rawMobile },
         { mobileNumber: formattedMobile },
         { mobileNumber: client.mobileNumber }
