@@ -40,49 +40,74 @@ const PaymentMethodDetails = () => {
       let filteredData = data;
       
       const now = new Date();
+      let filterStart = null;
+      let filterEnd = null;
+
       if (filter === 'today') {
-        const startOfToday = new Date(now.setHours(0, 0, 0, 0));
+        const startOfToday = new Date(now).setHours(0, 0, 0, 0);
+        const endOfToday = new Date(now).setHours(23, 59, 59, 999);
+        filterStart = startOfToday;
+        filterEnd = endOfToday;
         filteredData = filteredData.filter(o => new Date(o.updatedAt) >= startOfToday);
       } else if (filter === 'yesterday') {
         const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
-        const start = new Date(yesterday.setHours(0, 0, 0, 0));
-        const end = new Date(new Date(yesterday).setHours(23, 59, 59, 999));
+        const start = new Date(yesterday).setHours(0, 0, 0, 0);
+        const end = new Date(yesterday).setHours(23, 59, 59, 999);
+        filterStart = start;
+        filterEnd = end;
         filteredData = filteredData.filter(o => new Date(o.updatedAt) >= start && new Date(o.updatedAt) <= end);
       } else if (filter === 'weekly') {
         const start = new Date(now);
         start.setDate(now.getDate() - 7);
-        start.setHours(0, 0, 0, 0);
-        filteredData = filteredData.filter(o => new Date(o.updatedAt) >= start);
+        const startWeekly = start.setHours(0, 0, 0, 0);
+        filterStart = startWeekly;
+        filteredData = filteredData.filter(o => new Date(o.updatedAt) >= startWeekly);
       } else if (filter === 'monthly') {
         const start = new Date(now);
         start.setDate(now.getDate() - 30);
-        start.setHours(0, 0, 0, 0);
-        filteredData = filteredData.filter(o => new Date(o.updatedAt) >= start);
+        const startMonthly = start.setHours(0, 0, 0, 0);
+        filterStart = startMonthly;
+        filteredData = filteredData.filter(o => new Date(o.updatedAt) >= startMonthly);
       } else if (filter === 'custom' && customStartDate && customEndDate) {
-        const start = new Date(customStartDate);
-        start.setHours(0, 0, 0, 0);
-        const end = new Date(customEndDate);
-        end.setHours(23, 59, 59, 999);
+        const start = new Date(customStartDate).setHours(0, 0, 0, 0);
+        const end = new Date(customEndDate).setHours(23, 59, 59, 999);
+        filterStart = start;
+        filterEnd = end;
         filteredData = filteredData.filter(o => new Date(o.updatedAt) >= start && new Date(o.updatedAt) <= end);
       }
 
+      const isDateInRange = (dateToCheck) => {
+        if (!filterStart && !filterEnd) return true;
+        const d = new Date(dateToCheck).getTime();
+        if (filterStart && d < filterStart) return false;
+        if (filterEnd && d > filterEnd) return false;
+        return true;
+      };
+
       const relevantOrders = filteredData.map(order => {
         let amountPaid = 0;
+        let lastPaymentDate = order.createdAt;
         
         if (order.paymentMethod === method && order.advanceAmount > 0) {
-          amountPaid += order.advanceAmount;
+          if (isDateInRange(order.createdAt)) {
+            amountPaid += order.advanceAmount;
+            lastPaymentDate = order.createdAt;
+          }
         }
         
         if (order.balancePayments && order.balancePayments.length > 0) {
           order.balancePayments.forEach(bp => {
             if (bp.method === method && bp.amount > 0) {
-              amountPaid += Number(bp.amount);
+              if (isDateInRange(bp.date)) {
+                amountPaid += Number(bp.amount);
+                lastPaymentDate = bp.date;
+              }
             }
           });
         }
         
-        return { ...order, amountPaid };
+        return { ...order, amountPaid, lastPaymentDate };
       }).filter(order => order.amountPaid > 0);
       
       setOrders(relevantOrders);
@@ -137,7 +162,7 @@ const PaymentMethodDetails = () => {
                 {orders.map(order => (
                   <tr key={order._id}>
                     <td className="px-4 text-dark fw-medium">
-                      {new Date(order.createdAt).toLocaleDateString()}
+                      {new Date(order.lastPaymentDate || order.createdAt).toLocaleDateString()}
                     </td>
                     <td className="fw-medium text-primary">#{order.serialNumber}</td>
                     <td className="fw-bold text-dark">{order.clientName}</td>
