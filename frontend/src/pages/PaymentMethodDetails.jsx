@@ -5,6 +5,8 @@ import { Card, Table, Spinner, Button, Form } from 'react-bootstrap';
 import { ArrowLeft, Eye, Calendar } from 'lucide-react';
 import api from '../services/api';
 import Swal from 'sweetalert2';
+import { formatDate } from '../utils/formatDate';
+
 
 const PaymentMethodDetails = () => {
   const { method } = useParams();
@@ -162,7 +164,7 @@ const PaymentMethodDetails = () => {
                 {orders.map(order => (
                   <tr key={order._id}>
                     <td className="px-4 text-dark fw-medium">
-                      {new Date(order.lastPaymentDate || order.createdAt).toLocaleDateString()}
+                      {formatDate(order.lastPaymentDate || order.createdAt)}
                     </td>
                     <td className="fw-medium text-primary">#{order.serialNumber}</td>
                     <td className="fw-bold text-dark">{order.clientName}</td>

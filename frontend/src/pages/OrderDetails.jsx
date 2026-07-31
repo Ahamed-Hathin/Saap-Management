@@ -5,6 +5,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import { ArrowLeft } from 'lucide-react';
+import { formatDate } from '../utils/formatDate';
+
 
 const OrderDetails = () => {
   const { id } = useParams();
@@ -246,7 +248,7 @@ const OrderDetails = () => {
                       {order.balancePayments && order.balancePayments.length > 0 && (
                         <div className="small text-muted mt-1">
                           {order.balancePayments.map((bp, i) => (
-                            <div key={i}>{new Date(bp.date).toLocaleDateString()} - ₹{bp.amount} ({bp.method})</div>
+                            <div key={i}>{formatDate(bp.date)} - ₹{bp.amount} ({bp.method})</div>
                           ))}
                         </div>
                       )}

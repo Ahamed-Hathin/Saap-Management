@@ -5,6 +5,8 @@ import api from '../services/api';
 import Swal from 'sweetalert2';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Wallet, CheckCircle2, AlertCircle, Plus } from 'lucide-react';
+import { formatDate } from '../utils/formatDate';
+
 
 const ExpenseHistory = () => {
   const { name } = useParams();
@@ -217,7 +219,7 @@ const ExpenseHistory = () => {
               const balance = expense.amount - paid;
               return (
                 <tr key={expense._id}>
-                  <td className="py-3 px-4 text-secondary">{new Date(expense.date).toLocaleDateString()}</td>
+                  <td className="py-3 px-4 text-secondary">{formatDate(expense.date)}</td>
                   <td className="py-3 px-4">
                     {expense.description && expense.description.length > 15 ? (
                       <>
@@ -339,7 +341,7 @@ const ExpenseHistory = () => {
               <tbody>
                 {viewPaymentsExpense.balancePayments.map((payment, idx) => (
                   <tr key={idx}>
-                    <td className="py-2 px-3 text-secondary">{new Date(payment.date || viewPaymentsExpense.date).toLocaleDateString()}</td>
+                    <td className="py-2 px-3 text-secondary">{formatDate(payment.date || viewPaymentsExpense.date)}</td>
                     <td className="py-2 px-3 fw-medium">{payment.method}</td>
                     <td className="py-2 px-3 fw-bold text-success text-end">₹{(parseFloat(payment.amount) || 0).toLocaleString('en-IN')}</td>
                   </tr>

@@ -3,7 +3,7 @@ import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Navbar, Nav, Button, Modal } from 'react-bootstrap';
-import { LayoutDashboard, Users, ShoppingCart, LogOut, Settings, ClipboardList, UserCheck, Receipt, Package } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingCart, LogOut, Settings, ClipboardList, UserCheck, Receipt, Package, FileText } from 'lucide-react';
 
 const Layout = ({ children }) => {
   const { user, logout } = useContext(AuthContext);
@@ -59,6 +59,9 @@ const Layout = ({ children }) => {
                 <NavLink to="/clients" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                   <UserCheck className="me-3" size={20} /> Clients
                 </NavLink>
+                <NavLink to="/quotation" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                  <FileText className="me-3" size={20} /> Quotation
+                </NavLink>
                 <NavLink to="/admin/expenses" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                   <Receipt className="me-3" size={20} /> Expenses
                 </NavLink>
@@ -87,6 +90,9 @@ const Layout = ({ children }) => {
                     <UserCheck className="me-3" size={20} /> Clients
                   </NavLink>
                 )}
+                <NavLink to="/quotation" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                  <FileText className="me-3" size={20} /> Quotation
+                </NavLink>
                 <NavLink to="/employee/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                   <Settings className="me-3" size={20} /> Settings
                 </NavLink>

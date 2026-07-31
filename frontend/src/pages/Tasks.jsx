@@ -5,6 +5,8 @@ import { AuthContext } from '../context/AuthContext';
 import { Plus, CheckCircle, Clock } from 'lucide-react';
 import api from '../services/api';
 import Swal from 'sweetalert2';
+import { formatDate } from '../utils/formatDate';
+
 
 const Tasks = () => {
   const { user } = useContext(AuthContext);
@@ -103,7 +105,7 @@ const Tasks = () => {
                 )}
               </td>
               <td>{task.description || '-'}</td>
-              <td>{task.createdAt ? new Date(task.createdAt).toLocaleDateString() : '-'}</td>
+              <td>{task.createdAt ? formatDate(task.createdAt) : '-'}</td>
               <td>
                 <Badge bg={task.status === 'completed' ? 'success' : 'warning'} className="px-3 py-2 rounded-pill fw-medium d-flex align-items-center" style={{ width: 'fit-content' }}>
                   {task.status === 'completed' ? <CheckCircle size={14} className="me-1" /> : <Clock size={14} className="me-1" />}

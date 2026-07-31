@@ -4,6 +4,8 @@ import { Card, Table, Button, Modal, Form, Alert, InputGroup } from 'react-boots
 import api from '../services/api';
 import { Edit2, Trash2, UserPlus, Eye, EyeOff } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { formatDate } from '../utils/formatDate';
+
 
 const ManageEmployees = () => {
   const [employees, setEmployees] = useState([]);
@@ -125,7 +127,7 @@ const ManageEmployees = () => {
                     <tr key={emp._id}>
                       <td>{emp.name}</td>
                       <td>{emp.username}</td>
-                      <td>{new Date(emp.createdAt).toLocaleDateString()}</td>
+                      <td>{formatDate(emp.createdAt)}</td>
                       <td className="text-end">
                         <Button variant="outline-primary" size="sm" className="me-2" onClick={() => handleEdit(emp)}>
                           <Edit2 size={14} />
@@ -145,7 +147,7 @@ const ManageEmployees = () => {
                   <div key={emp._id} className="p-3 border-bottom">
                     <div className="d-flex justify-content-between align-items-center mb-2">
                       <h6 className="fw-bold mb-0">{emp.name}</h6>
-                      <div className="text-muted small">{new Date(emp.createdAt).toLocaleDateString()}</div>
+                      <div className="text-muted small">{formatDate(emp.createdAt)}</div>
                     </div>
                     <div className="text-muted small mb-3">
                       <strong>Username:</strong> {emp.username}

@@ -8,6 +8,8 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
+import { formatDate } from '../utils/formatDate';
+
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 import { AuthContext } from '../context/AuthContext';
@@ -216,7 +218,7 @@ const EmployeeDashboard = () => {
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
-    const dateStr = order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB');
+    const dateStr = order.createdAt ? formatDate(order.createdAt) : formatDate();
     doc.text(dateStr, 135, 65);
 
     let itemDesc = order.cardType || '-';
@@ -353,7 +355,7 @@ const EmployeeDashboard = () => {
           <h2 className="mb-1 fw-bold">
             {id ? (location.state?.employeeName ? `${location.state.employeeName} Orders` : 'Employee Orders') : 'My Orders'}
           </h2>
-          <p className="text-muted mb-0">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          <p className="text-muted mb-0">{formatDate()}</p>
         </div>
         <div className="d-flex gap-3 align-items-center flex-wrap">
           <div className="position-relative">
@@ -492,7 +494,7 @@ const EmployeeDashboard = () => {
                           </Form.Select>
                         )}
                       </td>
-                      <td>{new Date(order.createdAt).toLocaleDateString()}</td>
+                      <td>{formatDate(order.createdAt)}</td>
                       <td className="text-end">
                         <div className="d-flex justify-content-end align-items-center gap-2">
                           <Form.Select
@@ -574,7 +576,7 @@ const EmployeeDashboard = () => {
                           </Form.Select>
                         )}
                       </div>
-                      <strong>Date:</strong> {new Date(order.createdAt).toLocaleDateString()}
+                      <strong>Date:</strong> {formatDate(order.createdAt)}
                     </div>
                     <div className="d-flex align-items-center gap-2 mt-2">
                       <Form.Select

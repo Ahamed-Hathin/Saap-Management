@@ -5,6 +5,8 @@ import { Card, Table, Badge, Button, Row, Col, Form, Modal } from 'react-bootstr
 import api from '../services/api';
 import { ArrowLeft, User, Phone, IndianRupee, FileText, Plus, Trash2 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { formatDate } from '../utils/formatDate';
+
 
 const ClientDetails = () => {
   const { id } = useParams();
@@ -220,7 +222,7 @@ const ClientDetails = () => {
               }
               const orderPending = Math.max(0, (order.totalAmount || 0) - orderPaid);
               const dateObj = new Date(order.createdAt);
-              const formattedDate = dateObj.toLocaleDateString('en-GB');
+              const formattedDate = formatDate(dateObj);
               
               let statusBadge = 'secondary';
               if (order.status === 'Printing') statusBadge = 'primary';

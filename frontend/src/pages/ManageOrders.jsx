@@ -9,6 +9,8 @@ import autoTable from 'jspdf-autotable';
 import Swal from 'sweetalert2';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
+import { formatDate } from '../utils/formatDate';
+
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 const ManageOrders = () => {
@@ -227,7 +229,7 @@ const ManageOrders = () => {
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
-    const dateStr = order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB');
+    const dateStr = order.createdAt ? formatDate(order.createdAt) : formatDate();
     doc.text(dateStr, 135, 65);
 
     // --- Table ---
@@ -535,7 +537,7 @@ const ManageOrders = () => {
         return forceString ? `=${escaped}` : escaped;
       };
 
-      const date = escapeCsv(new Date(order.createdAt).toLocaleDateString('en-GB'), true);
+      const date = escapeCsv(formatDate(order.createdAt), true);
       const customerName = escapeCsv(order.clientName);
       const number = escapeCsv(order.mobileNumber, true);
       const description = escapeCsv(order.description || '');
@@ -735,7 +737,7 @@ const ManageOrders = () => {
                         {order.assignedEmployee?.name || '-'}
                         {order.createdAt && (
                           <div className="small text-muted mt-1">
-                            {new Date(order.createdAt).toLocaleDateString('en-GB')}
+                            {formatDate(order.createdAt)}
                           </div>
                         )}
                       </td>
@@ -798,7 +800,7 @@ const ManageOrders = () => {
                       )}
                       <strong>Assigned To:</strong> {order.assignedEmployee?.name || 'Unassigned'}
                       {order.createdAt && (
-                        <span className="ms-2 text-muted">({new Date(order.createdAt).toLocaleDateString('en-GB')})</span>
+                        <span className="ms-2 text-muted">({formatDate(order.createdAt)})</span>
                       )}
                       <br />
                       <strong>Printing Method:</strong> {order.printingCompany !== 'None' ? order.printingCompany : 'Not Set'}<br />

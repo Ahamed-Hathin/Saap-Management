@@ -5,6 +5,8 @@ import { Row, Col, Card, Form, ProgressBar, Table, Badge, Modal } from 'react-bo
 import api from '../services/api';
 import { ShoppingBag, CheckCircle, Clock, IndianRupee, Package, TrendingUp, DollarSign, Activity, FileText, Plus } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend, LabelList } from 'recharts';
+import { formatDate } from '../utils/formatDate';
+
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -162,7 +164,7 @@ const AdminDashboard = () => {
         <div>
           <h2 className="mb-0 fw-bold text-dark tracking-tight">Overview</h2>
           <p className="text-muted mt-1 mb-0" style={{ fontSize: '0.9rem' }}>
-            {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+            {formatDate()}
           </p>
         </div>
         <div className="d-flex flex-column flex-sm-row gap-3 align-items-sm-center">

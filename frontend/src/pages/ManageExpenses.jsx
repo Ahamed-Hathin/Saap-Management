@@ -4,6 +4,8 @@ import { Table, Button, Form, Modal, Card } from 'react-bootstrap';
 import api from '../services/api';
 import Swal from 'sweetalert2';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { formatDate } from '../utils/formatDate';
+
 
 const ManageExpenses = () => {
   const navigate = useNavigate();
@@ -321,7 +323,7 @@ const ManageExpenses = () => {
               const balance = expense.amount - paid;
               return (
                 <tr key={expense._id}>
-                  <td className="py-3 px-4 text-secondary">{new Date(expense.date).toLocaleDateString()}</td>
+                  <td className="py-3 px-4 text-secondary">{formatDate(expense.date)}</td>
                   <td className="py-3 px-4 fw-bold">
                     <span 
                       role="button" 
@@ -584,7 +586,7 @@ const ManageExpenses = () => {
               <tbody>
                 {viewPaymentsExpense.balancePayments.map((payment, idx) => (
                   <tr key={idx}>
-                    <td className="py-2 px-3 text-secondary">{new Date(payment.date || viewPaymentsExpense.date).toLocaleDateString()}</td>
+                    <td className="py-2 px-3 text-secondary">{formatDate(payment.date || viewPaymentsExpense.date)}</td>
                     <td className="py-2 px-3 fw-medium">{payment.method}</td>
                     <td className="py-2 px-3 fw-bold text-success text-end">₹{(parseFloat(payment.amount) || 0).toLocaleString('en-IN')}</td>
                   </tr>

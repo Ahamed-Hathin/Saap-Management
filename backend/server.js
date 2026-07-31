@@ -41,6 +41,7 @@ app.use('/api/tasks', require('./routes/taskRoutes'));
 app.use('/api/clients', require('./routes/clientRoutes'));
 app.use('/api/expenses', require('./routes/expenseRoutes'));
 app.use('/api/stacks', require('./routes/stackRoutes'));
+app.use('/api/quotations', require('./routes/quotationRoutes'));
 
 app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 

@@ -16,6 +16,7 @@ import ManageExpenses from './pages/ManageExpenses';
 import ExpenseHistory from './pages/ExpenseHistory';
 import PaymentMethodDetails from './pages/PaymentMethodDetails';
 import ManageStack from './pages/ManageStack';
+import Quotation from './pages/Quotation';
 const PrivateRoute = ({ children, role, excludeUser }) => {
   const { user, loading, logout } = useContext(AuthContext);
 
@@ -84,6 +85,7 @@ function App() {
         <Route path="/clients/:id" element={<PrivateRoute excludeUser="staff 2"><ClientDetails /></PrivateRoute>} />
         <Route path="/client-orders" element={<PrivateRoute excludeUser="staff 2"><ClientOrders /></PrivateRoute>} />
         <Route path="/orders/:id" element={<PrivateRoute><OrderDetails /></PrivateRoute>} />
+        <Route path="/quotation" element={<PrivateRoute><Quotation /></PrivateRoute>} />
         
         {/* Catch-all Route */}
         <Route path="*" element={<Navigate to="/" replace />} />
