@@ -2,13 +2,14 @@ import React, { useContext, useState, useEffect } from 'react';
 import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Container, Row, Col, Navbar, Nav, Button, Modal } from 'react-bootstrap';
-import { LayoutDashboard, Users, ShoppingCart, LogOut, Settings, ClipboardList, UserCheck, Receipt, Package, FileText } from 'lucide-react';
+import { Container, Row, Col, Navbar, Nav, Button, Modal, Offcanvas } from 'react-bootstrap';
+import { LayoutDashboard, Users, ShoppingCart, LogOut, Settings, ClipboardList, UserCheck, Receipt, Package, FileText, Menu } from 'lucide-react';
 
 const Layout = ({ children }) => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [employees, setEmployees] = useState([]);
 
   useEffect(() => {
@@ -36,88 +37,83 @@ const Layout = ({ children }) => {
     navigate('/login');
   };
 
+  const renderNavLinks = () => (
+    <Nav className="flex-column">
+      {user?.role === 'Admin' ? (
+        <>
+          <NavLink to="/admin/dashboard" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+            <LayoutDashboard className="me-3" size={20} /> Dashboard
+          </NavLink>
+          <NavLink to="/admin/orders" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+            <ShoppingCart className="me-3" size={20} /> Orders
+          </NavLink>
+          <NavLink to="/admin/employees" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+            <Users className="me-3" size={20} /> Employees
+          </NavLink>
+          <NavLink to="/admin/tasks" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+            <ClipboardList className="me-3" size={20} /> Tasks
+          </NavLink>
+          <NavLink to="/clients" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+            <UserCheck className="me-3" size={20} /> Clients
+          </NavLink>
+          <NavLink to="/quotation" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+            <FileText className="me-3" size={20} /> Quotation
+          </NavLink>
+          <NavLink to="/admin/expenses" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+            <Receipt className="me-3" size={20} /> Expenses
+          </NavLink>
+          <NavLink to="/admin/stack" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+            <Package className="me-3" size={20} /> Manage Stack
+          </NavLink>
+          <NavLink to="/admin/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+            <Settings className="me-3" size={20} /> Settings
+          </NavLink>
+        </>
+      ) : (
+        <>
+          <NavLink to="/employee/orders" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+            <ShoppingCart className="me-3" size={20} /> My Orders
+          </NavLink>
+          {employees.map(emp => (
+            <NavLink key={emp._id} to={`/employee/user/${emp._id}`} state={{ employeeName: emp.name }} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+              <Users className="me-3" size={20} /> {emp.name}
+            </NavLink>
+          ))}
+          <NavLink to="/employee/tasks" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+            <ClipboardList className="me-3" size={20} /> Tasks
+          </NavLink>
+          {user?.name?.toLowerCase() !== 'staff 2' && (
+            <NavLink to="/clients" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+              <UserCheck className="me-3" size={20} /> Clients
+            </NavLink>
+          )}
+          <NavLink to="/quotation" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+            <FileText className="me-3" size={20} /> Quotation
+          </NavLink>
+          <NavLink to="/employee/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+            <Settings className="me-3" size={20} /> Settings
+          </NavLink>
+        </>
+      )}
+    </Nav>
+  );
+
   return (
     <Container fluid className="p-0">
       <Row className="g-0">
         <Col md={2} className="sidebar p-4 d-none d-md-block">
           <h4 className="brand mb-5">SAPP Creation</h4>
-          <Nav className="flex-column">
-            {user?.role === 'Admin' ? (
-              <>
-                <NavLink to="/admin/dashboard" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                  <LayoutDashboard className="me-3" size={20} /> Dashboard
-                </NavLink>
-                <NavLink to="/admin/orders" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                  <ShoppingCart className="me-3" size={20} /> Orders
-                </NavLink>
-                <NavLink to="/admin/employees" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                  <Users className="me-3" size={20} /> Employees
-                </NavLink>
-                <NavLink to="/admin/tasks" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                  <ClipboardList className="me-3" size={20} /> Tasks
-                </NavLink>
-                <NavLink to="/clients" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                  <UserCheck className="me-3" size={20} /> Clients
-                </NavLink>
-                <NavLink to="/quotation" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                  <FileText className="me-3" size={20} /> Quotation
-                </NavLink>
-                <NavLink to="/admin/expenses" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                  <Receipt className="me-3" size={20} /> Expenses
-                </NavLink>
-                <NavLink to="/admin/stack" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                  <Package className="me-3" size={20} /> Manage Stack
-                </NavLink>
-                <NavLink to="/admin/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                  <Settings className="me-3" size={20} /> Settings
-                </NavLink>
-              </>
-            ) : (
-              <>
-                <NavLink to="/employee/orders" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                  <ShoppingCart className="me-3" size={20} /> My Orders
-                </NavLink>
-                {employees.map(emp => (
-                  <NavLink key={emp._id} to={`/employee/user/${emp._id}`} state={{ employeeName: emp.name }} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                    <Users className="me-3" size={20} /> {emp.name}
-                  </NavLink>
-                ))}
-                <NavLink to="/employee/tasks" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                  <ClipboardList className="me-3" size={20} /> Tasks
-                </NavLink>
-                {user?.name?.toLowerCase() !== 'staff 2' && (
-                  <NavLink to="/clients" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                    <UserCheck className="me-3" size={20} /> Clients
-                  </NavLink>
-                )}
-                <NavLink to="/quotation" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                  <FileText className="me-3" size={20} /> Quotation
-                </NavLink>
-                <NavLink to="/employee/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-                  <Settings className="me-3" size={20} /> Settings
-                </NavLink>
-              </>
-            )}
-          </Nav>
+          {renderNavLinks()}
         </Col>
         <Col md={10} className="d-flex flex-column vh-100">
           <Navbar className="glass-navbar px-4 py-3 d-md-none sticky-top d-flex justify-content-between align-items-center">
-            <Navbar.Brand className="brand fw-bold m-0">SAPP Creation</Navbar.Brand>
+            <div className="d-flex align-items-center">
+              <Navbar.Brand className="brand fw-bold m-0">SAPP Creation</Navbar.Brand>
+            </div>
             <div className="d-flex gap-3 align-items-center">
-              {user?.role === 'Admin' ? (
-                <>
-                  <NavLink to="/admin/tasks" className={({ isActive }) => `text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
-                    <ClipboardList size={22} />
-                  </NavLink>
-                  <NavLink to="/admin/expenses" className={({ isActive }) => `text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
-                    <Receipt size={22} />
-                  </NavLink>
-                </>
-              ) : (
-                <NavLink to="/employee/tasks" className={({ isActive }) => `text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
-                  <ClipboardList size={22} />
-                </NavLink>
-              )}
+              <Button variant="link" className="p-0 text-secondary d-md-none ms-1" onClick={() => setShowMobileMenu(true)}>
+                <Menu size={24} />
+              </Button>
             </div>
           </Navbar>
           <div className="p-3 p-md-5 flex-grow-1 overflow-auto fade-in pb-5" style={{ backgroundColor: 'var(--bg-color)', paddingBottom: '80px' }}>
@@ -166,6 +162,16 @@ const Layout = ({ children }) => {
           </div>
         </Col>
       </Row>
+
+      {/* Mobile Side Menu (Offcanvas) */}
+      <Offcanvas show={showMobileMenu} onHide={() => setShowMobileMenu(false)} placement="end" className="sidebar">
+        <Offcanvas.Header closeButton className="pb-0">
+          <Offcanvas.Title className="brand">SAPP Creation</Offcanvas.Title>
+        </Offcanvas.Header>
+        <Offcanvas.Body className="p-4 pt-4">
+          {renderNavLinks()}
+        </Offcanvas.Body>
+      </Offcanvas>
 
       {/* Styled Logout Confirmation Modal */}
       <Modal backdrop="static" show={showLogoutModal} onHide={() => setShowLogoutModal(false)} centered size="sm" contentClassName="border-0 rounded-4 shadow-lg">
