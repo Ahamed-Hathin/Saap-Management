@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Layout from '../components/Layout';
 import { Form, Button, Row, Col, Table, Modal } from 'react-bootstrap';
-import { Plus, Trash2, FileText, Download, Edit, Trash } from 'lucide-react';
+import { Plus, Trash2, FileText, Download, Edit, Trash, CheckCircle } from 'lucide-react';
 import api from '../services/api';
 import html2canvas from 'html2canvas';
-
+import sappLogo from '../assets/Sapp Logo.jpg.jpeg';
+import signatureImg from '../assets/Sign.png';
 const Quotation = () => {
   const [quotations, setQuotations] = useState([]);
+  const [filter, setFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
@@ -127,6 +129,15 @@ const Quotation = () => {
     }
   };
 
+  const handleToggleDone = async (q) => {
+    try {
+      await api.put(`/quotations/${q._id}`, { isDone: !q.isDone });
+      fetchQuotations();
+    } catch (error) {
+      console.error('Error toggling quotation status', error);
+    }
+  };
+
   const executeDownload = async (q) => {
     // Temporarily set the download quotation state to render it in the hidden ref
     setDownloadQuotation(q);
@@ -155,6 +166,12 @@ const Quotation = () => {
     }, 100);
   };
 
+  const filteredQuotations = quotations.filter(q => {
+    if (filter === 'done') return q.isDone;
+    if (filter === 'pending') return !q.isDone;
+    return true;
+  });
+
   return (
     <Layout>
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -162,20 +179,49 @@ const Quotation = () => {
           <h2 className="mb-0 fw-bold">Quotations</h2>
           <p className="text-muted mb-0">Manage and download your quotations</p>
         </div>
-        <Button variant="primary" onClick={handleShow} className="d-flex align-items-center">
-          <FileText size={18} className="me-2" /> Create Quotation
-        </Button>
+        <div className="d-flex align-items-center gap-3">
+          <div className="d-flex gap-2">
+            <Button 
+              variant={filter === 'all' ? "primary" : "outline-primary"} 
+              size="sm" 
+              onClick={() => setFilter('all')}
+              className="px-3"
+            >
+              All
+            </Button>
+            <Button 
+              variant={filter === 'done' ? "primary" : "outline-primary"} 
+              size="sm" 
+              onClick={() => setFilter('done')}
+              className="px-3"
+            >
+              Selected
+            </Button>
+            <Button 
+              variant={filter === 'pending' ? "primary" : "outline-primary"} 
+              size="sm" 
+              onClick={() => setFilter('pending')}
+              className="px-3"
+            >
+              Not Selected
+            </Button>
+          </div>
+          <div className="vr d-none d-md-block mx-1"></div>
+          <Button variant="primary" onClick={handleShow} className="d-flex align-items-center">
+            <FileText size={18} className="me-2" /> Create Quotation
+          </Button>
+        </div>
       </div>
 
-      {quotations.length === 0 ? (
+      {filteredQuotations.length === 0 ? (
         <div className="text-center p-5 bg-light rounded border">
           <FileText size={48} className="text-muted mb-3" />
-          <h5 className="text-muted">No quotations saved</h5>
-          <p className="text-muted">Click the button above to generate a new quotation.</p>
+          <h5 className="text-muted">No quotations found</h5>
+          <p className="text-muted">Adjust your filter or generate a new quotation.</p>
         </div>
       ) : (
         <Row className="g-4">
-          {quotations.map(q => (
+          {filteredQuotations.map(q => (
             <Col key={q._id} xs={12} md={6} lg={4}>
               <div className="bg-white rounded shadow-sm border p-4 h-100 d-flex flex-column">
                 <div className="d-flex justify-content-between align-items-start mb-3">
@@ -195,16 +241,28 @@ const Quotation = () => {
                   <h4 className="text-success fw-bold mb-0">₹{q.totalAmount?.toLocaleString() || 0}</h4>
                 </div>
                 
-                <div className="d-flex justify-content-end border-top pt-3 gap-2">
-                  <Button variant="outline-primary" size="sm" onClick={() => executeDownload(q)} title="Download">
-                    <Download size={16} />
-                  </Button>
-                  <Button variant="outline-secondary" size="sm" onClick={() => handleEdit(q)} title="Edit">
-                    <Edit size={16} />
-                  </Button>
-                  <Button variant="outline-danger" size="sm" onClick={() => handleDelete(q._id)} title="Delete">
-                    <Trash size={16} />
-                  </Button>
+                <div className="d-flex justify-content-between border-top pt-3">
+                  <div>
+                    <Button 
+                      variant={q.isDone ? "success" : "outline-success"} 
+                      size="sm" 
+                      onClick={() => handleToggleDone(q)} 
+                      title={q.isDone ? "Mark as Pending" : "Mark as Done"}
+                    >
+                      <CheckCircle size={16} />
+                    </Button>
+                  </div>
+                  <div className="d-flex gap-2">
+                    <Button variant="outline-primary" size="sm" onClick={() => executeDownload(q)} title="Download">
+                      <Download size={16} />
+                    </Button>
+                    <Button variant="outline-secondary" size="sm" onClick={() => handleEdit(q)} title="Edit">
+                      <Edit size={16} />
+                    </Button>
+                    <Button variant="outline-danger" size="sm" onClick={() => handleDelete(q._id)} title="Delete">
+                      <Trash size={16} />
+                    </Button>
+                  </div>
                 </div>
               </div>
             </Col>
@@ -356,7 +414,7 @@ const Quotation = () => {
                 Prop. Praveen kumar
               </div>
               <div style={{ textAlign: 'center' }}>
-                <img src="/logo.png" alt="SAPP Creation Logo" style={{ maxWidth: '300px', maxHeight: '100px', objectFit: 'contain' }} />
+                <img src={sappLogo} alt="SAPP Creation Logo" style={{ maxWidth: '300px', maxHeight: '100px', objectFit: 'contain' }} />
                 <div style={{ fontSize: '11px', color: '#151965', marginTop: '2px', maxWidth: '400px', lineHeight: '1.2' }}>
                   Wedding Invitation, Multicolor Designing, Visiting Card, Id Cards, Non Woven Bags & Offset Printing, Notice, Bookwork, Flex, & Calender, .
                 </div>
@@ -426,7 +484,7 @@ const Quotation = () => {
               </div>
               <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingRight: '10px' }}>
                 <div style={{ color: '#151965', fontSize: '14px', fontFamily: 'Arial, sans-serif' }}>Your's Trully</div>
-                <img src="/signature.png" alt="Signature" style={{ maxHeight: '60px', objectFit: 'contain', margin: '5px 0' }} />
+                <img src={signatureImg} alt="Signature" style={{ maxHeight: '60px', objectFit: 'contain', margin: '5px 0' }} />
                 <div style={{ color: '#151965', fontWeight: '900', fontSize: '18px', fontFamily: 'Arial Black, Impact, sans-serif' }}>Sapp Creation</div>
               </div>
             </div>

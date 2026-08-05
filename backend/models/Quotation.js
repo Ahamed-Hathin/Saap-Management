@@ -12,7 +12,8 @@ const quotationSchema = new mongoose.Schema({
   toAddress: { type: String, required: true },
   date: { type: Date, required: true, default: Date.now },
   items: [itemSchema],
-  totalAmount: { type: Number, default: 0 }
+  totalAmount: { type: Number, default: 0 },
+  isDone: { type: Boolean, default: false }
 }, {
   timestamps: true
 });

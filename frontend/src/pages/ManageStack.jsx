@@ -274,7 +274,7 @@ const ManageStack = () => {
               <p>Click "Add Stack" to get started.</p>
             </div>
           ) : (
-            <Row xs={1} md={2} lg={3} xl={4} className="g-4 p-4">
+            <Row xs={1} md={2} lg={3} className="g-4 p-4">
               {stacks.map(stack => (
                 <Col key={stack._id}>
                   <Card className="h-100 border-0 shadow-sm rounded-4 overflow-hidden" style={{ transition: 'transform 0.2s' }}>
