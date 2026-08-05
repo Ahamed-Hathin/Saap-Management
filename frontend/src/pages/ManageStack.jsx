@@ -202,8 +202,14 @@ const ManageStack = () => {
     if (qty) {
       try {
         const numQty = Number(qty);
-        const updatedSizes = stack.sizes.map(s => ({ ...s }));
-        const currentQty = Number(updatedSizes[index].quantity) || 0;
+        
+        // Ensure we always have 3 size elements to prevent out-of-bounds errors on older database entries
+        const updatedSizes = [0, 1, 2].map(i => ({
+          name: stack.sizes?.[i]?.name || ['A', 'B', 'C'][i],
+          quantity: Number(stack.sizes?.[i]?.quantity) || 0
+        }));
+        
+        const currentQty = updatedSizes[index].quantity;
         
         if (isAdding) {
           updatedSizes[index].quantity = currentQty + numQty;
