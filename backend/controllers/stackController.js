@@ -11,23 +11,28 @@ const getStacks = async (req, res) => {
 
 const createStack = async (req, res) => {
   try {
-    const { modelNumber, sizeA, sizeB, sizeC, totalStack } = req.body;
+    const { modelNumber, sizes, totalStack } = req.body;
 
     const stackExists = await Stack.findOne({ modelNumber });
     if (stackExists) {
-      stackExists.sizeA += sizeA || 0;
-      stackExists.sizeB += sizeB || 0;
-      stackExists.sizeC += sizeC || 0;
-      stackExists.totalStack += totalStack || 0;
+      if (sizes && Array.isArray(sizes)) {
+        sizes.forEach(newSize => {
+          const existingSize = stackExists.sizes.find(s => s.name === newSize.name);
+          if (existingSize) {
+            existingSize.quantity += Number(newSize.quantity) || 0;
+          } else {
+            stackExists.sizes.push({ name: newSize.name, quantity: Number(newSize.quantity) || 0 });
+          }
+        });
+      }
+      stackExists.totalStack += Number(totalStack) || 0;
       const updatedStack = await stackExists.save();
       return res.status(200).json(updatedStack);
     }
 
     const stack = new Stack({
       modelNumber,
-      sizeA: sizeA || 0,
-      sizeB: sizeB || 0,
-      sizeC: sizeC || 0,
+      sizes: sizes || [],
       totalStack: totalStack || 0,
     });
 
@@ -40,14 +45,12 @@ const createStack = async (req, res) => {
 
 const updateStack = async (req, res) => {
   try {
-    const { modelNumber, sizeA, sizeB, sizeC, totalStack } = req.body;
+    const { modelNumber, sizes, totalStack } = req.body;
     const stack = await Stack.findById(req.params.id);
 
     if (stack) {
       stack.modelNumber = modelNumber || stack.modelNumber;
-      stack.sizeA = sizeA !== undefined ? sizeA : stack.sizeA;
-      stack.sizeB = sizeB !== undefined ? sizeB : stack.sizeB;
-      stack.sizeC = sizeC !== undefined ? sizeC : stack.sizeC;
+      if (sizes !== undefined) stack.sizes = sizes;
       stack.totalStack = totalStack !== undefined ? totalStack : stack.totalStack;
 
       const updatedStack = await stack.save();

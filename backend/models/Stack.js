@@ -7,21 +7,19 @@ const stackSchema = mongoose.Schema(
       required: true,
       unique: true,
     },
-    sizeA: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
-    sizeB: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
-    sizeC: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
+    sizes: [
+      {
+        name: {
+          type: String,
+          required: true,
+        },
+        quantity: {
+          type: Number,
+          required: true,
+          default: 0,
+        },
+      }
+    ],
     totalStack: {
       type: Number,
       required: true,

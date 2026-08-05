@@ -286,28 +286,37 @@ const Quotation = () => {
                 </Form.Group>
                 <Row>
                   <Col md={4} className="mb-2 mb-md-0">
-                    <Form.Control 
-                      type="text" 
-                      placeholder="Price per quantity" 
-                      value={item.qtyPerItem}
-                      onChange={(e) => handleItemChange(item.id || item._id, 'qtyPerItem', e.target.value)}
-                    />
+                    <Form.Group>
+                      <Form.Label className="small text-dark fw-medium mb-1">Price per quantity</Form.Label>
+                      <Form.Control 
+                        type="text" 
+                        placeholder="Price per quantity" 
+                        value={item.qtyPerItem}
+                        onChange={(e) => handleItemChange(item.id || item._id, 'qtyPerItem', e.target.value)}
+                      />
+                    </Form.Group>
                   </Col>
                   <Col md={4} className="mb-2 mb-md-0">
-                    <Form.Control 
-                      type="text" 
-                      placeholder="Total Qty" 
-                      value={item.totalQuantity}
-                      onChange={(e) => handleItemChange(item.id || item._id, 'totalQuantity', e.target.value)}
-                    />
+                    <Form.Group>
+                      <Form.Label className="small text-dark fw-medium mb-1">Total Qty</Form.Label>
+                      <Form.Control 
+                        type="text" 
+                        placeholder="Total Qty" 
+                        value={item.totalQuantity}
+                        onChange={(e) => handleItemChange(item.id || item._id, 'totalQuantity', e.target.value)}
+                      />
+                    </Form.Group>
                   </Col>
                   <Col md={4}>
-                    <Form.Control 
-                      type="number" 
-                      placeholder="Price (₹)" 
-                      value={item.price}
-                      onChange={(e) => handleItemChange(item.id || item._id, 'price', e.target.value)}
-                    />
+                    <Form.Group>
+                      <Form.Label className="small text-dark fw-medium mb-1">Price (₹)</Form.Label>
+                      <Form.Control 
+                        type="number" 
+                        placeholder="Price (₹)" 
+                        value={item.price}
+                        onChange={(e) => handleItemChange(item.id || item._id, 'price', e.target.value)}
+                      />
+                    </Form.Group>
                   </Col>
                 </Row>
               </div>
@@ -347,12 +356,7 @@ const Quotation = () => {
                 Prop. Praveen kumar
               </div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ color: '#de4e32', fontSize: '42px', fontWeight: '900', fontFamily: 'Arial Black, Impact, sans-serif', letterSpacing: '2px', lineHeight: '1' }}>
-                  SAPP
-                </div>
-                <div style={{ color: '#de4e32', fontFamily: '"Brush Script MT", cursive', fontSize: '38px', marginTop: '-5px', fontWeight: 'bold' }}>
-                  Creation
-                </div>
+                <img src="/logo.png" alt="SAPP Creation Logo" style={{ maxWidth: '300px', maxHeight: '100px', objectFit: 'contain' }} />
                 <div style={{ fontSize: '11px', color: '#151965', marginTop: '2px', maxWidth: '400px', lineHeight: '1.2' }}>
                   Wedding Invitation, Multicolor Designing, Visiting Card, Id Cards, Non Woven Bags & Offset Printing, Notice, Bookwork, Flex, & Calender, .
                 </div>
@@ -388,6 +392,14 @@ const Quotation = () => {
 
             {/* Items */}
             <div style={{ marginTop: '40px', flexGrow: 1, paddingLeft: '30px', paddingRight: '30px' }}>
+              {/* Header Row */}
+              <div style={{ display: 'flex', marginBottom: '15px', fontSize: '18px', fontWeight: 'bold', color: '#151965', borderBottom: '2px solid #151965', paddingBottom: '8px' }}>
+                <div style={{ width: '8%', textAlign: 'right', paddingRight: '15px' }}>S.No</div>
+                <div style={{ width: '57%' }}>Title</div>
+                <div style={{ width: '15%', textAlign: 'center' }}>Quantity</div>
+                <div style={{ width: '20%', textAlign: 'left' }}>Price</div>
+              </div>
+
               {downloadQuotation.items.map((item, index) => (
                 <div key={item._id || index} style={{ display: 'flex', marginBottom: '15px', fontSize: '18px', fontWeight: 'bold', color: '#1a1a1a' }}>
                   <div style={{ width: '8%', textAlign: 'right', paddingRight: '15px' }}>{index + 1}.</div>
@@ -414,9 +426,7 @@ const Quotation = () => {
               </div>
               <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingRight: '10px' }}>
                 <div style={{ color: '#151965', fontSize: '14px', fontFamily: 'Arial, sans-serif' }}>Your's Trully</div>
-                <div style={{ fontFamily: '"Brush Script MT", cursive', fontSize: '42px', color: '#151965', opacity: 0.8, margin: '5px 0', transform: 'rotate(-10deg)' }}>
-                  Z. Sl.
-                </div>
+                <img src="/signature.png" alt="Signature" style={{ maxHeight: '60px', objectFit: 'contain', margin: '5px 0' }} />
                 <div style={{ color: '#151965', fontWeight: '900', fontSize: '18px', fontFamily: 'Arial Black, Impact, sans-serif' }}>Sapp Creation</div>
               </div>
             </div>

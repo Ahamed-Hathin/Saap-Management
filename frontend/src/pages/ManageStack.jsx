@@ -16,9 +16,12 @@ const ManageStack = () => {
   const [formData, setFormData] = useState({
     id: null,
     modelNumber: '',
-    sizeA: '',
-    sizeB: '',
-    sizeC: '',
+    sizeA_cm: '',
+    sizeA_stock: '',
+    sizeB_cm: '',
+    sizeB_stock: '',
+    sizeC_cm: '',
+    sizeC_stock: '',
     totalStack: '',
     baseTotalStack: '',
     newStack: '',
@@ -46,9 +49,12 @@ const ManageStack = () => {
       setFormData({
         id: stack._id,
         modelNumber: stack.modelNumber,
-        sizeA: stack.sizeA,
-        sizeB: stack.sizeB,
-        sizeC: stack.sizeC,
+        sizeA_cm: stack.sizes?.[0]?.name || '',
+        sizeA_stock: stack.sizes?.[0]?.quantity || 0,
+        sizeB_cm: stack.sizes?.[1]?.name || '',
+        sizeB_stock: stack.sizes?.[1]?.quantity || 0,
+        sizeC_cm: stack.sizes?.[2]?.name || '',
+        sizeC_stock: stack.sizes?.[2]?.quantity || 0,
         totalStack: stack.totalStack,
         baseTotalStack: stack.totalStack,
         newStack: '',
@@ -59,9 +65,12 @@ const ManageStack = () => {
       setFormData({
         id: null,
         modelNumber: '',
-        sizeA: '',
-        sizeB: '',
-        sizeC: '',
+        sizeA_cm: '',
+        sizeA_stock: '',
+        sizeB_cm: '',
+        sizeB_stock: '',
+        sizeC_cm: '',
+        sizeC_stock: '',
         totalStack: '',
         baseTotalStack: '',
         newStack: '',
@@ -85,7 +94,13 @@ const ManageStack = () => {
   };
 
   const handleSizeChange = (field, value) => {
-    setFormData({ ...formData, [field]: value });
+    const updatedData = { ...formData, [field]: value };
+    const a = Number(updatedData.sizeA_stock) || 0;
+    const b = Number(updatedData.sizeB_stock) || 0;
+    const c = Number(updatedData.sizeC_stock) || 0;
+    updatedData.totalStack = a + b + c;
+    updatedData.baseTotalStack = a + b + c;
+    setFormData(updatedData);
   };
 
   const handleFileChange = (e) => {
@@ -103,9 +118,11 @@ const ManageStack = () => {
       
       const payload = {
         modelNumber: formData.modelNumber,
-        sizeA: formData.sizeA !== '' ? Number(formData.sizeA) : 0,
-        sizeB: formData.sizeB !== '' ? Number(formData.sizeB) : 0,
-        sizeC: formData.sizeC !== '' ? Number(formData.sizeC) : 0,
+        sizes: [
+          { name: formData.sizeA_cm || 'A', quantity: formData.sizeA_stock !== '' ? Number(formData.sizeA_stock) : 0 },
+          { name: formData.sizeB_cm || 'B', quantity: formData.sizeB_stock !== '' ? Number(formData.sizeB_stock) : 0 },
+          { name: formData.sizeC_cm || 'C', quantity: formData.sizeC_stock !== '' ? Number(formData.sizeC_stock) : 0 }
+        ],
         totalStack: formData.totalStack !== '' ? Number(formData.totalStack) : 0
       };
 
@@ -164,34 +181,41 @@ const ManageStack = () => {
     }
   };
 
-  const handleQuickStockAdjust = async (stack, type) => {
+  const handleQuickStockAdjust = async (stack, index, type) => {
     const isAdding = type === 'add';
-    const { value: quantity } = await Swal.fire({
-      title: isAdding ? 'Add New Stack' : 'Use Stack',
+    const sizeName = stack.sizes?.[index]?.name || `Size ${index + 1}`;
+    const { value: qty } = await Swal.fire({
+      title: isAdding ? `Add ${sizeName}` : `Use ${sizeName}`,
       input: 'number',
-      inputLabel: `Enter quantity to ${isAdding ? 'add to' : 'deduct from'} total stack`,
+      inputLabel: `Quantity to ${isAdding ? 'add' : 'deduct'}`,
       inputPlaceholder: 'e.g. 10',
       showCancelButton: true,
-      confirmButtonText: isAdding ? 'Add to Stack' : 'Deduct from Stack',
+      confirmButtonText: isAdding ? 'Add' : 'Deduct',
       confirmButtonColor: isAdding ? '#198754' : '#dc3545',
       inputValidator: (value) => {
         if (!value || value <= 0) {
-          return 'Please enter a valid number greater than 0';
+          return 'Please enter a valid quantity';
         }
       }
     });
 
-    if (quantity) {
+    if (qty) {
       try {
-        const numQty = Number(quantity);
-        const newTotal = isAdding ? stack.totalStack + numQty : stack.totalStack - numQty;
+        const numQty = Number(qty);
+        const updatedSizes = stack.sizes.map(s => ({ ...s }));
         
+        if (isAdding) {
+          updatedSizes[index].quantity += numQty;
+        } else {
+          updatedSizes[index].quantity = Math.max(0, updatedSizes[index].quantity - numQty);
+        }
+        
+        const totalStack = updatedSizes.reduce((sum, s) => sum + (s.quantity || 0), 0);
+
         const payload = {
           modelNumber: stack.modelNumber,
-          sizeA: stack.sizeA,
-          sizeB: stack.sizeB,
-          sizeC: stack.sizeC,
-          totalStack: newTotal
+          sizes: updatedSizes,
+          totalStack
         };
 
         await api.put(`/stacks/${stack._id}`, payload);
@@ -199,7 +223,7 @@ const ManageStack = () => {
         Swal.fire({
           icon: 'success',
           title: 'Updated!',
-          text: `Total stack has been ${isAdding ? 'increased' : 'decreased'} by ${numQty}.`,
+          text: `${sizeName} has been ${isAdding ? 'increased' : 'decreased'} by ${numQty}.`,
           timer: 1500,
           showConfirmButton: false
         });
@@ -216,7 +240,9 @@ const ManageStack = () => {
       imageAlt: 'Stack Image',
       showConfirmButton: false,
       showCloseButton: true,
-      width: 'auto'
+      width: '600px',
+      imageWidth: 500,
+      imageHeight: 'auto'
     });
   };
 
@@ -286,46 +312,49 @@ const ManageStack = () => {
                     <Card.Body className="d-flex flex-column p-4">
                       <h5 className="fw-bold text-dark mb-3">Model: {stack.modelNumber}</h5>
                       
-                      <div className="mb-3 text-muted small bg-light rounded-3 p-2">
-                        <div className="text-center fw-bold text-uppercase mb-2 text-dark opacity-75" style={{ fontSize: '0.75rem', letterSpacing: '0.5px' }}>Sizes</div>
-                        <div className="d-flex justify-content-between fw-medium">
-                          <div className="text-center w-100 border-end border-light-subtle">
-                            <div>A</div>
-                            <div className="text-dark fs-6 mt-1">{stack.sizeA}</div>
-                          </div>
-                          <div className="text-center w-100 border-end border-light-subtle">
-                            <div>B</div>
-                            <div className="text-dark fs-6 mt-1">{stack.sizeB}</div>
-                          </div>
-                          <div className="text-center w-100">
-                            <div>C</div>
-                            <div className="text-dark fs-6 mt-1">{stack.sizeC}</div>
-                          </div>
+                      <div className="mt-auto">
+                        <div className="d-flex align-items-center justify-content-between mb-3">
+                          <span className="text-muted fw-bold" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>INVENTORY</span>
+                          <span className="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-2 border border-primary border-opacity-25 shadow-sm">
+                            {stack.totalStack} Total
+                          </span>
                         </div>
-                      </div>
-                      
-                      <div className="mt-auto pt-3 border-top d-flex flex-column gap-3">
-                        <div className="d-flex justify-content-between align-items-center">
-                          <span className="fw-semibold text-muted text-uppercase" style={{ fontSize: '0.8rem', letterSpacing: '0.5px' }}>Total Stack</span>
-                          <span className="fw-bold fs-5 text-primary">{stack.totalStack}</span>
-                        </div>
-                        <div className="d-flex gap-2">
-                          <Button 
-                            variant="outline-success" 
-                            size="sm" 
-                            className="flex-grow-1 fw-semibold d-flex align-items-center justify-content-center gap-1"
-                            onClick={() => handleQuickStockAdjust(stack, 'add')}
-                          >
-                            <Plus size={14} /> Add
-                          </Button>
-                          <Button 
-                            variant="outline-danger" 
-                            size="sm" 
-                            className="flex-grow-1 fw-semibold d-flex align-items-center justify-content-center gap-1"
-                            onClick={() => handleQuickStockAdjust(stack, 'use')}
-                          >
-                            <Minus size={14} /> Use
-                          </Button>
+                        <div className="row g-2">
+                          {[0, 1, 2].map((idx) => {
+                            const sizeName = stack.sizes?.[idx]?.name || ['A', 'B', 'C'][idx];
+                            const quantity = stack.sizes?.[idx]?.quantity || 0;
+                            return (
+                              <div className="col-4" key={idx}>
+                                <div className="bg-light rounded-3 p-2 text-center border border-light-subtle h-100 d-flex flex-column shadow-sm transition-all hover-shadow">
+                                  <div className="text-muted fw-bold mb-1 text-truncate" style={{ fontSize: '0.75rem' }} title={sizeName}>
+                                    {sizeName}
+                                  </div>
+                                  <div className="fs-5 fw-black text-dark mb-2 lh-1">{quantity}</div>
+                                  <div className="d-flex justify-content-between align-items-center mt-auto bg-white rounded-pill border overflow-hidden">
+                                    <button 
+                                      className="btn btn-sm btn-link text-danger p-1 text-decoration-none flex-grow-1" 
+                                      onClick={() => handleQuickStockAdjust(stack, idx, 'use')}
+                                      style={{ transition: 'background-color 0.2s' }}
+                                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ffeef0'}
+                                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                    >
+                                      <Minus size={14} strokeWidth={3} />
+                                    </button>
+                                    <div style={{ width: '1px', backgroundColor: '#e2e8f0', height: '100%' }}></div>
+                                    <button 
+                                      className="btn btn-sm btn-link text-success p-1 text-decoration-none flex-grow-1" 
+                                      onClick={() => handleQuickStockAdjust(stack, idx, 'add')}
+                                      style={{ transition: 'background-color 0.2s' }}
+                                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#e6ffec'}
+                                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                    >
+                                      <Plus size={14} strokeWidth={3} />
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     </Card.Body>
@@ -356,95 +385,88 @@ const ManageStack = () => {
               />
             </Form.Group>
             
-            <Row className="mb-3 g-3">
-              <Col sm={4}>
-                <Form.Group>
-                  <Form.Label className="fw-semibold">Size A</Form.Label>
-                    <Form.Control
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                      value={formData.sizeA}
-                      onChange={(e) => handleSizeChange('sizeA', e.target.value)}
-                      className="px-3 py-2 text-center fw-medium"
-                      style={{ borderRadius: '10px' }}
-                    />
-                </Form.Group>
-              </Col>
-              <Col sm={4}>
-                <Form.Group>
-                  <Form.Label className="fw-semibold">Size B</Form.Label>
-                    <Form.Control
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                      value={formData.sizeB}
-                      onChange={(e) => handleSizeChange('sizeB', e.target.value)}
-                      className="px-3 py-2 text-center fw-medium"
-                      style={{ borderRadius: '10px' }}
-                    />
-                </Form.Group>
-              </Col>
-              <Col sm={4}>
-                <Form.Group>
-                  <Form.Label className="fw-semibold">Size C</Form.Label>
-                    <Form.Control
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                      value={formData.sizeC}
-                      onChange={(e) => handleSizeChange('sizeC', e.target.value)}
-                      className="px-3 py-2 text-center fw-medium"
-                      style={{ borderRadius: '10px' }}
-                    />
-                </Form.Group>
-              </Col>
-            </Row>
-
-            {formData.id && (
-              <Row className="mb-3 g-3">
-                <Col sm={6}>
-                  <Form.Group>
-                    <Form.Label className="fw-semibold text-success">Add New Stack</Form.Label>
-                    <Form.Control
-                      type="number"
-                      min="0"
-                      value={formData.newStack}
-                      onChange={(e) => handleStockMathChange('newStack', e.target.value)}
-                      placeholder="+ Add quantity"
-                      className="px-3 py-2 text-success fw-medium"
-                      style={{ borderRadius: '10px' }}
-                    />
-                  </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-semibold">Size A Details</Form.Label>
+              <Row>
+                <Col>
+                  <Form.Control
+                    type="text"
+                    placeholder="Size (cm)"
+                    value={formData.sizeA_cm}
+                    onChange={(e) => handleSizeChange('sizeA_cm', e.target.value)}
+                    className="px-3 py-2 fw-medium"
+                    style={{ borderRadius: '10px' }}
+                  />
                 </Col>
-                <Col sm={6}>
-                  <Form.Group>
-                    <Form.Label className="fw-semibold text-danger">Used Stack</Form.Label>
-                    <Form.Control
-                      type="number"
-                      min="0"
-                      value={formData.usedStack}
-                      onChange={(e) => handleStockMathChange('usedStack', e.target.value)}
-                      placeholder="- Deduct quantity"
-                      className="px-3 py-2 text-danger fw-medium"
-                      style={{ borderRadius: '10px' }}
-                    />
-                  </Form.Group>
+                <Col>
+                  <Form.Control
+                    type="number"
+                    min="0"
+                    placeholder="Stock"
+                    value={formData.sizeA_stock}
+                    onChange={(e) => handleSizeChange('sizeA_stock', e.target.value)}
+                    className="px-3 py-2 fw-medium"
+                    style={{ borderRadius: '10px' }}
+                  />
                 </Col>
               </Row>
-            )}
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-semibold">Size B Details</Form.Label>
+              <Row>
+                <Col>
+                  <Form.Control
+                    type="text"
+                    placeholder="Size (cm)"
+                    value={formData.sizeB_cm}
+                    onChange={(e) => handleSizeChange('sizeB_cm', e.target.value)}
+                    className="px-3 py-2 fw-medium"
+                    style={{ borderRadius: '10px' }}
+                  />
+                </Col>
+                <Col>
+                  <Form.Control
+                    type="number"
+                    min="0"
+                    placeholder="Stock"
+                    value={formData.sizeB_stock}
+                    onChange={(e) => handleSizeChange('sizeB_stock', e.target.value)}
+                    className="px-3 py-2 fw-medium"
+                    style={{ borderRadius: '10px' }}
+                  />
+                </Col>
+              </Row>
+            </Form.Group>
 
             <Form.Group className="mb-4">
-              <Form.Label className="fw-semibold">Total Stack</Form.Label>
-              <Form.Control
-                type="number"
-                value={formData.totalStack}
-                onChange={(e) => setFormData({...formData, totalStack: e.target.value, baseTotalStack: e.target.value})}
-                placeholder="Enter total stack manually"
-                className="px-3 py-2 fw-bold text-primary placeholder-opacity-50"
-                style={{ borderRadius: '10px' }}
-              />
+              <Form.Label className="fw-semibold">Size C Details</Form.Label>
+              <Row>
+                <Col>
+                  <Form.Control
+                    type="text"
+                    placeholder="Size (cm)"
+                    value={formData.sizeC_cm}
+                    onChange={(e) => handleSizeChange('sizeC_cm', e.target.value)}
+                    className="px-3 py-2 fw-medium"
+                    style={{ borderRadius: '10px' }}
+                  />
+                </Col>
+                <Col>
+                  <Form.Control
+                    type="number"
+                    min="0"
+                    placeholder="Stock"
+                    value={formData.sizeC_stock}
+                    onChange={(e) => handleSizeChange('sizeC_stock', e.target.value)}
+                    className="px-3 py-2 fw-medium"
+                    style={{ borderRadius: '10px' }}
+                  />
+                </Col>
+              </Row>
             </Form.Group>
+
+
 
             <Form.Group className="mb-4">
               <Form.Label className="fw-semibold">Product Image</Form.Label>
