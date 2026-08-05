@@ -452,18 +452,20 @@ const Quotation = () => {
             <div style={{ marginTop: '40px', flexGrow: 1, paddingLeft: '30px', paddingRight: '30px' }}>
               {/* Header Row */}
               <div style={{ display: 'flex', marginBottom: '15px', fontSize: '18px', fontWeight: 'bold', color: '#151965', borderBottom: '2px solid #151965', paddingBottom: '8px' }}>
-                <div style={{ width: '8%', textAlign: 'right', paddingRight: '15px' }}>S.No</div>
-                <div style={{ width: '57%' }}>Title</div>
-                <div style={{ width: '15%', textAlign: 'center' }}>Quantity</div>
-                <div style={{ width: '20%', textAlign: 'left' }}>Price</div>
+                <div style={{ width: '8%', textAlign: 'right', paddingRight: '10px' }}>S.No</div>
+                <div style={{ width: '38%' }}>Title</div>
+                <div style={{ width: '22%', textAlign: 'center' }}>Price / Qty</div>
+                <div style={{ width: '17%', textAlign: 'center' }}>Total Qty</div>
+                <div style={{ width: '15%', textAlign: 'left' }}>Price</div>
               </div>
 
               {downloadQuotation.items.map((item, index) => (
                 <div key={item._id || index} style={{ display: 'flex', marginBottom: '15px', fontSize: '18px', fontWeight: 'bold', color: '#1a1a1a' }}>
-                  <div style={{ width: '8%', textAlign: 'right', paddingRight: '15px' }}>{index + 1}.</div>
-                  <div style={{ width: '57%', whiteSpace: 'pre-wrap' }}>{item.description}</div>
-                  <div style={{ width: '15%', textAlign: 'center' }}>{item.qtyPerItem || item.totalQuantity || '1'} Qty</div>
-                  <div style={{ width: '20%', textAlign: 'left' }}>- {item.price ? `${item.price}/-` : ''}</div>
+                  <div style={{ width: '8%', textAlign: 'right', paddingRight: '10px' }}>{index + 1}.</div>
+                  <div style={{ width: '38%', whiteSpace: 'pre-wrap', paddingRight: '10px' }}>{item.description}</div>
+                  <div style={{ width: '22%', textAlign: 'center' }}>{item.qtyPerItem ? `₹${item.qtyPerItem}` : '-'}</div>
+                  <div style={{ width: '17%', textAlign: 'center' }}>{item.totalQuantity ? `${item.totalQuantity}` : '-'}</div>
+                  <div style={{ width: '15%', textAlign: 'left' }}>- {item.price ? `${item.price}/-` : ''}</div>
                 </div>
               ))}
             </div>

@@ -203,14 +203,15 @@ const ManageStack = () => {
       try {
         const numQty = Number(qty);
         const updatedSizes = stack.sizes.map(s => ({ ...s }));
+        const currentQty = Number(updatedSizes[index].quantity) || 0;
         
         if (isAdding) {
-          updatedSizes[index].quantity += numQty;
+          updatedSizes[index].quantity = currentQty + numQty;
         } else {
-          updatedSizes[index].quantity = Math.max(0, updatedSizes[index].quantity - numQty);
+          updatedSizes[index].quantity = Math.max(0, currentQty - numQty);
         }
         
-        const totalStack = updatedSizes.reduce((sum, s) => sum + (s.quantity || 0), 0);
+        const totalStack = updatedSizes.reduce((sum, s) => sum + (Number(s.quantity) || 0), 0);
 
         const payload = {
           modelNumber: stack.modelNumber,
@@ -228,7 +229,7 @@ const ManageStack = () => {
           showConfirmButton: false
         });
       } catch (err) {
-        Swal.fire('Error', 'Failed to update stock', 'error');
+        Swal.fire('Error', err.response?.data?.message || 'Failed to update stock', 'error');
       }
     }
   };
