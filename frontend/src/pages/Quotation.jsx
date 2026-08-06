@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Layout from '../components/Layout';
-import { Form, Button, Row, Col, Table, Modal } from 'react-bootstrap';
+import { Form, Button, Row, Col, Table, Modal, Alert } from 'react-bootstrap';
 import { Plus, Trash2, FileText, Download, Edit, Trash, CheckCircle } from 'lucide-react';
 import api from '../services/api';
 import html2canvas from 'html2canvas';
@@ -11,6 +11,7 @@ const Quotation = () => {
   const [filter, setFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     toAddress: '',
     title: '',
@@ -40,6 +41,7 @@ const Quotation = () => {
   const handleClose = () => {
     setShowModal(false);
     setEditingId(null);
+    setErrors({});
     setFormData({
       toAddress: '',
       title: '',
@@ -53,6 +55,7 @@ const Quotation = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
   const handleItemChange = (id, field, value) => {
@@ -62,8 +65,8 @@ const Quotation = () => {
         if (item.id === id || item._id === id) {
           const updatedItem = { ...item, [field]: value };
           if (field === 'qtyPerItem' || field === 'totalQuantity') {
-            const qty = Number(updatedItem.totalQuantity) || 0;
-            const pricePerQty = Number(updatedItem.qtyPerItem) || 0;
+            const qty = Number(updatedItem.qtyPerItem) || 0;
+            const pricePerQty = Number(updatedItem.totalQuantity) || 0;
             updatedItem.price = (qty * pricePerQty) || '';
           }
           return updatedItem;
@@ -71,6 +74,9 @@ const Quotation = () => {
         return item;
       })
     }));
+    if (errors[`item-${id}-${field}`]) {
+      setErrors(prev => ({ ...prev, [`item-${id}-${field}`]: null }));
+    }
   };
 
   const addItem = () => {
@@ -88,7 +94,24 @@ const Quotation = () => {
   };
 
   const handleSave = async () => {
+    const newErrors = {};
+    if (!formData.title?.trim()) newErrors.title = 'Title is required';
+    if (!formData.toAddress?.trim()) newErrors.toAddress = 'Recipient Address is required';
+
+    formData.items.forEach(item => {
+      const id = item.id || item._id;
+      if (!item.description?.trim()) newErrors[`item-${id}-description`] = 'Description is required';
+      if (!item.totalQuantity) newErrors[`item-${id}-totalQuantity`] = 'Price per quantity is required';
+      if (!item.qtyPerItem) newErrors[`item-${id}-qtyPerItem`] = 'Total Qty is required';
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
     try {
+      setErrors({});
       const totalAmount = formData.items.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
       const payload = { ...formData, totalAmount };
 
@@ -297,8 +320,10 @@ const Quotation = () => {
                     name="title" 
                     value={formData.title} 
                     onChange={handleInputChange}
+                    isInvalid={!!errors.title}
                     placeholder="e.g. Website Design Project"
                   />
+                  <Form.Control.Feedback type="invalid">{errors.title}</Form.Control.Feedback>
                 </Form.Group>
               </Col>
             </Row>
@@ -311,8 +336,10 @@ const Quotation = () => {
                 name="toAddress" 
                 value={formData.toAddress} 
                 onChange={handleInputChange}
+                isInvalid={!!errors.toAddress}
                 placeholder="Recipient Name&#10;Address Details"
               />
+              <Form.Control.Feedback type="invalid">{errors.toAddress}</Form.Control.Feedback>
             </Form.Group>
 
             <div className="d-flex justify-content-between align-items-center mb-3 border-top pt-3">
@@ -339,8 +366,10 @@ const Quotation = () => {
                     rows={2}
                     placeholder="Item Description" 
                     value={item.description}
+                    isInvalid={!!errors[`item-${item.id || item._id}-description`]}
                     onChange={(e) => handleItemChange(item.id || item._id, 'description', e.target.value)}
                   />
+                  <Form.Control.Feedback type="invalid">{errors[`item-${item.id || item._id}-description`]}</Form.Control.Feedback>
                 </Form.Group>
                 <Row>
                   <Col md={4} className="mb-2 mb-md-0">
@@ -349,9 +378,11 @@ const Quotation = () => {
                       <Form.Control 
                         type="text" 
                         placeholder="Price per quantity" 
-                        value={item.qtyPerItem}
-                        onChange={(e) => handleItemChange(item.id || item._id, 'qtyPerItem', e.target.value)}
+                        value={item.totalQuantity}
+                        isInvalid={!!errors[`item-${item.id || item._id}-totalQuantity`]}
+                        onChange={(e) => handleItemChange(item.id || item._id, 'totalQuantity', e.target.value)}
                       />
+                      <Form.Control.Feedback type="invalid">{errors[`item-${item.id || item._id}-totalQuantity`]}</Form.Control.Feedback>
                     </Form.Group>
                   </Col>
                   <Col md={4} className="mb-2 mb-md-0">
@@ -360,9 +391,11 @@ const Quotation = () => {
                       <Form.Control 
                         type="text" 
                         placeholder="Total Qty" 
-                        value={item.totalQuantity}
-                        onChange={(e) => handleItemChange(item.id || item._id, 'totalQuantity', e.target.value)}
+                        value={item.qtyPerItem}
+                        isInvalid={!!errors[`item-${item.id || item._id}-qtyPerItem`]}
+                        onChange={(e) => handleItemChange(item.id || item._id, 'qtyPerItem', e.target.value)}
                       />
+                      <Form.Control.Feedback type="invalid">{errors[`item-${item.id || item._id}-qtyPerItem`]}</Form.Control.Feedback>
                     </Form.Group>
                   </Col>
                   <Col md={4}>
@@ -463,8 +496,8 @@ const Quotation = () => {
                 <div key={item._id || index} style={{ display: 'flex', marginBottom: '15px', fontSize: '18px', fontWeight: 'bold', color: '#1a1a1a' }}>
                   <div style={{ width: '8%', textAlign: 'right', paddingRight: '10px' }}>{index + 1}.</div>
                   <div style={{ width: '38%', whiteSpace: 'pre-wrap', paddingRight: '10px' }}>{item.description}</div>
-                  <div style={{ width: '22%', textAlign: 'center' }}>{item.qtyPerItem ? `₹${item.qtyPerItem}` : '-'}</div>
-                  <div style={{ width: '17%', textAlign: 'center' }}>{item.totalQuantity ? `${item.totalQuantity}` : '-'}</div>
+                  <div style={{ width: '22%', textAlign: 'center' }}>{item.totalQuantity ? `₹${item.totalQuantity}` : '-'}</div>
+                  <div style={{ width: '17%', textAlign: 'center' }}>{item.qtyPerItem ? `${item.qtyPerItem}` : '-'}</div>
                   <div style={{ width: '15%', textAlign: 'left' }}>- {item.price ? `${item.price}/-` : ''}</div>
                 </div>
               ))}
