@@ -13,6 +13,8 @@ const quotationSchema = new mongoose.Schema({
   date: { type: Date, required: true, default: Date.now },
   items: [itemSchema],
   totalAmount: { type: Number, default: 0 },
+  gstPercentage: { type: Number, default: 0 },
+  bankIndex: { type: Number, default: 0 },
   isDone: { type: Boolean, default: false }
 }, {
   timestamps: true

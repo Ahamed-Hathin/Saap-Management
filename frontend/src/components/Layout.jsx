@@ -1,9 +1,9 @@
 import React, { useContext, useState, useEffect } from 'react';
 import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { Container, Row, Col, Navbar, Nav, Button, Modal, Offcanvas } from 'react-bootstrap';
-import { LayoutDashboard, Users, ShoppingCart, LogOut, Settings, ClipboardList, UserCheck, Receipt, Package, FileText, Menu } from 'lucide-react';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Container, Row, Col, Navbar, Nav, Button, Modal, Offcanvas, Collapse } from 'react-bootstrap';
+import { LayoutDashboard, Users, ShoppingCart, LogOut, Settings, ClipboardList, UserCheck, Receipt, Package, FileText, Menu, Clock, ChevronDown, ChevronRight } from 'lucide-react';
 
 const Layout = ({ children }) => {
   const { user, logout } = useContext(AuthContext);
@@ -11,6 +11,7 @@ const Layout = ({ children }) => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [employees, setEmployees] = useState([]);
+  const location = useLocation();
 
   useEffect(() => {
     if (user?.role === 'Employee') {
@@ -63,7 +64,10 @@ const Layout = ({ children }) => {
             <Receipt className="me-3" size={20} /> Expenses
           </NavLink>
           <NavLink to="/admin/stack" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
-            <Package className="me-3" size={20} /> Manage Stack
+            <Package className="me-3" size={20} /> Manage Stock
+          </NavLink>
+          <NavLink to="/admin/attendance" className={({ isActive }) => `nav-link ${(isActive || location.pathname === '/admin/my-attendance') ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+            <Clock className="me-3" size={20} /> Attendance
           </NavLink>
           <NavLink to="/admin/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
             <Settings className="me-3" size={20} /> Settings
@@ -93,6 +97,9 @@ const Layout = ({ children }) => {
           <NavLink to="/employee/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
             <Settings className="me-3" size={20} /> Settings
           </NavLink>
+          <NavLink to="/employee/attendance" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+            <Clock className="me-3" size={20} /> My Attendance
+          </NavLink>
         </>
       )}
     </Nav>
@@ -119,7 +126,7 @@ const Layout = ({ children }) => {
           <div className="p-3 p-md-5 flex-grow-1 overflow-auto fade-in pb-5" style={{ backgroundColor: 'var(--bg-color)', paddingBottom: '80px' }}>
             {children}
           </div>
-          
+
           {/* Mobile Bottom Navigation */}
           <div className="d-md-none fixed-bottom bg-white border-top shadow-lg d-flex justify-content-around py-2" style={{ zIndex: 1050 }}>
             {user?.role === 'Admin' ? (

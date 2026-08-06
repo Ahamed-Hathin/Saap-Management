@@ -6,6 +6,31 @@ import api from '../services/api';
 import html2canvas from 'html2canvas';
 import sappLogo from '../assets/Sapp Logo.jpg.jpeg';
 import signatureImg from '../assets/Sign.png';
+
+const BANK_DETAILS = [
+  {
+    name: "Thangamani V",
+    accNo: "1266155000013220",
+    accLabel: "Acc No.",
+    ifsc: "KVBL00012660",
+    bank: "Karur Vysya Bank"
+  },
+  {
+    name: "ARUN S",
+    accNo: "1816155000042551",
+    accLabel: "Acc No.",
+    ifsc: "KVBL0001816",
+    bank: "Karur Vysya Bank"
+  },
+  {
+    name: "SAPP CREATION",
+    accNo: "3618002100015276",
+    accLabel: "Current Account",
+    ifsc: "PUNB0361800",
+    bank: "Punjab National Bank"
+  }
+];
+
 const Quotation = () => {
   const [quotations, setQuotations] = useState([]);
   const [filter, setFilter] = useState('all');
@@ -16,6 +41,8 @@ const Quotation = () => {
     toAddress: '',
     title: '',
     date: new Date().toISOString().split('T')[0],
+    bankIndex: 0,
+    gstPercentage: 0,
     items: [
       { id: 1, description: '', qtyPerItem: '', totalQuantity: '', price: '' }
     ]
@@ -46,6 +73,8 @@ const Quotation = () => {
       toAddress: '',
       title: '',
       date: new Date().toISOString().split('T')[0],
+      bankIndex: 0,
+      gstPercentage: 0,
       items: [{ id: Date.now(), description: '', qtyPerItem: '', totalQuantity: '', price: '' }]
     });
   };
@@ -54,7 +83,7 @@ const Quotation = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: name === 'bankIndex' ? Number(value) : value }));
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
@@ -101,8 +130,8 @@ const Quotation = () => {
     formData.items.forEach(item => {
       const id = item.id || item._id;
       if (!item.description?.trim()) newErrors[`item-${id}-description`] = 'Description is required';
-      if (!item.totalQuantity) newErrors[`item-${id}-totalQuantity`] = 'Price per quantity is required';
-      if (!item.qtyPerItem) newErrors[`item-${id}-qtyPerItem`] = 'Total Qty is required';
+      if (!item.totalQuantity) newErrors[`item-${id}-totalQuantity`] = 'Price is required';
+      if (!item.qtyPerItem) newErrors[`item-${id}-qtyPerItem`] = 'Qty is required';
     });
 
     if (Object.keys(newErrors).length > 0) {
@@ -112,8 +141,10 @@ const Quotation = () => {
 
     try {
       setErrors({});
-      const totalAmount = formData.items.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
-      const payload = { ...formData, totalAmount };
+      const subTotal = formData.items.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
+      const gstAmount = subTotal * (Number(formData.gstPercentage) || 0) / 100;
+      const totalAmount = subTotal + gstAmount;
+      const payload = { ...formData, totalAmount, gstPercentage: Number(formData.gstPercentage) || 0 };
 
       if (editingId) {
         await api.put(`/quotations/${editingId}`, payload);
@@ -134,6 +165,8 @@ const Quotation = () => {
       toAddress: q.toAddress,
       title: q.title,
       date: new Date(q.date).toISOString().split('T')[0],
+      bankIndex: q.bankIndex || 0,
+      gstPercentage: q.gstPercentage || 0,
       items: q.items.map(i => ({ ...i, id: i._id || Date.now() }))
     });
     setEditingId(q._id);
@@ -327,6 +360,34 @@ const Quotation = () => {
                 </Form.Group>
               </Col>
             </Row>
+            
+            <Form.Group className="mb-3">
+              <Form.Label>Bank Details</Form.Label>
+              <Form.Select 
+                name="bankIndex" 
+                value={formData.bankIndex} 
+                onChange={handleInputChange}
+              >
+                {BANK_DETAILS.map((bank, index) => (
+                  <option key={index} value={index}>
+                    {bank.name} - {bank.bank} ({bank.accNo})
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>GST Percentage (%) (Optional)</Form.Label>
+              <Form.Control 
+                type="number" 
+                name="gstPercentage" 
+                value={formData.gstPercentage} 
+                onChange={handleInputChange}
+                min="0"
+                max="100"
+                placeholder="e.g. 18"
+              />
+            </Form.Group>
 
             <Form.Group className="mb-4">
               <Form.Label>To (Recipient Address)</Form.Label>
@@ -374,10 +435,10 @@ const Quotation = () => {
                 <Row>
                   <Col md={4} className="mb-2 mb-md-0">
                     <Form.Group>
-                      <Form.Label className="small text-dark fw-medium mb-1">Price per quantity</Form.Label>
+                      <Form.Label className="small text-dark fw-medium mb-1">Price</Form.Label>
                       <Form.Control 
                         type="text" 
-                        placeholder="Price per quantity" 
+                        placeholder="Price" 
                         value={item.totalQuantity}
                         isInvalid={!!errors[`item-${item.id || item._id}-totalQuantity`]}
                         onChange={(e) => handleItemChange(item.id || item._id, 'totalQuantity', e.target.value)}
@@ -387,10 +448,10 @@ const Quotation = () => {
                   </Col>
                   <Col md={4} className="mb-2 mb-md-0">
                     <Form.Group>
-                      <Form.Label className="small text-dark fw-medium mb-1">Total Qty</Form.Label>
+                      <Form.Label className="small text-dark fw-medium mb-1">Qty</Form.Label>
                       <Form.Control 
                         type="text" 
-                        placeholder="Total Qty" 
+                        placeholder="Qty" 
                         value={item.qtyPerItem}
                         isInvalid={!!errors[`item-${item.id || item._id}-qtyPerItem`]}
                         onChange={(e) => handleItemChange(item.id || item._id, 'qtyPerItem', e.target.value)}
@@ -447,8 +508,8 @@ const Quotation = () => {
                 Prop. Praveen kumar
               </div>
               <div style={{ textAlign: 'center' }}>
-                <img src={sappLogo} alt="SAPP Creation Logo" style={{ maxWidth: '300px', maxHeight: '100px', objectFit: 'contain' }} />
-                <div style={{ fontSize: '11px', color: '#151965', marginTop: '2px', maxWidth: '400px', lineHeight: '1.2' }}>
+                <img src={sappLogo} alt="SAPP Creation Logo" style={{ maxWidth: '380px', maxHeight: '130px', objectFit: 'contain' }} />
+                <div style={{ fontSize: '14px', color: '#151965', marginTop: '4px', maxWidth: '480px', lineHeight: '1.3', fontWeight: '500' }}>
                   Wedding Invitation, Multicolor Designing, Visiting Card, Id Cards, Non Woven Bags & Offset Printing, Notice, Bookwork, Flex, & Calender, .
                 </div>
               </div>
@@ -487,8 +548,8 @@ const Quotation = () => {
               <div style={{ display: 'flex', marginBottom: '15px', fontSize: '18px', fontWeight: 'bold', color: '#151965', borderBottom: '2px solid #151965', paddingBottom: '8px' }}>
                 <div style={{ width: '8%', textAlign: 'right', paddingRight: '10px' }}>S.No</div>
                 <div style={{ width: '38%' }}>Title</div>
-                <div style={{ width: '22%', textAlign: 'center' }}>Price / Qty</div>
-                <div style={{ width: '17%', textAlign: 'center' }}>Total Qty</div>
+                <div style={{ width: '22%', textAlign: 'center' }}>Price</div>
+                <div style={{ width: '17%', textAlign: 'center' }}>Qty</div>
                 <div style={{ width: '15%', textAlign: 'left' }}>Price</div>
               </div>
 
@@ -501,26 +562,66 @@ const Quotation = () => {
                   <div style={{ width: '15%', textAlign: 'left' }}>- {item.price ? `${item.price}/-` : ''}</div>
                 </div>
               ))}
+              
+              {/* Total Amount Row */}
+              <div style={{ display: 'flex', marginTop: '10px', paddingTop: '10px', borderTop: '2px solid #151965', fontSize: '18px', fontWeight: 'bold', color: '#151965' }}>
+                <div style={{ width: '85%', textAlign: 'right', paddingRight: '20px' }}>
+                  {downloadQuotation.gstPercentage > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                      <div style={{ fontSize: '16px', fontWeight: 'normal', marginBottom: '4px' }}>Subtotal:</div>
+                      <div style={{ fontSize: '16px', fontWeight: 'normal', marginBottom: '4px' }}>GST ({downloadQuotation.gstPercentage}%):</div>
+                      <div>Grand Total:</div>
+                    </div>
+                  ) : (
+                    "Total Amount:"
+                  )}
+                </div>
+                <div style={{ width: '15%', textAlign: 'left' }}>
+                  {(() => {
+                    const subtotal = downloadQuotation.items.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
+                    const gstAmount = downloadQuotation.gstPercentage ? subtotal * (downloadQuotation.gstPercentage / 100) : 0;
+                    const grandTotal = subtotal + gstAmount;
+                    
+                    if (downloadQuotation.gstPercentage > 0) {
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <div style={{ fontSize: '16px', fontWeight: 'normal', marginBottom: '4px' }}>₹{subtotal}/-</div>
+                          <div style={{ fontSize: '16px', fontWeight: 'normal', marginBottom: '4px' }}>₹{gstAmount}/-</div>
+                          <div>₹{grandTotal}/-</div>
+                        </div>
+                      );
+                    }
+                    return `₹${downloadQuotation.totalAmount || grandTotal}/-`;
+                  })()}
+                </div>
+              </div>
             </div>
 
             {/* Footer */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '40px' }}>
               <div>
                 <div style={{ fontWeight: 'bold', fontSize: '16px', lineHeight: '1.4', color: '#1a1a1a' }}>
-                  <div>Name: Thangamani V</div>
-                  <div>Acc No.: 1266155000013220</div>
-                  <div>IFSC Code: KVBL00012660</div>
-                  <div>Karur Vysya Bank</div>
+                  {(() => {
+                    const selectedBank = BANK_DETAILS[downloadQuotation.bankIndex || 0];
+                    return (
+                      <>
+                        <div>Name: {selectedBank.name}</div>
+                        <div>{selectedBank.accLabel}: {selectedBank.accNo}</div>
+                        <div>IFSC Code: {selectedBank.ifsc}</div>
+                        <div>{selectedBank.bank}</div>
+                      </>
+                    );
+                  })()}
                 </div>
                 <div style={{ color: '#151965', marginTop: '25px', fontSize: '12px', fontFamily: 'Arial, sans-serif' }}>
                   <div style={{ fontWeight: 'bold' }}>Terms & Conditions:</div>
                   <div style={{ fontWeight: 'bold' }}>Payment Immediately</div>
                 </div>
               </div>
-              <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingRight: '10px' }}>
-                <div style={{ color: '#151965', fontSize: '14px', fontFamily: 'Arial, sans-serif' }}>Your's Trully</div>
-                <img src={signatureImg} alt="Signature" style={{ maxHeight: '60px', objectFit: 'contain', margin: '5px 0' }} />
-                <div style={{ color: '#151965', fontWeight: '900', fontSize: '18px', fontFamily: 'Arial Black, Impact, sans-serif' }}>Sapp Creation</div>
+              <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', paddingRight: '10px' }}>
+                <div style={{ color: '#151965', fontSize: '14px', fontFamily: 'Arial, sans-serif', marginBottom: '0px' }}>Your's Trully</div>
+                <img src={signatureImg} alt="Signature" style={{ maxHeight: '60px', objectFit: 'contain', margin: '2px 0' }} />
+                <div style={{ color: '#151965', fontWeight: '900', fontSize: '18px', fontFamily: 'Arial Black, Impact, sans-serif', marginTop: '0px' }}>Sapp Creation</div>
               </div>
             </div>
           </div>

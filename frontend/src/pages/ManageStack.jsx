@@ -115,7 +115,7 @@ const ManageStack = () => {
     e.preventDefault();
     try {
       let savedStack;
-      
+
       const payload = {
         modelNumber: formData.modelNumber,
         sizes: [
@@ -202,21 +202,21 @@ const ManageStack = () => {
     if (qty) {
       try {
         const numQty = Number(qty);
-        
+
         // Ensure we always have 3 size elements to prevent out-of-bounds errors on older database entries
         const updatedSizes = [0, 1, 2].map(i => ({
           name: stack.sizes?.[i]?.name || ['A', 'B', 'C'][i],
           quantity: Number(stack.sizes?.[i]?.quantity) || 0
         }));
-        
+
         const currentQty = updatedSizes[index].quantity;
-        
+
         if (isAdding) {
           updatedSizes[index].quantity = currentQty + numQty;
         } else {
           updatedSizes[index].quantity = Math.max(0, currentQty - numQty);
         }
-        
+
         const totalStack = updatedSizes.reduce((sum, s) => sum + (Number(s.quantity) || 0), 0);
 
         const payload = {
@@ -259,7 +259,7 @@ const ManageStack = () => {
         <div>
           <h2 className="mb-0 fw-bold text-dark d-flex align-items-center">
             <Package size={28} className="me-2 text-primary" />
-            Manage Stack
+            Manage Stock
           </h2>
           <p className="text-muted mb-0">Track and manage your inventory</p>
         </div>
@@ -285,19 +285,19 @@ const ManageStack = () => {
               {stacks.map(stack => (
                 <Col key={stack._id}>
                   <Card className="h-100 border-0 shadow-sm rounded-4 overflow-hidden" style={{ transition: 'transform 0.2s' }}>
-                    <div 
-                      className="position-relative bg-light cursor-pointer" 
+                    <div
+                      className="position-relative bg-light cursor-pointer"
                       style={{ height: '200px', cursor: 'pointer' }}
                       onClick={() => viewImage(stack.image)}
                     >
                       {stack.image ? (
-                        <div 
-                          style={{ 
-                            width: '100%', 
-                            height: '100%', 
-                            backgroundImage: `url(${stack.image.startsWith('http') ? stack.image : `${api.defaults.baseURL.replace('/api', '')}/${stack.image.replace(/\\/g, '/')}`})`, 
-                            backgroundSize: 'cover', 
-                            backgroundPosition: 'center' 
+                        <div
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            backgroundImage: `url(${stack.image.startsWith('http') ? stack.image : `${api.defaults.baseURL.replace('/api', '')}/${stack.image.replace(/\\/g, '/')}`})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center'
                           }}
                         />
                       ) : (
@@ -305,7 +305,7 @@ const ManageStack = () => {
                           <ImageIcon size={48} opacity={0.5} />
                         </div>
                       )}
-                      
+
                       <div className="position-absolute top-0 end-0 p-2 d-flex gap-2 bg-white bg-opacity-75 rounded-bottom-start shadow-sm">
                         <Button variant="light" size="sm" onClick={(e) => { e.stopPropagation(); handleShow(stack); }} className="text-primary rounded-circle" style={{ width: '32px', height: '32px', padding: 0 }}>
                           <Edit2 size={14} />
@@ -315,10 +315,10 @@ const ManageStack = () => {
                         </Button>
                       </div>
                     </div>
-                    
+
                     <Card.Body className="d-flex flex-column p-4">
                       <h5 className="fw-bold text-dark mb-3">Model: {stack.modelNumber}</h5>
-                      
+
                       <div className="mt-auto">
                         <div className="d-flex align-items-center justify-content-between mb-3">
                           <span className="text-muted fw-bold" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>INVENTORY</span>
@@ -338,8 +338,8 @@ const ManageStack = () => {
                                   </div>
                                   <div className="fs-5 fw-black text-dark mb-2 lh-1">{quantity}</div>
                                   <div className="d-flex justify-content-between align-items-center mt-auto bg-white rounded-pill border overflow-hidden">
-                                    <button 
-                                      className="btn btn-sm btn-link text-danger p-1 text-decoration-none flex-grow-1" 
+                                    <button
+                                      className="btn btn-sm btn-link text-danger p-1 text-decoration-none flex-grow-1"
                                       onClick={() => handleQuickStockAdjust(stack, idx, 'use')}
                                       style={{ transition: 'background-color 0.2s' }}
                                       onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ffeef0'}
@@ -348,8 +348,8 @@ const ManageStack = () => {
                                       <Minus size={14} strokeWidth={3} />
                                     </button>
                                     <div style={{ width: '1px', backgroundColor: '#e2e8f0', height: '100%' }}></div>
-                                    <button 
-                                      className="btn btn-sm btn-link text-success p-1 text-decoration-none flex-grow-1" 
+                                    <button
+                                      className="btn btn-sm btn-link text-success p-1 text-decoration-none flex-grow-1"
                                       onClick={() => handleQuickStockAdjust(stack, idx, 'add')}
                                       style={{ transition: 'background-color 0.2s' }}
                                       onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#e6ffec'}
@@ -385,13 +385,13 @@ const ManageStack = () => {
                 type="text"
                 placeholder="Enter model number"
                 value={formData.modelNumber}
-                onChange={(e) => setFormData({...formData, modelNumber: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, modelNumber: e.target.value })}
                 className="px-3 py-2 fw-medium"
                 style={{ borderRadius: '10px' }}
                 required
               />
             </Form.Group>
-            
+
             <Form.Group className="mb-3">
               <Form.Label className="fw-semibold">Size A Details</Form.Label>
               <Row>
@@ -477,11 +477,11 @@ const ManageStack = () => {
 
             <Form.Group className="mb-4">
               <Form.Label className="fw-semibold">Product Image</Form.Label>
-              
-              <div 
-                className="border-dashed rounded-3 p-4 text-center mb-2" 
-                style={{ 
-                  border: '2px dashed #cbd5e1', 
+
+              <div
+                className="border-dashed rounded-3 p-4 text-center mb-2"
+                style={{
+                  border: '2px dashed #cbd5e1',
                   backgroundColor: '#f8fafc',
                   cursor: 'pointer',
                   position: 'relative'

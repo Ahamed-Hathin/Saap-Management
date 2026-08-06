@@ -3,7 +3,7 @@ import Layout from '../components/Layout';
 import { Card, Form, Button, Alert, ListGroup, InputGroup } from 'react-bootstrap';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
-import { Save, User, LogOut, Briefcase, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Save, User, Users, LogOut, Briefcase, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Settings = () => {

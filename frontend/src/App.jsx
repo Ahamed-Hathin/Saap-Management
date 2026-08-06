@@ -17,6 +17,9 @@ import ExpenseHistory from './pages/ExpenseHistory';
 import PaymentMethodDetails from './pages/PaymentMethodDetails';
 import ManageStack from './pages/ManageStack';
 import Quotation from './pages/Quotation';
+import AttendanceDashboard from './pages/AttendanceDashboard';
+import MyAttendance from './pages/MyAttendance';
+
 const PrivateRoute = ({ children, role, excludeUser }) => {
   const { user, loading, logout } = useContext(AuthContext);
 
@@ -72,6 +75,8 @@ function App() {
         <Route path="/admin/expenses" element={<PrivateRoute role="Admin"><ManageExpenses /></PrivateRoute>} />
         <Route path="/admin/expenses/history/:name" element={<PrivateRoute role="Admin"><ExpenseHistory /></PrivateRoute>} />
         <Route path="/admin/stack" element={<PrivateRoute role="Admin"><ManageStack /></PrivateRoute>} />
+        <Route path="/admin/my-attendance" element={<PrivateRoute role="Admin"><MyAttendance /></PrivateRoute>} />
+        <Route path="/admin/attendance" element={<PrivateRoute role="Admin"><AttendanceDashboard /></PrivateRoute>} />
         <Route path="/admin/settings" element={<PrivateRoute role="Admin"><Settings /></PrivateRoute>} />
 
         {/* Employee Routes */}
@@ -79,8 +84,9 @@ function App() {
         <Route path="/employee/user/:id" element={<PrivateRoute role="Employee"><EmployeeDashboard /></PrivateRoute>} />
         <Route path="/employee/tasks" element={<PrivateRoute role="Employee"><Tasks /></PrivateRoute>} />
         <Route path="/employee/settings" element={<PrivateRoute role="Employee"><Settings /></PrivateRoute>} />
+        <Route path="/employee/attendance" element={<PrivateRoute role="Employee"><MyAttendance /></PrivateRoute>} />
         
-        {/* Shared Routes */}
+        {/* Dynamic Routes */}
         <Route path="/clients" element={<PrivateRoute excludeUser="staff 2"><ManageClients /></PrivateRoute>} />
         <Route path="/clients/:id" element={<PrivateRoute excludeUser="staff 2"><ClientDetails /></PrivateRoute>} />
         <Route path="/client-orders" element={<PrivateRoute excludeUser="staff 2"><ClientOrders /></PrivateRoute>} />
