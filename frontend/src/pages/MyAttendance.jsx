@@ -17,7 +17,7 @@ const MyAttendance = () => {
           <div>
             <h2 className="mb-1 fw-bold text-dark d-flex align-items-center">
               <Clock size={28} className="me-2 text-primary" />
-              My Attendance
+              My Time Tracking
             </h2>
             <p className="text-muted mb-0">Track your daily attendance and working hours</p>
           </div>
@@ -29,14 +29,14 @@ const MyAttendance = () => {
                 className={`px-4 rounded-start-pill ${location.pathname === '/admin/my-attendance' ? '' : 'text-muted'}`}
                 onClick={() => navigate('/admin/my-attendance')}
               >
-                My Attendance
+                My Time Tracking
               </Button>
               <Button 
                 variant={location.pathname === '/admin/attendance' ? 'primary' : 'light'} 
                 className={`px-4 rounded-end-pill ${location.pathname === '/admin/attendance' ? '' : 'text-muted'}`}
                 onClick={() => navigate('/admin/attendance')}
               >
-                Manage Attendance
+                Manage Time Tracking
               </Button>
             </ButtonGroup>
           )}

@@ -11,6 +11,7 @@ const Layout = ({ children }) => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [employees, setEmployees] = useState([]);
+  const [attendance, setAttendance] = useState(null);
   const location = useLocation();
 
   useEffect(() => {
@@ -26,6 +27,7 @@ const Layout = ({ children }) => {
       };
       fetchEmployees();
     }
+    
   }, [user]);
 
   const handleLogoutClick = () => {
@@ -66,8 +68,8 @@ const Layout = ({ children }) => {
           <NavLink to="/admin/stack" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
             <Package className="me-3" size={20} /> Manage Stock
           </NavLink>
-          <NavLink to="/admin/attendance" className={({ isActive }) => `nav-link ${(isActive || location.pathname === '/admin/my-attendance') ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
-            <Clock className="me-3" size={20} /> Attendance
+          <NavLink to="/admin/attendance" className={({ isActive }) => `nav-link d-none d-md-block ${(isActive || location.pathname === '/admin/my-attendance') ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+            <Clock className="me-3" size={20} /> Time Tracking
           </NavLink>
           <NavLink to="/admin/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
             <Settings className="me-3" size={20} /> Settings
@@ -97,8 +99,8 @@ const Layout = ({ children }) => {
           <NavLink to="/employee/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
             <Settings className="me-3" size={20} /> Settings
           </NavLink>
-          <NavLink to="/employee/attendance" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
-            <Clock className="me-3" size={20} /> My Attendance
+          <NavLink to="/employee/attendance" className={({ isActive }) => `nav-link d-none d-md-block ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+            <Clock className="me-3" size={20} /> My Time Tracking
           </NavLink>
         </>
       )}
@@ -108,9 +110,11 @@ const Layout = ({ children }) => {
   return (
     <Container fluid className="p-0">
       <Row className="g-0">
-        <Col md={2} className="sidebar p-4 d-none d-md-block">
-          <h4 className="brand mb-5">SAPP Creation</h4>
-          {renderNavLinks()}
+        <Col md={2} className="sidebar p-4 d-none d-md-block d-flex flex-column">
+          <div>
+            <h4 className="brand mb-5">SAPP Creation</h4>
+            {renderNavLinks()}
+          </div>
         </Col>
         <Col md={10} className="d-flex flex-column vh-100">
           <Navbar className="glass-navbar px-4 py-3 d-md-none sticky-top d-flex justify-content-between align-items-center">

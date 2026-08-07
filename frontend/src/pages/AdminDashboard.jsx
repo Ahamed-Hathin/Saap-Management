@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { Row, Col, Card, Form, ProgressBar, Table, Badge, Modal } from 'react-bootstrap';
 import api from '../services/api';
+import Swal from 'sweetalert2';
 import { ShoppingBag, CheckCircle, Clock, IndianRupee, Package, TrendingUp, DollarSign, Activity, FileText, Plus } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend, LabelList } from 'recharts';
 import { formatDate } from '../utils/formatDate';
@@ -30,6 +31,60 @@ const AdminDashboard = () => {
   const [filter, setFilter] = useState(localStorage.getItem('globalDateFilter') || 'all');
   const [customStartDate, setCustomStartDate] = useState(localStorage.getItem('globalStartDate') || '');
   const [customEndDate, setCustomEndDate] = useState(localStorage.getItem('globalEndDate') || '');
+  const [attendance, setAttendance] = useState(null);
+
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      try {
+        const res = await api.get('/attendance/today');
+        setAttendance(res.data);
+      } catch (error) {
+        console.error('Error fetching attendance', error);
+      }
+    };
+    fetchAttendance();
+  }, []);
+
+  const getNextAction = () => {
+    if (!attendance?.checkIn) {
+      return { endpoint: 'checkin', label: 'Check In', btnClass: 'success' };
+    }
+    if (attendance?.checkIn && !attendance?.lunchStart && !attendance?.checkOut) {
+      return { endpoint: 'lunch/start', label: 'Start Lunch', btnClass: 'warning text-dark' };
+    }
+    if (attendance?.lunchStart && !attendance?.lunchEnd && !attendance?.checkOut) {
+      return { endpoint: 'lunch/end', label: 'End Lunch', btnClass: 'success' };
+    }
+    if (attendance?.checkIn && (!attendance?.lunchStart || attendance?.lunchEnd) && !attendance?.checkOut) {
+      return { endpoint: 'checkout', label: 'Check Out', btnClass: 'danger' };
+    }
+    return { endpoint: null, label: 'Completed', btnClass: 'secondary' };
+  };
+
+  const currentAction = getNextAction();
+
+  const handleQuickTimeTrack = async () => {
+    if (!currentAction.endpoint) return;
+    try {
+      const res = await api.post(`/attendance/${currentAction.endpoint}`);
+      setAttendance(res.data);
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: `Successfully ${currentAction.label}`,
+        showConfirmButton: false,
+        timer: 1500
+      });
+    } catch (error) {
+      console.error('Error updating attendance', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Action Failed',
+        text: error.response?.data?.message || 'Something went wrong'
+      });
+    }
+  };
 
   useEffect(() => {
     localStorage.setItem('globalDateFilter', filter);
@@ -169,6 +224,14 @@ const AdminDashboard = () => {
         </div>
         <div className="d-flex flex-column flex-sm-row gap-3 align-items-sm-center">
           <div className="d-flex gap-2">
+            <button 
+              onClick={handleQuickTimeTrack} 
+              className={`btn btn-${currentAction.btnClass} d-flex align-items-center justify-content-center gap-2 border-0 shadow-sm`} 
+              style={{ fontWeight: 600, height: '42px', padding: '0 16px' }}
+              disabled={!currentAction.endpoint}
+            >
+              <Clock size={18} /> <span className="d-none d-sm-inline">{currentAction.label}</span>
+            </button>
             <button onClick={() => navigate('/admin/orders')} className="btn btn-primary d-flex align-items-center justify-content-center gap-2 border-0 shadow-sm" style={{ fontWeight: 600, height: '42px', padding: '0 16px' }}>
               <Plus size={18} /> <span className="d-none d-sm-inline">New Order</span>
             </button>

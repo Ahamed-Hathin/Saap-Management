@@ -78,7 +78,7 @@ const AttendanceDashboard = () => {
           <div>
             <h2 className="mb-1 fw-bold text-dark d-flex align-items-center">
               <Users size={28} className="me-2 text-primary" />
-              Attendance Dashboard
+              Time Tracking Dashboard
             </h2>
             <p className="text-muted mb-0">Track employee attendance and working hours</p>
           </div>
@@ -88,14 +88,14 @@ const AttendanceDashboard = () => {
               className={`px-4 rounded-start-pill ${location.pathname === '/admin/my-attendance' ? '' : 'text-muted'}`}
               onClick={() => navigate('/admin/my-attendance')}
             >
-              My Attendance
+              My Time Tracking
             </Button>
             <Button 
               variant={location.pathname === '/admin/attendance' ? 'primary' : 'light'} 
               className={`px-4 rounded-end-pill ${location.pathname === '/admin/attendance' ? '' : 'text-muted'}`}
               onClick={() => navigate('/admin/attendance')}
             >
-              Manage Attendance
+              Manage Time Tracking
             </Button>
           </ButtonGroup>
         </div>
@@ -155,15 +155,7 @@ const AttendanceDashboard = () => {
             </Card.Body>
           </Card>
         </Col>
-        <Col md={2} xs={6}>
-          <Card className="border-0 shadow-sm rounded-4 h-100 bg-white">
-            <Card.Body className="text-center p-3">
-              <Coffee size={24} className="text-warning mb-2" />
-              <h3 className="fw-black mb-0 fs-4 mt-1">{formatDuration(Math.round(stats.avgWorkingMins))}</h3>
-              <small className="text-muted fw-medium">Avg Working Hours</small>
-            </Card.Body>
-          </Card>
-        </Col>
+
       </Row>
 
       <Card className="dashboard-card border-0 mb-4 shadow-sm rounded-4">
@@ -197,7 +189,7 @@ const AttendanceDashboard = () => {
                     <td>{formatTime(att.checkIn)}</td>
                     <td>{formatTime(att.lunchStart)}</td>
                     <td>{formatTime(att.lunchEnd)}</td>
-                    <td className="fw-medium">{att.lunchDuration ? `${att.lunchDuration} mins` : '--'}</td>
+                    <td className="fw-medium">{formatDuration(att.lunchDuration)}</td>
                     <td>{formatTime(att.checkOut)}</td>
                     <td className="fw-medium">{formatDuration(att.workingMinutes)}</td>
                     <td>{getStatusBadge(att.status)}</td>

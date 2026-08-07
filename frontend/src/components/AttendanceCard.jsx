@@ -113,7 +113,7 @@ const AttendanceCard = () => {
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h5 className="fw-bold mb-0 text-dark d-flex align-items-center">
             <Clock size={20} className="me-2 text-primary" />
-            Today's Attendance
+            Today's Time Tracking
           </h5>
           <Badge bg={getStatusColor(status)} className="px-3 py-2 rounded-pill fs-6">
             {status}
@@ -149,7 +149,7 @@ const AttendanceCard = () => {
         <div className="d-flex justify-content-around mb-4 text-center border-top pt-3">
           <div>
             <small className="text-muted d-block mb-1">Lunch Duration</small>
-            <strong className="text-dark">{attendance?.lunchDuration ? `${attendance.lunchDuration} mins` : '--'}</strong>
+            <strong className="text-dark">{formatDuration(attendance?.lunchDuration)}</strong>
           </div>
           <div>
             <small className="text-muted d-block mb-1">Total Working Time</small>

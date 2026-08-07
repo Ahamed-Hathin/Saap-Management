@@ -503,17 +503,17 @@ const Quotation = () => {
             }}
           >
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div style={{ color: '#151965', fontStyle: 'italic', fontWeight: 'bold', fontFamily: '"Brush Script MT", cursive', fontSize: '16px', paddingTop: '10px' }}>
+            <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+              <div style={{ position: 'absolute', left: 0, color: '#151965', fontStyle: 'italic', fontWeight: 'bold', fontFamily: '"Brush Script MT", cursive', fontSize: '16px', paddingTop: '10px' }}>
                 Prop. Praveen kumar
               </div>
-              <div style={{ textAlign: 'center' }}>
+              <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <img src={sappLogo} alt="SAPP Creation Logo" style={{ maxWidth: '380px', maxHeight: '130px', objectFit: 'contain' }} />
                 <div style={{ fontSize: '14px', color: '#151965', marginTop: '4px', maxWidth: '480px', lineHeight: '1.3', fontWeight: '500' }}>
                   Wedding Invitation, Multicolor Designing, Visiting Card, Id Cards, Non Woven Bags & Offset Printing, Notice, Bookwork, Flex, & Calender, .
                 </div>
               </div>
-              <div style={{ color: '#151965', fontSize: '14px', fontWeight: 'bold', textAlign: 'right', fontFamily: 'Arial, sans-serif', paddingTop: '10px' }}>
+              <div style={{ position: 'absolute', right: 0, color: '#151965', fontSize: '14px', fontWeight: 'bold', textAlign: 'right', fontFamily: 'Arial, sans-serif', paddingTop: '10px' }}>
                 <div>Ph : 0431-4010547</div>
                 <div>Cell : 88833 72047</div>
                 <div style={{ fontWeight: 'bold', fontSize: '12px' }}>sappcreation.tpj@gmail.com</div>

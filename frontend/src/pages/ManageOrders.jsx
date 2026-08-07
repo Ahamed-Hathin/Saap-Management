@@ -1,18 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Layout from '../components/Layout';
 import { Card, Table, Button, Modal, Form, Alert, Badge, Dropdown } from 'react-bootstrap';
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { Plus, Trash2, Download } from 'lucide-react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import Swal from 'sweetalert2';
-import * as pdfjsLib from 'pdfjs-dist';
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
+import html2canvas from 'html2canvas';
 import { formatDate } from '../utils/formatDate';
-
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+import logoImg from '../assets/Sapp Logo.jpg.jpeg';
 const ManageOrders = () => {
   const [orders, setOrders] = useState([]);
   const [clients, setClients] = useState([]);
@@ -30,6 +25,8 @@ const ManageOrders = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [clientSuggestions, setClientSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [downloadInvoice, setDownloadInvoice] = useState(null);
+  const invoiceRef = useRef(null);
 
   const [formData, setFormData] = useState({
     clientName: '',
@@ -165,6 +162,7 @@ const ManageOrders = () => {
   };
 
   const handleDownloadPDF = async (order, index) => {
+    setDownloadInvoice(order);
     Swal.fire({
       toast: true,
       position: 'top-end',
@@ -174,188 +172,29 @@ const ManageOrders = () => {
       title: 'Invoice generation started...'
     });
 
-    const doc = new jsPDF({ format: [210, 180] });
-    const serialNum = order.serialNumber;
-
-    // --- Header ---
-    // Brand Name
-    doc.setFontSize(26);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 0, 0);
-    doc.text('SAPP Creation', 20, 26);
-
-    // Yellow Bar & INVOICE Text
-    doc.setFillColor(253, 192, 47); // Yellowish color
-    doc.rect(20, 40, 95, 10, 'F'); // Left bar
-    
-    doc.setFontSize(32);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(0, 0, 0);
-    doc.text('INVOICE', 120, 48);
-    
-    doc.setFillColor(253, 192, 47);
-    doc.rect(172, 40, 18, 10, 'F'); // Right bar
-
-    // --- Information Section ---
-    // Left side: Invoice to
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 0, 0);
-    doc.text('Invoice to:', 20, 65);
-    
-    doc.setFontSize(15);
-    doc.setFont("helvetica", "bold");
-    doc.text(order.clientName || 'Client Name', 20, 72);
-    
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 0, 0);
-    doc.text('Mobile:', 20, 78);
-    
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 0, 0);
-    doc.text(order.mobileNumber || '-', 40, 78);
-
-    let leftY = 84;
-    // Description moved to table
-
-    // Right side: Date
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 0, 0);
-    doc.text('Date', 120, 65);
-    
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 0, 0);
-    const dateStr = order.createdAt ? formatDate(order.createdAt) : formatDate();
-    doc.text(dateStr, 135, 65);
-
-    // --- Table ---
-    let itemDesc = order.cardType || '-';
-    if (order.description) {
-      itemDesc += `\n\n${order.description}`;
-    }
-    
-    autoTable(doc, {
-      startY: Math.max(95, leftY + 10),
-      head: [['SL.', 'Item Description', 'Price', 'Total']],
-      body: [
-        ['1', itemDesc, `Rs. ${order.totalAmount || 0}`, `Rs. ${order.totalAmount || 0}`]
-      ],
-      theme: 'plain',
-      headStyles: {
-        fillColor: [50, 54, 63],
-        textColor: 255,
-        fontStyle: 'bold',
-        fontSize: 14,
-        halign: 'center'
-      },
-      bodyStyles: {
-        textColor: [0, 0, 0],
-        fontSize: 13,
-        fontStyle: 'bold',
-        halign: 'center'
-      },
-      columnStyles: {
-        0: { halign: 'center', cellWidth: 20 },
-        1: { halign: 'left' },
-        2: { halign: 'center', cellWidth: 35 },
-        3: { halign: 'center', cellWidth: 35 }
-      },
-      alternateRowStyles: {
-        fillColor: [245, 245, 245]
-      },
-      margin: { left: 20, right: 20 }
-    });
-
-    const finalY = doc.lastAutoTable.finalY + 10;
-
-    // --- Footer Section ---
-
-    // Payment Summary instead of Payment Info
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 0, 0);
-    doc.text('Payment Summary:', 20, finalY + 12);
-    
-    const advanceAmount = order.advanceAmount || 0;
-    const balancePaid = order.balanceAmount || 0;
-    const methodStr = (order.paymentMethod && order.paymentMethod !== 'None') ? ` (${order.paymentMethod})` : '';
-    const pendingBalance = Math.max(0, (order.totalAmount || 0) - advanceAmount - balancePaid);
-
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 0, 0);
-    
-    doc.text('Total Amount:', 20, finalY + 18);
-    doc.text(`Rs. ${order.totalAmount || 0}`, 55, finalY + 18);
-    
-    doc.text('Advance Paid:', 20, finalY + 24);
-    doc.text(`Rs. ${advanceAmount}${methodStr}`, 55, finalY + 24);
-    
-    doc.setTextColor(255, 0, 0);
-    doc.text('Balance Amount:', 20, finalY + 30);
-    doc.text(`Rs. ${pendingBalance}`, 55, finalY + 30);
-
-    // Thank you for your business
-    doc.setFontSize(18);
-    doc.setFont("times", "italic");
-    doc.setTextColor(253, 192, 47); // Yellowish color matching the bars
-    doc.text('Thank you for your business!', 105, finalY + 44, { align: 'center' });
-
-    // Footer completely removed as requested
-
-    // Generate PDF array buffer
-    const pdfArrayBuffer = doc.output('arraybuffer');
-    
-    // Convert to image
-    try {
-      const loadingTask = pdfjsLib.getDocument({ data: pdfArrayBuffer });
-      const pdf = await loadingTask.promise;
-      const page = await pdf.getPage(1);
-      
-      // Use scale for high-resolution image
-      const scale = 3; 
-      const viewport = page.getViewport({ scale });
-      
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
-      
-      const renderContext = {
-        canvasContext: context,
-        viewport: viewport,
-      };
-      
-      await page.render(renderContext).promise;
-      
-      const imgData = canvas.toDataURL('image/png');
-      
-      // Trigger download
-      const link = document.createElement('a');
-      link.href = imgData;
-      link.download = `Invoice_${serialNum}_${(order.clientName || 'Client').replace(/\s+/g, '_')}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (err) {
-      console.error('Error converting PDF to image:', err);
-      // Fallback for older browsers where pdfjs image conversion fails
-      try {
-        doc.save(`Invoice_${serialNum}_${(order.clientName || 'Client').replace(/\s+/g, '_')}.pdf`);
-        Swal.fire({
-          icon: 'info',
-          title: 'Downloaded as PDF',
-          text: 'Image generation is not supported on this device/browser, so the invoice was downloaded as a PDF instead.'
-        });
-      } catch (fallbackErr) {
-        console.error('PDF fallback failed:', fallbackErr);
-        Swal.fire('Error', 'Failed to generate invoice', 'error');
+    setTimeout(async () => {
+      if (invoiceRef.current) {
+        try {
+          const canvas = await html2canvas(invoiceRef.current, {
+            scale: 3,
+            useCORS: true,
+            logging: false
+          });
+          const image = canvas.toDataURL('image/png', 1.0);
+          const link = document.createElement('a');
+          link.download = `Invoice_${order.serialNumber}_${(order.clientName || 'Client').replace(/\s+/g, '_')}.png`;
+          link.href = image;
+          link.click();
+        } catch (error) {
+          console.error("Error generating image:", error);
+          Swal.fire('Error', 'Failed to generate invoice image', 'error');
+        } finally {
+          setDownloadInvoice(null);
+        }
+      } else {
+        setDownloadInvoice(null);
       }
-    }
+    }, 100);
   };
 
   const statusOptions = settings?.orderStatuses || ['Printing', 'Cutting', 'Ready To Dispatch', 'Delivered'];
@@ -1100,6 +939,104 @@ const ManageOrders = () => {
           )}
         </Modal.Body>
       </Modal>
+      {/* Hidden Download Container */}
+      {downloadInvoice && (
+        <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
+          <div 
+            ref={invoiceRef}
+            style={{
+              width: '380px',
+              backgroundColor: 'white',
+              padding: '30px 20px',
+              fontFamily: 'monospace',
+              color: '#000',
+              display: 'flex',
+              flexDirection: 'column',
+              fontSize: '14px',
+              lineHeight: '1.4',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '5px' }}>
+              <img src={logoImg} alt="SAPP Creation Logo" style={{ height: '100px' }} />
+            </div>
+            <div style={{ textAlign: 'center', fontSize: '13px', marginBottom: '10px' }}>
+              <div>No.3/4, Shop No.03, 1st Floor,</div>
+              <div>Alam Tower, Allimal St, Trichy - 8.</div>
+              <div>Ph: 0431-4010547, Cell: 88833 72047</div>
+            </div>
+            <div style={{ fontWeight: 'bold', fontSize: '18px', textAlign: 'center', marginBottom: '5px' }}>INVOICE</div>
+
+            <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
+
+            {/* Bill Info */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '12px' }}>
+              <div>DATE<br/><span style={{fontWeight: 'normal'}}>{downloadInvoice.createdAt ? formatDate(downloadInvoice.createdAt).split(',')[0] : formatDate().split(',')[0]}</span></div>
+            </div>
+
+            <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
+
+            {/* Client Info */}
+            <div style={{ fontWeight: 'bold', textTransform: 'uppercase', fontSize: '13px' }}>
+              <div style={{ display: 'flex' }}><span style={{width: '90px'}}>Invoice to</span><span>: {downloadInvoice.clientName || 'Client Name'}</span></div>
+              <div style={{ display: 'flex' }}><span style={{width: '90px'}}>Mobile</span><span>: {downloadInvoice.mobileNumber || '-'}</span></div>
+            </div>
+
+            <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
+
+            {/* Table Header */}
+            <div style={{ display: 'flex', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '13px' }}>
+              <div style={{ flex: 1, textAlign: 'center' }}>SL.</div>
+              <div style={{ flex: 3 }}>ITEM DESCRIPTION</div>
+              <div style={{ flex: 1, textAlign: 'center' }}>PRICE</div>
+              <div style={{ flex: 1, textAlign: 'right' }}>TOTAL</div>
+            </div>
+            
+            <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
+
+            {/* Table Body */}
+            <div style={{ display: 'flex', fontSize: '13px' }}>
+              <div style={{ flex: 1, textAlign: 'center' }}>1</div>
+              <div style={{ flex: 3 }}>{downloadInvoice.cardType || '-'}
+                {downloadInvoice.description && (
+                  <div style={{ marginTop: '5px', fontSize: '12px', whiteSpace: 'pre-wrap' }}>{downloadInvoice.description}</div>
+                )}
+              </div>
+              <div style={{ flex: 1, textAlign: 'center' }}>{downloadInvoice.totalAmount?.toFixed(2)}</div>
+              <div style={{ flex: 1, textAlign: 'right' }}>{downloadInvoice.totalAmount?.toFixed(2)}</div>
+            </div>
+
+            <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
+
+            {/* Payment Summary */}
+            <div style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '10px' }}>Payment Summary:</div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '13px', marginBottom: '5px' }}>
+              <div style={{ width: '150px' }}>Total Amount:</div>
+              <div>Rs. {downloadInvoice.totalAmount?.toFixed(2)}</div>
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '13px', marginBottom: '5px' }}>
+              <div style={{ width: '150px' }}>Advance Paid:</div>
+              <div>Rs. {(downloadInvoice.advanceAmount || 0).toFixed(2)} {(downloadInvoice.paymentMethod && downloadInvoice.paymentMethod !== 'None') ? `(${downloadInvoice.paymentMethod})` : ''}</div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '13px', color: '#ff0000' }}>
+              <div style={{ width: '150px' }}>Balance Amount:</div>
+              <div>Rs. {Math.max(0, (downloadInvoice.totalAmount || 0) - (downloadInvoice.advanceAmount || 0) - (downloadInvoice.balanceAmount || 0)).toFixed(2)}</div>
+            </div>
+
+            <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
+
+            {/* Footer */}
+            <div style={{ textAlign: 'center', fontStyle: 'italic', color: '#000', fontWeight: 'bold', marginTop: '15px' }}>
+              Thank you for your business!
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };
