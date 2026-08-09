@@ -60,6 +60,8 @@ const AttendanceCard = () => {
         return 'dark';
       case 'Lunch Break':
         return 'warning';
+      case 'Paused':
+        return 'info';
       default:
         return 'secondary';
     }
@@ -92,6 +94,17 @@ const AttendanceCard = () => {
       workingMs -= attendance.lunchDuration * 60000;
     } else if (attendance.lunchStart && !attendance.lunchEnd) {
       workingMs -= (currentTime.getTime() - new Date(attendance.lunchStart).getTime());
+    }
+
+    if (attendance.pauseDuration) {
+      workingMs -= attendance.pauseDuration * 60000;
+    }
+
+    if (attendance.status === 'Paused' && attendance.pauses && attendance.pauses.length > 0) {
+      const activePause = attendance.pauses[attendance.pauses.length - 1];
+      if (activePause && !activePause.end) {
+        workingMs -= (currentTime.getTime() - new Date(activePause.start).getTime());
+      }
     }
 
     if (workingMs < 0) return '00 : 00 : 00';
@@ -152,6 +165,10 @@ const AttendanceCard = () => {
             <strong className="text-dark">{formatDuration(attendance?.lunchDuration)}</strong>
           </div>
           <div>
+            <small className="text-muted d-block mb-1">Paused Time</small>
+            <strong className="text-dark">{formatDuration(attendance?.pauseDuration)}</strong>
+          </div>
+          <div>
             <small className="text-muted d-block mb-1">Total Working Time</small>
             <strong className="text-dark">{formatDuration(attendance?.workingMinutes)}</strong>
           </div>
@@ -195,6 +212,26 @@ const AttendanceCard = () => {
               onClick={() => handleAction('checkout', 'Check Out', 'Check Out Successful')}
             >
               <Square size={18} className="me-2" /> Check Out
+            </Button>
+          )}
+
+          {(attendance?.status === 'Working' || attendance?.status === 'Working After Lunch') && (
+            <Button 
+              variant="secondary" 
+              className="px-4 py-2 rounded-pill d-flex align-items-center shadow-sm ms-2"
+              onClick={() => handleAction('pause', 'Pause Tracking', 'Time Tracking Paused')}
+            >
+              <Pause size={18} className="me-2" /> Pause
+            </Button>
+          )}
+
+          {(attendance?.status === 'Paused') && (
+            <Button 
+              variant="info" 
+              className="px-4 py-2 rounded-pill d-flex align-items-center shadow-sm text-white ms-2"
+              onClick={() => handleAction('resume', 'Resume Tracking', 'Time Tracking Resumed')}
+            >
+              <Play size={18} className="me-2" /> Resume
             </Button>
           )}
           

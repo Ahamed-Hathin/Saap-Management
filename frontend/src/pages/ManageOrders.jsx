@@ -947,91 +947,96 @@ const ManageOrders = () => {
             style={{
               width: '380px',
               backgroundColor: 'white',
-              padding: '30px 20px',
+              padding: '20px 10px',
               fontFamily: 'monospace',
               color: '#000',
               display: 'flex',
               flexDirection: 'column',
-              fontSize: '14px',
-              lineHeight: '1.4',
+              fontSize: '16px',
+              lineHeight: '1.5',
               position: 'relative',
               overflow: 'hidden'
             }}
           >
             {/* Header */}
+            <div style={{ fontWeight: 'bold', fontSize: '22px', textAlign: 'center', marginBottom: '5px' }}>INVOICE</div>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '5px' }}>
-              <img src={logoImg} alt="SAPP Creation Logo" style={{ height: '100px' }} />
+              <img src={logoImg} alt="SAPP Creation Logo" style={{ height: '50px' }} />
             </div>
-            <div style={{ textAlign: 'center', fontSize: '13px', marginBottom: '10px' }}>
-              <div>No.3/4, Shop No.03, 1st Floor,</div>
-              <div>Alam Tower, Allimal St, Trichy - 8.</div>
+            <div style={{ textAlign: 'center', fontSize: '11px', marginBottom: '10px' }}>
+              <div>No.3/4, Shop No.03, 1st Floor, Alam Tower, Allimal St, Trichy - 8.</div>
               <div>Ph: 0431-4010547, Cell: 88833 72047</div>
             </div>
-            <div style={{ fontWeight: 'bold', fontSize: '18px', textAlign: 'center', marginBottom: '5px' }}>INVOICE</div>
 
             <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
 
             {/* Bill Info */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '14px' }}>
               <div>DATE<br/><span style={{fontWeight: 'normal'}}>{downloadInvoice.createdAt ? formatDate(downloadInvoice.createdAt).split(',')[0] : formatDate().split(',')[0]}</span></div>
+              <div style={{ textAlign: 'right' }}>TIME<br/><span style={{fontWeight: 'normal'}}>{downloadInvoice.createdAt ? new Date(downloadInvoice.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>
             </div>
 
             <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
 
             {/* Client Info */}
-            <div style={{ fontWeight: 'bold', textTransform: 'uppercase', fontSize: '13px' }}>
-              <div style={{ display: 'flex' }}><span style={{width: '90px'}}>Invoice to</span><span>: {downloadInvoice.clientName || 'Client Name'}</span></div>
-              <div style={{ display: 'flex' }}><span style={{width: '90px'}}>Mobile</span><span>: {downloadInvoice.mobileNumber || '-'}</span></div>
+            <div style={{ fontWeight: 'bold', textTransform: 'uppercase', fontSize: '15px' }}>
+              <div style={{ display: 'flex' }}><span style={{width: '100px'}}>Invoice to</span><span>: {downloadInvoice.clientName || 'Client Name'}</span></div>
+              <div style={{ display: 'flex' }}><span style={{width: '100px'}}>Mobile</span><span>: {downloadInvoice.mobileNumber || '-'}</span></div>
             </div>
 
             <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
 
             {/* Table Header */}
-            <div style={{ display: 'flex', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '13px' }}>
+            <div style={{ display: 'flex', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '14px' }}>
               <div style={{ flex: 1, textAlign: 'center' }}>SL.</div>
               <div style={{ flex: 3 }}>ITEM DESCRIPTION</div>
-              <div style={{ flex: 1, textAlign: 'center' }}>PRICE</div>
-              <div style={{ flex: 1, textAlign: 'right' }}>TOTAL</div>
+              <div style={{ flex: 1.2, textAlign: 'center' }}>PRICE</div>
+              <div style={{ flex: 1.2, textAlign: 'right' }}>TOTAL</div>
             </div>
             
             <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
 
             {/* Table Body */}
-            <div style={{ display: 'flex', fontSize: '13px' }}>
+            <div style={{ display: 'flex', fontSize: '15px' }}>
               <div style={{ flex: 1, textAlign: 'center' }}>1</div>
               <div style={{ flex: 3 }}>{downloadInvoice.cardType || '-'}
                 {downloadInvoice.description && (
-                  <div style={{ marginTop: '5px', fontSize: '12px', whiteSpace: 'pre-wrap' }}>{downloadInvoice.description}</div>
+                  <div style={{ marginTop: '5px', fontSize: '14px', whiteSpace: 'pre-wrap' }}>{downloadInvoice.description}</div>
                 )}
               </div>
-              <div style={{ flex: 1, textAlign: 'center' }}>{downloadInvoice.totalAmount?.toFixed(2)}</div>
-              <div style={{ flex: 1, textAlign: 'right' }}>{downloadInvoice.totalAmount?.toFixed(2)}</div>
+              <div style={{ flex: 1.2, textAlign: 'center' }}>{downloadInvoice.totalAmount?.toFixed(2)}</div>
+              <div style={{ flex: 1.2, textAlign: 'right' }}>{downloadInvoice.totalAmount?.toFixed(2)}</div>
             </div>
 
             <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
 
             {/* Payment Summary */}
-            <div style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '10px' }}>Payment Summary:</div>
+            <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '10px' }}>Payment Summary:</div>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '13px', marginBottom: '5px' }}>
-              <div style={{ width: '150px' }}>Total Amount:</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '15px', marginBottom: '5px' }}>
+              <div style={{ width: '160px' }}>Total Amount:</div>
               <div>Rs. {downloadInvoice.totalAmount?.toFixed(2)}</div>
             </div>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '13px', marginBottom: '5px' }}>
-              <div style={{ width: '150px' }}>Advance Paid:</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '15px', marginBottom: '5px' }}>
+              <div style={{ width: '160px' }}>Advance Paid:</div>
               <div>Rs. {(downloadInvoice.advanceAmount || 0).toFixed(2)} {(downloadInvoice.paymentMethod && downloadInvoice.paymentMethod !== 'None') ? `(${downloadInvoice.paymentMethod})` : ''}</div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '13px', color: '#ff0000' }}>
-              <div style={{ width: '150px' }}>Balance Amount:</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '15px', color: '#ff0000' }}>
+              <div style={{ width: '160px' }}>Balance Amount:</div>
               <div>Rs. {Math.max(0, (downloadInvoice.totalAmount || 0) - (downloadInvoice.advanceAmount || 0) - (downloadInvoice.balanceAmount || 0)).toFixed(2)}</div>
             </div>
 
             <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
 
             {/* Footer */}
-            <div style={{ textAlign: 'center', fontStyle: 'italic', color: '#000', fontWeight: 'bold', marginTop: '15px' }}>
+            <div style={{ fontSize: '10px', marginTop: '10px', textAlign: 'left', lineHeight: '1.2' }}>
+              <strong>Terms & Condition:</strong><br />
+              1. 50% Advance Payment should be paid at the time of Order Placement.<br />
+              2. Credit Facility not Available ( Make the Full Payment at the time of delivery ).
+            </div>
+            <div style={{ textAlign: 'center', fontStyle: 'italic', color: '#000', fontWeight: 'bold', marginTop: '15px', fontSize: '16px' }}>
               Thank you for your business!
             </div>
           </div>

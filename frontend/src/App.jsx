@@ -19,6 +19,7 @@ import ManageStack from './pages/ManageStack';
 import Quotation from './pages/Quotation';
 import AttendanceDashboard from './pages/AttendanceDashboard';
 import MyAttendance from './pages/MyAttendance';
+import MonthlyAttendance from './pages/MonthlyAttendance';
 
 const PrivateRoute = ({ children, role, excludeUser }) => {
   const { user, loading, logout } = useContext(AuthContext);
@@ -77,6 +78,7 @@ function App() {
         <Route path="/admin/stack" element={<PrivateRoute role="Admin"><ManageStack /></PrivateRoute>} />
         <Route path="/admin/my-attendance" element={<PrivateRoute role="Admin"><MyAttendance /></PrivateRoute>} />
         <Route path="/admin/attendance" element={<PrivateRoute role="Admin"><AttendanceDashboard /></PrivateRoute>} />
+        <Route path="/admin/attendance/employee/:id/monthly" element={<PrivateRoute role="Admin"><MonthlyAttendance /></PrivateRoute>} />
         <Route path="/admin/settings" element={<PrivateRoute role="Admin"><Settings /></PrivateRoute>} />
 
         {/* Employee Routes */}

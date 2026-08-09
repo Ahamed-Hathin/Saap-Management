@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Card, Table, Button, Modal, Form, Alert, InputGroup } from 'react-bootstrap';
 import api from '../services/api';
-import { Edit2, Trash2, UserPlus, Eye, EyeOff } from 'lucide-react';
+import { Edit2, Trash2, UserPlus, Eye, EyeOff, Calendar } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { formatDate } from '../utils/formatDate';
 
@@ -15,6 +16,7 @@ const ManageEmployees = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
 
   const fetchEmployees = async () => {
     try {
@@ -129,10 +131,13 @@ const ManageEmployees = () => {
                       <td>{emp.username}</td>
                       <td>{formatDate(emp.createdAt)}</td>
                       <td className="text-end">
-                        <Button variant="outline-primary" size="sm" className="me-2" onClick={() => handleEdit(emp)}>
+                        <Button variant="outline-info" size="sm" className="me-2" onClick={() => navigate(`/admin/attendance/employee/${emp._id}/monthly`)} title="View Attendance">
+                          <Calendar size={14} />
+                        </Button>
+                        <Button variant="outline-primary" size="sm" className="me-2" onClick={() => handleEdit(emp)} title="Edit">
                           <Edit2 size={14} />
                         </Button>
-                        <Button variant="outline-danger" size="sm" onClick={() => handleDelete(emp._id)}>
+                        <Button variant="outline-danger" size="sm" onClick={() => handleDelete(emp._id)} title="Delete">
                           <Trash2 size={14} />
                         </Button>
                       </td>
@@ -153,6 +158,9 @@ const ManageEmployees = () => {
                       <strong>Username:</strong> {emp.username}
                     </div>
                     <div className="d-flex gap-2">
+                      <Button variant="outline-info" size="sm" className="flex-grow-1" onClick={() => navigate(`/admin/attendance/employee/${emp._id}/monthly`)}>
+                        <Calendar size={14} className="me-1" /> Time
+                      </Button>
                       <Button variant="outline-primary" size="sm" className="flex-grow-1" onClick={() => handleEdit(emp)}>
                         <Edit2 size={14} className="me-1" /> Edit
                       </Button>

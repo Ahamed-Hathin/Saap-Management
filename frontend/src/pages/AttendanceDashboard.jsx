@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, Table, Badge, Row, Col, Form, ButtonGroup, Button } from 'react-bootstrap';
-import { Users, UserCheck, UserX, Clock, Coffee, LogOut } from 'lucide-react';
+import { Users, UserCheck, UserX, Clock, LogOut, Calendar } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
 import api from '../services/api';
-import { formatDate } from '../utils/formatDate';
 
 const AttendanceDashboard = () => {
   const [attendances, setAttendances] = useState([]);
@@ -14,20 +13,19 @@ const AttendanceDashboard = () => {
   const location = useLocation();
 
   useEffect(() => {
+    const fetchAttendances = async () => {
+      try {
+        setLoading(true);
+        const res = await api.get(`/attendance/admin?date=${dateFilter}`);
+        setAttendances(res.data);
+      } catch (error) {
+        console.error('Error fetching admin attendance:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchAttendances();
   }, [dateFilter]);
-
-  const fetchAttendances = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get(`/attendance/admin?date=${dateFilter}`);
-      setAttendances(res.data);
-    } catch (error) {
-      console.error('Error fetching admin attendance:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -74,7 +72,7 @@ const AttendanceDashboard = () => {
   return (
     <Layout>
       <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-        <div className="d-flex align-items-center flex-grow-1">
+        <div className="d-flex flex-column flex-md-row align-items-md-center align-items-start flex-grow-1 gap-3">
           <div>
             <h2 className="mb-1 fw-bold text-dark d-flex align-items-center">
               <Users size={28} className="me-2 text-primary" />
@@ -82,7 +80,7 @@ const AttendanceDashboard = () => {
             </h2>
             <p className="text-muted mb-0">Track employee attendance and working hours</p>
           </div>
-          <ButtonGroup className="ms-5 shadow-sm rounded-pill">
+          <ButtonGroup className="ms-md-5 shadow-sm rounded-pill">
             <Button 
               variant={location.pathname === '/admin/my-attendance' ? 'primary' : 'light'} 
               className={`px-4 rounded-start-pill ${location.pathname === '/admin/my-attendance' ? '' : 'text-muted'}`}
@@ -171,6 +169,7 @@ const AttendanceDashboard = () => {
                 <th className="border-0">Check Out</th>
                 <th className="border-0">Working Time</th>
                 <th className="border-0">Status</th>
+                <th className="border-0">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -193,6 +192,18 @@ const AttendanceDashboard = () => {
                     <td>{formatTime(att.checkOut)}</td>
                     <td className="fw-medium">{formatDuration(att.workingMinutes)}</td>
                     <td>{getStatusBadge(att.status)}</td>
+                    <td>
+                      {att.employeeId && (
+                        <Button 
+                          variant="outline-primary" 
+                          size="sm" 
+                          onClick={() => navigate(`/admin/attendance/employee/${att.employeeId._id}/monthly`)}
+                          title="View Monthly History"
+                        >
+                          <Calendar size={14} />
+                        </Button>
+                      )}
+                    </td>
                   </tr>
                 ))
               )}

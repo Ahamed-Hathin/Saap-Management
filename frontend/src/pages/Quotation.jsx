@@ -34,6 +34,10 @@ const BANK_DETAILS = [
 const Quotation = () => {
   const [quotations, setQuotations] = useState([]);
   const [filter, setFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [errors, setErrors] = useState({});
@@ -223,9 +227,52 @@ const Quotation = () => {
   };
 
   const filteredQuotations = quotations.filter(q => {
-    if (filter === 'done') return q.isDone;
-    if (filter === 'pending') return !q.isDone;
-    return true;
+    let matchesFilter = true;
+    if (filter === 'done') matchesFilter = q.isDone;
+    if (filter === 'pending') matchesFilter = !q.isDone;
+    
+    let matchesSearch = true;
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+      const titleMatch = q.title && q.title.toLowerCase().includes(lowerSearch);
+      const addressMatch = q.toAddress && q.toAddress.toLowerCase().includes(lowerSearch);
+      matchesSearch = titleMatch || addressMatch;
+    }
+    
+    let matchesDate = true;
+    if (dateFilter !== 'all' && q.date) {
+      const qDate = new Date(q.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - today.getDay());
+      
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      
+      if (dateFilter === 'today') {
+        matchesDate = qDate >= today;
+      } else if (dateFilter === 'yesterday') {
+        matchesDate = qDate >= yesterday && qDate < today;
+      } else if (dateFilter === 'weekly') {
+        matchesDate = qDate >= startOfWeek;
+      } else if (dateFilter === 'monthly') {
+        matchesDate = qDate >= startOfMonth;
+      } else if (dateFilter === 'custom') {
+        if (customStartDate && customEndDate) {
+          const start = new Date(customStartDate);
+          start.setHours(0, 0, 0, 0);
+          const end = new Date(customEndDate);
+          end.setHours(23, 59, 59, 999);
+          matchesDate = qDate >= start && qDate <= end;
+        }
+      }
+    }
+    
+    return matchesFilter && matchesSearch && matchesDate;
   });
 
   return (
@@ -235,13 +282,50 @@ const Quotation = () => {
           <h2 className="mb-0 fw-bold">Quotations</h2>
           <p className="text-muted mb-0">Manage and download your quotations</p>
         </div>
-        <div className="d-flex align-items-center gap-3">
-          <div className="d-flex gap-2">
+        <div className="d-flex flex-wrap align-items-center justify-content-md-end gap-2">
+          <Form.Control
+            type="text"
+            placeholder="Search title or address..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ width: '180px' }}
+          />
+          <Form.Select 
+            value={dateFilter} 
+            onChange={(e) => setDateFilter(e.target.value)}
+            style={{ width: '130px' }}
+          >
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
+            <option value="weekly">This Week</option>
+            <option value="monthly">This Month</option>
+            <option value="custom">Custom Date</option>
+          </Form.Select>
+          
+          {dateFilter === 'custom' && (
+            <div className="d-flex align-items-center gap-1">
+              <Form.Control
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                size="sm"
+              />
+              <span className="text-muted">to</span>
+              <Form.Control
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                size="sm"
+              />
+            </div>
+          )}
+
+          <div className="d-flex gap-2 align-items-center">
             <Button 
               variant={filter === 'all' ? "primary" : "outline-primary"} 
               size="sm" 
               onClick={() => setFilter('all')}
-              className="px-3"
             >
               All
             </Button>
@@ -249,7 +333,6 @@ const Quotation = () => {
               variant={filter === 'done' ? "primary" : "outline-primary"} 
               size="sm" 
               onClick={() => setFilter('done')}
-              className="px-3"
             >
               Selected
             </Button>
@@ -257,15 +340,14 @@ const Quotation = () => {
               variant={filter === 'pending' ? "primary" : "outline-primary"} 
               size="sm" 
               onClick={() => setFilter('pending')}
-              className="px-3"
             >
               Not Selected
             </Button>
+            <div className="vr d-none d-md-block mx-1"></div>
+            <Button variant="primary" size="sm" onClick={handleShow} className="d-flex align-items-center text-nowrap">
+              <FileText size={16} className="me-1" /> Create Quotation
+            </Button>
           </div>
-          <div className="vr d-none d-md-block mx-1"></div>
-          <Button variant="primary" onClick={handleShow} className="d-flex align-items-center">
-            <FileText size={18} className="me-2" /> Create Quotation
-          </Button>
         </div>
       </div>
 

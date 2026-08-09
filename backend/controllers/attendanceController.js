@@ -153,16 +153,80 @@ exports.checkOut = async (req, res) => {
     }
     
     const now = new Date();
+    
+    if (attendance.status === 'Paused') {
+      const activePause = attendance.pauses[attendance.pauses.length - 1];
+      if (activePause && !activePause.end) {
+        activePause.end = now;
+        const pDuration = Math.round((now.getTime() - new Date(activePause.start).getTime()) / 60000);
+        attendance.pauseDuration += pDuration;
+      }
+    }
+    
     attendance.checkOut = now;
     
     const isEarly = isEarlyCheckOut(dateStr, now);
     attendance.isEarlyExit = isEarly;
     
-    const workingMs = now.getTime() - new Date(attendance.checkIn).getTime() - (attendance.lunchDuration * 60000);
+    const workingMs = now.getTime() - new Date(attendance.checkIn).getTime() - (attendance.lunchDuration * 60000) - ((attendance.pauseDuration || 0) * 60000);
     attendance.workingMinutes = Math.round(workingMs / 60000);
     
     attendance.status = isEarly ? 'Early Exit' : 'Completed';
     
+    await attendance.save();
+    
+    res.json(attendance);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.pauseTracking = async (req, res) => {
+  try {
+    const dateStr = getLocalDateString();
+    let attendance = await Attendance.findOne({ employeeId: req.user._id, date: dateStr });
+    
+    if (!attendance || !attendance.checkIn) {
+      return res.status(400).json({ message: 'Must check in before pausing' });
+    }
+    if (attendance.checkOut) {
+      return res.status(400).json({ message: 'Already checked out' });
+    }
+    if (attendance.lunchStart && !attendance.lunchEnd) {
+      return res.status(400).json({ message: 'Cannot pause during lunch' });
+    }
+    if (attendance.status === 'Paused') {
+      return res.status(400).json({ message: 'Already paused' });
+    }
+    
+    attendance.pauses.push({ start: new Date() });
+    attendance.status = 'Paused';
+    await attendance.save();
+    
+    res.json(attendance);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.resumeTracking = async (req, res) => {
+  try {
+    const dateStr = getLocalDateString();
+    let attendance = await Attendance.findOne({ employeeId: req.user._id, date: dateStr });
+    
+    if (!attendance || attendance.status !== 'Paused') {
+      return res.status(400).json({ message: 'Not currently paused' });
+    }
+    
+    const activePause = attendance.pauses[attendance.pauses.length - 1];
+    if (activePause && !activePause.end) {
+      const now = new Date();
+      activePause.end = now;
+      const durationMs = now.getTime() - new Date(activePause.start).getTime();
+      attendance.pauseDuration += Math.round(durationMs / 60000);
+    }
+    
+    attendance.status = attendance.lunchEnd ? 'Working After Lunch' : 'Working';
     await attendance.save();
     
     res.json(attendance);
@@ -203,6 +267,17 @@ exports.getAdminDashboard = async (req, res) => {
             workingMs -= (now.getTime() - new Date(att.lunchStart).getTime());
           }
           
+          if (att.pauseDuration) {
+            workingMs -= (att.pauseDuration * 60000);
+          }
+          
+          if (att.status === 'Paused' && att.pauses && att.pauses.length > 0) {
+            const activePause = att.pauses[att.pauses.length - 1];
+            if (activePause && !activePause.end) {
+              workingMs -= (now.getTime() - new Date(activePause.start).getTime());
+            }
+          }
+          
           currentWorkingMinutes = Math.max(0, Math.round(workingMs / 60000));
         }
       }
@@ -223,6 +298,29 @@ exports.getAdminDashboard = async (req, res) => {
     });
     
     res.json(data);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getMonthlyAttendance = async (req, res) => {
+  try {
+    const employeeId = req.params.employeeId;
+    const { month, year } = req.query;
+
+    if (!month || !year) {
+      return res.status(400).json({ message: 'Month and year are required' });
+    }
+
+    const paddedMonth = month.toString().padStart(2, '0');
+    const regexPattern = new RegExp(`^${year}-${paddedMonth}`);
+
+    const attendances = await Attendance.find({
+      employeeId,
+      date: { $regex: regexPattern }
+    }).sort({ date: 1 }).populate('employeeId', 'name');
+
+    res.json(attendances);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

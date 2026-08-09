@@ -35,11 +35,22 @@ const attendanceSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    pauses: [
+      {
+        start: Date,
+        end: Date
+      }
+    ],
+    pauseDuration: {
+      type: Number,
+      default: 0,
+    },
     status: {
       type: String,
       enum: [
         'Not Checked In',
         'Working',
+        'Paused',
         'Lunch Break',
         'Working After Lunch',
         'Checked Out',
