@@ -68,7 +68,7 @@ const Layout = ({ children }) => {
           <NavLink to="/admin/stack" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
             <Package className="me-3" size={20} /> Manage Stock
           </NavLink>
-          <NavLink to="/admin/attendance" className={({ isActive }) => `nav-link d-none d-md-block ${(isActive || location.pathname === '/admin/my-attendance') ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+          <NavLink to="/admin/attendance" className={({ isActive }) => `nav-link ${(isActive || location.pathname === '/admin/my-attendance') ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
             <Clock className="me-3" size={20} /> Time Tracking
           </NavLink>
           <NavLink to="/admin/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>

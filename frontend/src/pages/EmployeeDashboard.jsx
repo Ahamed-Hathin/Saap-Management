@@ -29,6 +29,7 @@ const EmployeeDashboard = () => {
   const [paymentFormData, setPaymentFormData] = useState({ advanceAmount: '', paymentMethod: '' });
   const [balancePayments, setBalancePayments] = useState([{ amount: '', method: '' }]);
   const [previewImage, setPreviewImage] = useState(null);
+  const [selectedItemDetailsOrder, setSelectedItemDetailsOrder] = useState(null);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [clientSuggestions, setClientSuggestions] = useState([]);
@@ -43,7 +44,7 @@ const EmployeeDashboard = () => {
     advanceReceived: false,
     paymentMethod: 'GPay',
     printingCompany: settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite',
-    description: ''
+    items: [{ itemName: '', totalQty: 1, price: 0 }]
   });
 
   const getImageUrl = (imagePath) => {
@@ -75,7 +76,7 @@ const EmployeeDashboard = () => {
   const handleShow = () => {
     setFormData({
       clientName: '', mobileNumber: '', cardType: settings.jobTypes.length > 0 ? settings.jobTypes[0] : 'Visiting Card', advanceAmount: 0, totalAmount: 0,
-      advanceReceived: false, paymentMethod: 'GPay', printingCompany: settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite', description: ''
+      advanceReceived: false, paymentMethod: 'GPay', printingCompany: settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite', items: [{ itemName: '', totalQty: 1, price: 0 }]
     });
     setFile(null);
     setError('');
@@ -422,7 +423,7 @@ const EmployeeDashboard = () => {
                     <th>Client Name</th>
                     <th>Job</th>
                     <th>Image</th>
-                    <th>Description</th>
+                    <th>Item Details</th>
                     <th>Printing Method</th>
                     <th>Payment</th>
                     <th>Date</th>
@@ -447,18 +448,30 @@ const EmployeeDashboard = () => {
                             />
                           ) : '-'}
                         </td>
-                        <td 
-                          style={{ cursor: order.description ? 'pointer' : 'default', maxWidth: '120px' }} 
-                          className="text-truncate"
-                          onClick={() => {
-                            if (order.description) {
-                              Swal.fire({ title: 'Description', html: `<div style="text-align: left; font-size: 15px; line-height: 1.5;">${order.description.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}</div>` });
-                            }
-                          }}
-                          title={order.description ? "Click to view full description" : ""}
-                        >
-                          {order.description || '-'}
-                        </td>
+                        <td>
+                        {order.items && order.items.length > 0 ? (
+                          <div className="d-flex flex-column gap-1">
+                            {order.items.map((item, idx) => (
+                              <div 
+                                key={idx} 
+                                className="fw-bold text-primary" 
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => setSelectedItemDetailsOrder(order)}
+                              >
+                                {item.itemName}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div 
+                            className="fw-bold text-primary"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setSelectedItemDetailsOrder(order)}
+                          >
+                            {order.itemName || order.description || '-'}
+                          </div>
+                        )}
+                      </td>
                         <td>{order.printingCompany !== 'None' ? order.printingCompany : '-'}</td>
                       <td>
                         <div className="small fw-bold mb-1">
@@ -538,8 +551,33 @@ const EmployeeDashboard = () => {
                     <div className="text-muted small mb-3">
                       <strong>Mobile:</strong> {order.mobileNumber || '-'}<br />
                       <strong>Job:</strong> <span className="text-capitalize">{order.cardType || '-'}</span><br />
-                      {order.description && (
-                        <><strong>Description:</strong> <span style={{cursor: 'pointer', color: 'blue', textDecoration: 'underline'}} onClick={() => Swal.fire({ title: 'Description', html: `<div style="text-align: left; font-size: 15px; line-height: 1.5;">${order.description.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}</div>` })}>{order.description.length > 30 ? order.description.substring(0, 30) + '...' : order.description}</span><br /></>
+                      {order.items && order.items.length > 0 ? (
+                        <div className="mb-2">
+                          <strong>Items:</strong>
+                          <div className="d-flex flex-wrap gap-2 mt-1">
+                            {order.items.map((item, idx) => (
+                              <span 
+                                key={idx} 
+                                className="badge bg-light text-primary border"
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => setSelectedItemDetailsOrder(order)}
+                              >
+                                {item.itemName}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mb-2">
+                          <strong>Item:</strong> 
+                          <span 
+                            className="badge bg-light text-primary border ms-2"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setSelectedItemDetailsOrder(order)}
+                          >
+                            {order.itemName || order.description || '-'}
+                          </span>
+                        </div>
                       )}
                       <strong>Printing Method:</strong> {order.printingCompany !== 'None' ? order.printingCompany : 'Not Set'}<br />
                       <strong>Total Amount:</strong> ₹{order.totalAmount || 0}<br />
@@ -669,9 +707,54 @@ const EmployeeDashboard = () => {
                   ))}
                 </Form.Select>
               </div>
-              <div className="col-12">
-                <Form.Label>Description (Optional)</Form.Label>
-                <Form.Control as="textarea" rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value ? e.target.value.replace(/(^\w|\s\w)/g, m => m.toUpperCase()) : '' })} className="bg-light" />
+              
+              <div className="col-12 mt-4">
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <h6 className="fw-bold mb-0">Order Items</h6>
+                  <Button variant="outline-primary" size="sm" onClick={() => setFormData({ ...formData, items: [...formData.items, { itemName: '', totalQty: 1, price: 0 }] })}>
+                    <Plus size={16} className="me-1" /> Add Item
+                  </Button>
+                </div>
+                {formData.items.map((item, index) => (
+                  <div key={index} className="border rounded p-3 mb-3 bg-white position-relative">
+                    {formData.items.length > 1 && (
+                      <Button variant="link" className="position-absolute text-danger p-0" style={{ top: '10px', right: '10px' }} onClick={() => {
+                        const newItems = formData.items.filter((_, i) => i !== index);
+                        const newTotal = newItems.reduce((sum, it) => sum + Number(it.price), 0);
+                        setFormData({ ...formData, items: newItems, totalAmount: newTotal.toString() });
+                      }}>
+                        <Trash2 size={18} />
+                      </Button>
+                    )}
+                    <div className="row g-3">
+                      <div className="col-12">
+                        <Form.Label>Item Name</Form.Label>
+                        <Form.Control type="text" required value={item.itemName} onChange={(e) => {
+                          const newItems = [...formData.items];
+                          newItems[index].itemName = e.target.value;
+                          setFormData({ ...formData, items: newItems });
+                        }} className="bg-light" />
+                      </div>
+                      <div className="col-md-6">
+                        <Form.Label>Qty</Form.Label>
+                        <Form.Control type="number" required value={item.totalQty} onChange={(e) => {
+                          const newItems = [...formData.items];
+                          newItems[index].totalQty = e.target.value;
+                          setFormData({ ...formData, items: newItems });
+                        }} className="bg-light" />
+                      </div>
+                      <div className="col-md-6">
+                        <Form.Label>Price</Form.Label>
+                        <Form.Control type="number" required value={item.price} onChange={(e) => {
+                          const newItems = [...formData.items];
+                          newItems[index].price = e.target.value;
+                          const newTotal = newItems.reduce((sum, it) => sum + Number(it.price), 0);
+                          setFormData({ ...formData, items: newItems, totalAmount: newTotal.toString() });
+                        }} className="bg-light" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
               <div className="col-12">
                 <Form.Label>Design Image (Optional)</Form.Label>
@@ -809,6 +892,45 @@ const EmployeeDashboard = () => {
             <Button variant="primary" type="submit" className="fw-medium px-4">Save Payment</Button>
           </Modal.Footer>
         </Form>
+      </Modal>
+
+      {/* Item Details Modal */}
+      <Modal backdrop="static" show={!!selectedItemDetailsOrder} onHide={() => setSelectedItemDetailsOrder(null)} centered>
+        <Modal.Header closeButton className="border-0 pb-0 mt-3 mx-2">
+          <Modal.Title className="fw-bold">Item Details</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="px-4 pt-4 pb-4">
+          {selectedItemDetailsOrder && (
+            <div className="table-responsive">
+              <table className="table table-bordered mb-0">
+                <thead className="table-light">
+                  <tr>
+                    <th>Item Name</th>
+                    <th className="text-center">Qty</th>
+                    <th className="text-end">Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedItemDetailsOrder.items && selectedItemDetailsOrder.items.length > 0 ? (
+                    selectedItemDetailsOrder.items.map((item, idx) => (
+                      <tr key={idx}>
+                        <td className="fw-medium">{item.itemName}</td>
+                        <td className="text-center">{item.totalQty}</td>
+                        <td className="text-end">₹{item.price}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td className="fw-medium">{selectedItemDetailsOrder.itemName || selectedItemDetailsOrder.description || '-'}</td>
+                      <td className="text-center">{selectedItemDetailsOrder.totalQty || 1}</td>
+                      <td className="text-end">₹{(selectedItemDetailsOrder.price || selectedItemDetailsOrder.pricePerQty) || 0}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Modal.Body>
       </Modal>
 
       {/* Image Preview Modal */}

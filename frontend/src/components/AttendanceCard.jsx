@@ -215,7 +215,7 @@ const AttendanceCard = () => {
             </Button>
           )}
 
-          {(attendance?.status === 'Working' || attendance?.status === 'Working After Lunch') && (
+          {(attendance?.checkIn && !attendance?.checkOut && attendance?.status !== 'Paused' && attendance?.status !== 'Lunch Break') && (
             <Button 
               variant="secondary" 
               className="px-4 py-2 rounded-pill d-flex align-items-center shadow-sm ms-2"

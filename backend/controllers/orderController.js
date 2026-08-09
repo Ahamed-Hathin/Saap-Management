@@ -14,7 +14,11 @@ const createOrder = async (req, res) => {
       advanceReceived,
       paymentMethod,
       printingCompany,
-      description,
+      itemName,
+      totalQty,
+      pricePerQty,
+      items,
+      isClientOrder,
     } = req.body;
 
     if (clientName) {
@@ -42,7 +46,11 @@ const createOrder = async (req, res) => {
       advanceReceived: isAdvanceReceived,
       paymentMethod,
       printingCompany,
-      description,
+      itemName,
+      totalQty,
+      pricePerQty,
+      items: Array.isArray(items) ? items : [],
+      isClientOrder: isClientOrder || false,
     });
 
     const createdOrder = await order.save();
@@ -90,7 +98,10 @@ const updateOrderStatus = async (req, res) => {
       }
       order.mobileNumber = req.body.mobileNumber || order.mobileNumber;
       order.cardType = req.body.cardType || order.cardType;
-      order.description = req.body.description !== undefined ? req.body.description : order.description;
+      if (req.body.itemName !== undefined) order.itemName = req.body.itemName;
+      if (req.body.totalQty !== undefined) order.totalQty = req.body.totalQty;
+      if (req.body.pricePerQty !== undefined) order.pricePerQty = req.body.pricePerQty;
+      if (req.body.items !== undefined) order.items = req.body.items;
       order.status = req.body.status || order.status;
       order.advanceReceived = req.body.paymentReceived !== undefined ? req.body.paymentReceived : order.advanceReceived;
       order.advanceAmount = req.body.advanceAmount !== undefined ? req.body.advanceAmount : order.advanceAmount;

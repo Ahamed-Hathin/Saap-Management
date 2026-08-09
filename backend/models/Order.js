@@ -18,10 +18,31 @@ const orderSchema = mongoose.Schema(
       type: String,
       required: true,
     },
-    description: {
+    itemName: {
       type: String,
-      default: '',
+      required: false,
     },
+    totalQty: {
+      type: Number,
+      required: false,
+      default: 1,
+    },
+    pricePerQty: {
+      type: Number,
+      required: false,
+      default: 0,
+    },
+    items: [
+      {
+        itemName: { type: String, required: true },
+        totalQty: { type: Number, required: true, default: 1 },
+        price: { type: Number, required: true, default: 0 }
+      }
+    ],
+  isClientOrder: {
+    type: Boolean,
+    default: false
+  },
     advanceAmount: {
       type: Number,
       required: true,

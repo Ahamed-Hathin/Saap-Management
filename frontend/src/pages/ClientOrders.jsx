@@ -29,6 +29,7 @@ const ClientOrders = () => {
   const [paymentFormData, setPaymentFormData] = useState({ advanceAmount: '', balanceAmount: '', paymentMethod: '' });
   const [balancePayments, setBalancePayments] = useState([{ amount: '', method: '' }]);
   const [previewImage, setPreviewImage] = useState(null);
+  const [selectedItemDetailsOrder, setSelectedItemDetailsOrder] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [clientSuggestions, setClientSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -45,7 +46,7 @@ const ClientOrders = () => {
     advanceReceived: false,
     paymentMethod: '',
     printingCompany: '',
-    description: ''
+    items: [{ itemName: '', totalQty: 1, price: 0 }]
   });
 
   const getImageUrl = (imagePath) => {
@@ -77,7 +78,7 @@ const ClientOrders = () => {
   const handleShow = () => {
     setFormData({
       clientName: '', mobileNumber: '', cardType: '', advanceAmount: '', totalAmount: '',
-      assignedEmployee: '', advanceReceived: false, paymentMethod: '', printingCompany: '', description: ''
+      assignedEmployee: '', advanceReceived: false, paymentMethod: '', printingCompany: '', items: [{ itemName: '', totalQty: 1, price: 0 }]
     });
     setFile(null);
     setError('');
@@ -174,6 +175,11 @@ const ClientOrders = () => {
     try {
       const payload = {
         ...formData,
+        items: formData.items.map(item => ({
+          itemName: item.itemName,
+          totalQty: Number(item.totalQty),
+          price: Number(item.price)
+        })),
         advanceAmount: formData.advanceAmount === '' ? 0 : Number(formData.advanceAmount),
         totalAmount: formData.totalAmount === '' ? 0 : Number(formData.totalAmount),
         paymentMethod: formData.paymentMethod === '' ? 'None' : formData.paymentMethod,
@@ -362,7 +368,8 @@ const ClientOrders = () => {
       const date = escapeCsv(formatDate(order.createdAt), true);
       const customerName = escapeCsv(order.clientName);
       const number = escapeCsv(order.mobileNumber, true);
-      const description = escapeCsv(order.description || '');
+      const description = escapeCsv(order.items?.length > 0 ? order.items.map(i => i.itemName).join(', ') : order.itemName || order.description || '');
+      const priceStr = escapeCsv(order.items?.length > 0 ? '-' : (order.price || order.pricePerQty || 0));
       
       const total = order.totalAmount || 0;
       const paid = (order.advanceAmount || 0) + (order.balanceAmount || 0);
@@ -501,7 +508,7 @@ const ClientOrders = () => {
                     <th>Number</th>
                     <th>Job</th>
                     <th>Image</th>
-                    <th>Description</th>
+                    <th>Item Details</th>
                     <th>Printing Method</th>
                     <th>Payment</th>
                     <th>Update By</th>
@@ -530,17 +537,29 @@ const ClientOrders = () => {
                           />
                         ) : '-'}
                       </td>
-                      <td
-                        style={{ cursor: order.description ? 'pointer' : 'default', maxWidth: '120px' }}
-                        className="text-truncate"
-                        onClick={() => {
-                          if (order.description) {
-                            Swal.fire({ title: 'Description', html: `<div style="text-align: left; font-size: 15px; line-height: 1.5;">${order.description.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}</div>` });
-                          }
-                        }}
-                        title={order.description ? "Click to view full description" : ""}
-                      >
-                        {order.description || '-'}
+                      <td>
+                        {order.items && order.items.length > 0 ? (
+                          <div className="d-flex flex-column gap-1">
+                            {order.items.map((item, idx) => (
+                              <div 
+                                key={idx} 
+                                className="fw-bold text-primary" 
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => setSelectedItemDetailsOrder(order)}
+                              >
+                                {item.itemName}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div 
+                            className="fw-bold text-primary"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setSelectedItemDetailsOrder(order)}
+                          >
+                            {order.itemName || order.description || '-'}
+                          </div>
+                        )}
                       </td>
                       <td>{order.printingCompany !== 'None' ? order.printingCompany : '-'}</td>
                       <td>
@@ -630,8 +649,33 @@ const ClientOrders = () => {
                     <div className="text-muted small mb-2">
                       <strong>Mobile:</strong> {order.mobileNumber || '-'}<br />
                       <strong>Job:</strong> <span className="text-capitalize">{order.cardType || '-'}</span><br />
-                      {order.description && (
-                        <><strong>Description:</strong> <span style={{ cursor: 'pointer', color: 'blue', textDecoration: 'underline' }} onClick={() => Swal.fire({ title: 'Description', html: `<div style="text-align: left; font-size: 15px; line-height: 1.5;">${order.description.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}</div>` })}>{order.description.length > 30 ? order.description.substring(0, 30) + '...' : order.description}</span><br /></>
+                      {order.items && order.items.length > 0 ? (
+                        <div className="mb-2">
+                          <strong>Items:</strong>
+                          <div className="d-flex flex-wrap gap-2 mt-1">
+                            {order.items.map((item, idx) => (
+                              <span 
+                                key={idx} 
+                                className="badge bg-light text-primary border"
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => setSelectedItemDetailsOrder(order)}
+                              >
+                                {item.itemName}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mb-2">
+                          <strong>Item:</strong> 
+                          <span 
+                            className="badge bg-light text-primary border ms-2"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setSelectedItemDetailsOrder(order)}
+                          >
+                            {order.itemName || order.description || '-'}
+                          </span>
+                        </div>
                       )}
                       <strong>Assigned To:</strong> {order.assignedEmployee?.name || 'Unassigned'}
                       {order.createdAt && (
@@ -759,9 +803,54 @@ const ClientOrders = () => {
                   ))}
                 </Form.Select>
               </div>
-              <div className="col-12">
-                <Form.Label>Description (Optional)</Form.Label>
-                <Form.Control as="textarea" rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value ? e.target.value.replace(/(^\w|\s\w)/g, m => m.toUpperCase()) : '' })} className="bg-light" />
+              
+              <div className="col-12 mt-4">
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <h6 className="fw-bold mb-0">Order Items</h6>
+                  <Button variant="outline-primary" size="sm" onClick={() => setFormData({ ...formData, items: [...formData.items, { itemName: '', totalQty: 1, price: 0 }] })}>
+                    <Plus size={16} className="me-1" /> Add Item
+                  </Button>
+                </div>
+                {formData.items.map((item, index) => (
+                  <div key={index} className="border rounded p-3 mb-3 bg-white position-relative">
+                    {formData.items.length > 1 && (
+                      <Button variant="link" className="position-absolute text-danger p-0" style={{ top: '10px', right: '10px' }} onClick={() => {
+                        const newItems = formData.items.filter((_, i) => i !== index);
+                        const newTotal = newItems.reduce((sum, it) => sum + Number(it.price), 0);
+                        setFormData({ ...formData, items: newItems, totalAmount: newTotal.toString() });
+                      }}>
+                        <Trash2 size={18} />
+                      </Button>
+                    )}
+                    <div className="row g-3">
+                      <div className="col-12">
+                        <Form.Label>Item Name</Form.Label>
+                        <Form.Control type="text" required value={item.itemName} onChange={(e) => {
+                          const newItems = [...formData.items];
+                          newItems[index].itemName = e.target.value;
+                          setFormData({ ...formData, items: newItems });
+                        }} className="bg-light" />
+                      </div>
+                      <div className="col-md-6">
+                        <Form.Label>Qty</Form.Label>
+                        <Form.Control type="number" required value={item.totalQty} onChange={(e) => {
+                          const newItems = [...formData.items];
+                          newItems[index].totalQty = e.target.value;
+                          setFormData({ ...formData, items: newItems });
+                        }} className="bg-light" />
+                      </div>
+                      <div className="col-md-6">
+                        <Form.Label>Price</Form.Label>
+                        <Form.Control type="number" required value={item.price} onChange={(e) => {
+                          const newItems = [...formData.items];
+                          newItems[index].price = e.target.value;
+                          const newTotal = newItems.reduce((sum, it) => sum + Number(it.price), 0);
+                          setFormData({ ...formData, items: newItems, totalAmount: newTotal.toString() });
+                        }} className="bg-light" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
               <div className="col-12">
                 <Form.Label>Design Image (Optional)</Form.Label>
@@ -915,6 +1004,45 @@ const ClientOrders = () => {
       </Modal>
 
 
+      {/* Item Details Modal */}
+      <Modal backdrop="static" show={!!selectedItemDetailsOrder} onHide={() => setSelectedItemDetailsOrder(null)} centered>
+        <Modal.Header closeButton className="border-0 pb-0 mt-3 mx-2">
+          <Modal.Title className="fw-bold">Item Details</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="px-4 pt-4 pb-4">
+          {selectedItemDetailsOrder && (
+            <div className="table-responsive">
+              <table className="table table-bordered mb-0">
+                <thead className="table-light">
+                  <tr>
+                    <th>Item Name</th>
+                    <th className="text-center">Qty</th>
+                    <th className="text-end">Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedItemDetailsOrder.items && selectedItemDetailsOrder.items.length > 0 ? (
+                    selectedItemDetailsOrder.items.map((item, idx) => (
+                      <tr key={idx}>
+                        <td className="fw-medium">{item.itemName}</td>
+                        <td className="text-center">{item.totalQty}</td>
+                        <td className="text-end">₹{item.price}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td className="fw-medium">{selectedItemDetailsOrder.itemName || selectedItemDetailsOrder.description || '-'}</td>
+                      <td className="text-center">{selectedItemDetailsOrder.totalQty || 1}</td>
+                      <td className="text-end">₹{(selectedItemDetailsOrder.price || selectedItemDetailsOrder.pricePerQty) || 0}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Modal.Body>
+      </Modal>
+
       {/* Image Preview Modal */}
       <Modal backdrop="static" show={!!previewImage} onHide={() => setPreviewImage(null)} centered size="lg" contentClassName="border-0 rounded-4 shadow-lg bg-transparent">
         <Modal.Body className="p-0 text-center position-relative">
@@ -985,24 +1113,45 @@ const ClientOrders = () => {
 
             {/* Table Header */}
             <div style={{ display: 'flex', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '13px' }}>
-              <div style={{ flex: 1, textAlign: 'center' }}>SL.</div>
-              <div style={{ flex: 3 }}>ITEM DESCRIPTION</div>
+              <div style={{ flex: 0.5, textAlign: 'center' }}>SL.</div>
+              <div style={{ flex: 2 }}>ITEM NAME</div>
+              <div style={{ flex: 1, textAlign: 'center' }}>QTY</div>
               <div style={{ flex: 1, textAlign: 'center' }}>PRICE</div>
-              <div style={{ flex: 1, textAlign: 'right' }}>TOTAL</div>
+              <div style={{ flex: 1.2, textAlign: 'right' }}>TOTAL AMOUNT</div>
             </div>
             
             <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
 
             {/* Table Body */}
-            <div style={{ display: 'flex', fontSize: '13px' }}>
-              <div style={{ flex: 1, textAlign: 'center' }}>1</div>
-              <div style={{ flex: 3 }}>{downloadInvoice.cardType || '-'}
-                {downloadInvoice.description && (
-                  <div style={{ marginTop: '5px', fontSize: '12px', whiteSpace: 'pre-wrap' }}>{downloadInvoice.description}</div>
-                )}
+            {downloadInvoice.items && downloadInvoice.items.length > 0 ? (
+              downloadInvoice.items.map((item, idx) => (
+                <div key={idx} style={{ display: 'flex', fontSize: '15px', marginBottom: '8px' }}>
+                  <div style={{ flex: 0.5, textAlign: 'center' }}>{idx + 1}</div>
+                  <div style={{ flex: 2 }}>{item.itemName || '-'}</div>
+                  <div style={{ flex: 1, textAlign: 'center' }}>{item.totalQty || 1}</div>
+                  <div style={{ flex: 1, textAlign: 'center' }}>{item.price?.toFixed(2) || '0.00'}</div>
+                  <div style={{ flex: 1.2, textAlign: 'right' }}>{(item.price || 0).toFixed(2)}</div>
+                </div>
+              ))
+            ) : (
+              <div style={{ display: 'flex', fontSize: '15px' }}>
+                <div style={{ flex: 0.5, textAlign: 'center' }}>1</div>
+                <div style={{ flex: 2 }}>{downloadInvoice.itemName || downloadInvoice.cardType || '-'}
+                  {downloadInvoice.description && (
+                    <div style={{ marginTop: '5px', fontSize: '14px', whiteSpace: 'pre-wrap' }}>{downloadInvoice.description}</div>
+                  )}
+                </div>
+                <div style={{ flex: 1, textAlign: 'center' }}>{downloadInvoice.totalQty || 1}</div>
+                <div style={{ flex: 1, textAlign: 'center' }}>{downloadInvoice.totalAmount?.toFixed(2)}</div>
+                <div style={{ flex: 1.2, textAlign: 'right' }}>{downloadInvoice.totalAmount?.toFixed(2)}</div>
               </div>
-              <div style={{ flex: 1, textAlign: 'center' }}>{downloadInvoice.totalAmount?.toFixed(2)}</div>
-              <div style={{ flex: 1, textAlign: 'right' }}>{downloadInvoice.totalAmount?.toFixed(2)}</div>
+            )}
+
+            {/* Total Amount Row */}
+            <div style={{ borderTop: '2px dashed #000', margin: '10px 0' }}></div>
+            <div style={{ display: 'flex', fontSize: '15px', fontWeight: 'bold' }}>
+              <div style={{ flex: 3.5, textAlign: 'right', paddingRight: '15px' }}>Total Amount:</div>
+              <div style={{ flex: 1.2, textAlign: 'right' }}>{(downloadInvoice.totalAmount || 0).toFixed(2)}</div>
             </div>
 
             <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>

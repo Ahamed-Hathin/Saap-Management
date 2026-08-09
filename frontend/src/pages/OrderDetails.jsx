@@ -4,7 +4,7 @@ import { Card, Row, Col, Badge, Form, Button, Alert, Modal } from 'react-bootstr
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { formatDate } from '../utils/formatDate';
 
 
@@ -27,7 +27,7 @@ const OrderDetails = () => {
     clientName: '',
     mobileNumber: '',
     cardType: '',
-    description: '',
+    items: [{ itemName: '', totalQty: 1, price: 0 }],
     totalAmount: 0,
     advanceAmount: 0,
     balanceAmount: 0
@@ -54,7 +54,7 @@ const OrderDetails = () => {
         clientName: data.clientName || '',
         mobileNumber: data.mobileNumber || '',
         cardType: data.cardType || (settings.jobTypes?.length > 0 ? settings.jobTypes[0] : 'Visiting Card'),
-        description: data.description || '',
+        items: data.items && data.items.length > 0 ? data.items : [{ itemName: data.itemName || '', totalQty: data.totalQty || 1, price: data.price || 0 }],
         totalAmount: data.totalAmount || 0,
         advanceAmount: data.advanceAmount || 0,
         balanceAmount: data.balanceAmount || 0
@@ -77,7 +77,11 @@ const OrderDetails = () => {
         clientName: editForm.clientName,
         mobileNumber: editForm.mobileNumber,
         cardType: editForm.cardType,
-        description: editForm.description,
+        items: editForm.items.map(i => ({
+          itemName: i.itemName,
+          totalQty: Number(i.totalQty) || 1,
+          price: Number(i.price) || 0
+        })),
         totalAmount: editForm.totalAmount ? Number(editForm.totalAmount) : 0,
         advanceAmount: editForm.advanceAmount ? Number(editForm.advanceAmount) : 0,
         balanceAmount: editForm.balanceAmount ? Number(editForm.balanceAmount) : 0,
@@ -109,7 +113,11 @@ const OrderDetails = () => {
         payload.clientName = editForm.clientName;
         payload.mobileNumber = editForm.mobileNumber;
         payload.cardType = editForm.cardType;
-        payload.description = editForm.description;
+        payload.items = editForm.items.map(i => ({
+          itemName: i.itemName,
+          totalQty: Number(i.totalQty) || 1,
+          price: Number(i.price) || 0
+        }));
         payload.totalAmount = editForm.totalAmount ? Number(editForm.totalAmount) : 0;
         payload.advanceAmount = editForm.advanceAmount ? Number(editForm.advanceAmount) : 0;
         payload.balanceAmount = editForm.balanceAmount ? Number(editForm.balanceAmount) : 0;
@@ -168,7 +176,7 @@ const OrderDetails = () => {
                       clientName: order.clientName || '',
                       mobileNumber: order.mobileNumber || '',
                       cardType: order.cardType || '',
-                      description: order.description || '',
+                      items: order.items && order.items.length > 0 ? order.items : [{ itemName: order.itemName || '', totalQty: order.totalQty || 1, price: ((order.price || order.pricePerQty) || order.price) || 0 }],
                       totalAmount: order.totalAmount || 0,
                       advanceAmount: order.advanceAmount || 0,
                       balanceAmount: order.balanceAmount || 0
@@ -219,12 +227,71 @@ const OrderDetails = () => {
                 <Col sm={4} className="text-muted">Printing Method</Col>
                 <Col sm={8}>{order.printingCompany !== 'None' ? order.printingCompany : 'Not Set'}</Col>
               </Row>
-              <Row className="mb-3">
-                <Col sm={4} className="text-muted">Description</Col>
-                <Col sm={8} style={{ whiteSpace: 'pre-line' }}>
-                  {isEditing ? <Form.Control as="textarea" rows={3} value={editForm.description} onChange={(e) => setEditForm({...editForm, description: e.target.value ? e.target.value.replace(/(^\w|\s\w)/g, m => m.toUpperCase()) : ''})} /> : (order.description || '-')}
-                </Col>
-              </Row>
+              <div className="mb-4">
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <span className="text-muted fw-medium">Order Items</span>
+                  {isEditing && (
+                    <Button variant="outline-primary" size="sm" onClick={() => setEditForm({...editForm, items: [...editForm.items, { itemName: '', totalQty: 1, price: 0 }]})}>
+                      <Plus size={16} className="me-1" /> Add Item
+                    </Button>
+                  )}
+                </div>
+                {isEditing ? (
+                  editForm.items.map((item, idx) => (
+                    <div key={idx} className="border p-2 mb-2 rounded position-relative bg-light">
+                      {editForm.items.length > 1 && (
+                        <Button variant="link" className="position-absolute text-danger p-0" style={{ top: '5px', right: '5px' }} onClick={() => {
+                          const newItems = editForm.items.filter((_, i) => i !== idx);
+                          const newTotal = newItems.reduce((sum, it) => sum + Number(it.price), 0);
+                          setEditForm({...editForm, items: newItems, totalAmount: newTotal.toString()});
+                        }}>
+                          <Trash2 size={16} />
+                        </Button>
+                      )}
+                      <Row className="g-2">
+                        <Col sm={12}>
+                          <Form.Control type="text" placeholder="Item Name" value={item.itemName} onChange={(e) => {
+                            const newItems = [...editForm.items];
+                            newItems[idx].itemName = e.target.value;
+                            setEditForm({...editForm, items: newItems});
+                          }} />
+                        </Col>
+                        <Col sm={6}>
+                          <Form.Control type="number" placeholder="Qty" value={item.totalQty} onChange={(e) => {
+                            const newItems = [...editForm.items];
+                            newItems[idx].totalQty = e.target.value;
+                            const newTotal = newItems.reduce((sum, it) => sum + Number(it.price), 0);
+                            setEditForm({...editForm, items: newItems, totalAmount: newTotal.toString()});
+                          }} />
+                        </Col>
+                        <Col sm={6}>
+                          <Form.Control type="number" placeholder="Price" value={item.price} onChange={(e) => {
+                            const newItems = [...editForm.items];
+                            newItems[idx].price = e.target.value;
+                            const newTotal = newItems.reduce((sum, it) => sum + Number(it.price), 0);
+                            setEditForm({...editForm, items: newItems, totalAmount: newTotal.toString()});
+                          }} />
+                        </Col>
+                      </Row>
+                    </div>
+                  ))
+                ) : (
+                  order.items && order.items.length > 0 ? (
+                    <ul className="mb-0 ps-3">
+                      {order.items.map((item, idx) => (
+                        <li key={idx} className="mb-1">
+                          <strong>{item.itemName}</strong> - Qty: {item.totalQty} | ₹{item.price}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div>
+                      <div><strong>{order.itemName || order.description || '-'}</strong></div>
+                      <div>Qty: {order.totalQty || 1} | ₹{((order.price || order.pricePerQty) || order.price) || 0}</div>
+                    </div>
+                  )
+                )}
+              </div>
 
               <h5 className="mt-5 fw-bold mb-4">Payment Information</h5>
               <Row className="mb-3">

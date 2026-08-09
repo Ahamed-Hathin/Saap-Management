@@ -4,8 +4,11 @@ import { Users, UserCheck, UserX, Clock, LogOut, Calendar } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
 import api from '../services/api';
+import { AuthContext } from '../context/AuthContext';
+import { useContext } from 'react';
 
 const AttendanceDashboard = () => {
+  const { user } = useContext(AuthContext);
   const [attendances, setAttendances] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]);
