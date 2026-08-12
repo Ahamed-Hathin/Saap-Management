@@ -323,18 +323,37 @@ const ClientOrders = () => {
 
   const handleDownloadPDF = async (order, index) => {
     setDownloadInvoice(order);
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 3000,
+      icon: 'info',
+      title: 'Invoice generation started...'
+    });
+
     setTimeout(async () => {
-        if (invoiceRef.current) {
-            const canvas = await html2canvas(invoiceRef.current);
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const imgProps = pdf.getImageProperties(imgData);
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`Invoice_${order.serialNumber || 'Order'}.pdf`);
-            setDownloadInvoice(null);
+      if (invoiceRef.current) {
+        try {
+          const canvas = await html2canvas(invoiceRef.current, {
+            scale: 3,
+            useCORS: true,
+            logging: false
+          });
+          const image = canvas.toDataURL('image/png', 1.0);
+          const link = document.createElement('a');
+          link.download = `Invoice_${order.serialNumber}_${(order.clientName || 'Client').replace(/\s+/g, '_')}.png`;
+          link.href = image;
+          link.click();
+        } catch (error) {
+          console.error("Error generating image:", error);
+          Swal.fire('Error', 'Failed to generate invoice image', 'error');
+        } finally {
+          setDownloadInvoice(null);
         }
+      } else {
+        setDownloadInvoice(null);
+      }
     }, 500);
   };
 

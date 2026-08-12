@@ -174,22 +174,35 @@ const AttendanceCard = () => {
           </div>
         </div>
 
-        <div className="d-flex justify-content-center mt-3">
-          {(!attendance?.checkIn) && (
-            <Button 
+        <div className="d-flex justify-content-center flex-wrap gap-2 mt-3">
+          <Button 
               variant="primary" 
               className="px-4 py-2 rounded-pill d-flex align-items-center shadow-sm"
               onClick={() => handleAction('checkin', 'Check In', 'Check In Successful')}
+              disabled={!!attendance?.checkIn}
             >
               <Play size={18} className="me-2" /> Check In
             </Button>
-          )}
 
           {(attendance?.checkIn && !attendance?.lunchStart && !attendance?.checkOut) && (
             <Button 
               variant="warning" 
               className="px-4 py-2 rounded-pill d-flex align-items-center shadow-sm text-dark"
-              onClick={() => handleAction('lunch/start', 'Start Lunch', 'Lunch Started')}
+              onClick={() => {
+                Swal.fire({
+                  title: 'Start Lunch Break?',
+                  text: 'Are you sure you want to start your lunch break now?',
+                  icon: 'question',
+                  showCancelButton: true,
+                  confirmButtonColor: '#ffc107',
+                  cancelButtonColor: '#6c757d',
+                  confirmButtonText: 'Yes, start lunch'
+                }).then((result) => {
+                  if (result.isConfirmed) {
+                    handleAction('lunch/start', 'Start Lunch', 'Lunch Started');
+                  }
+                });
+              }}
             >
               <Pause size={18} className="me-2" /> Start Lunch
             </Button>
@@ -199,26 +212,53 @@ const AttendanceCard = () => {
             <Button 
               variant="success" 
               className="px-4 py-2 rounded-pill d-flex align-items-center shadow-sm"
-              onClick={() => handleAction('lunch/end', 'End Lunch', 'Lunch Ended')}
+              onClick={() => {
+                Swal.fire({
+                  title: 'End Lunch Break?',
+                  text: 'Are you sure you want to end your lunch break and resume working?',
+                  icon: 'question',
+                  showCancelButton: true,
+                  confirmButtonColor: '#198754',
+                  cancelButtonColor: '#6c757d',
+                  confirmButtonText: 'Yes, end lunch'
+                }).then((result) => {
+                  if (result.isConfirmed) {
+                    handleAction('lunch/end', 'End Lunch', 'Lunch Ended');
+                  }
+                });
+              }}
             >
               <Play size={18} className="me-2" /> End Lunch
             </Button>
           )}
 
-          {(attendance?.checkIn && (!attendance?.lunchStart || attendance?.lunchEnd) && !attendance?.checkOut) && (
-            <Button 
+          <Button 
               variant="danger" 
-              className="px-4 py-2 rounded-pill d-flex align-items-center shadow-sm ms-2"
-              onClick={() => handleAction('checkout', 'Check Out', 'Check Out Successful')}
+              className="px-4 py-2 rounded-pill d-flex align-items-center shadow-sm"
+              onClick={() => {
+                Swal.fire({
+                  title: 'Are you sure?',
+                  text: 'You are about to check out. This action cannot be undone.',
+                  icon: 'warning',
+                  showCancelButton: true,
+                  confirmButtonColor: '#d33',
+                  cancelButtonColor: '#3085d6',
+                  confirmButtonText: 'Yes, check out!'
+                }).then((result) => {
+                  if (result.isConfirmed) {
+                    handleAction('checkout', 'Check Out', 'Check Out Successful');
+                  }
+                });
+              }}
+              disabled={!attendance?.checkIn || !!attendance?.checkOut || (!!attendance?.lunchStart && !attendance?.lunchEnd) || attendance?.status === 'Paused'}
             >
               <Square size={18} className="me-2" /> Check Out
             </Button>
-          )}
 
           {(attendance?.checkIn && !attendance?.checkOut && attendance?.status !== 'Paused' && attendance?.status !== 'Lunch Break') && (
             <Button 
               variant="secondary" 
-              className="px-4 py-2 rounded-pill d-flex align-items-center shadow-sm ms-2"
+              className="px-4 py-2 rounded-pill d-flex align-items-center shadow-sm"
               onClick={() => handleAction('pause', 'Pause Tracking', 'Time Tracking Paused')}
             >
               <Pause size={18} className="me-2" /> Pause
@@ -228,7 +268,7 @@ const AttendanceCard = () => {
           {(attendance?.status === 'Paused') && (
             <Button 
               variant="info" 
-              className="px-4 py-2 rounded-pill d-flex align-items-center shadow-sm text-white ms-2"
+              className="px-4 py-2 rounded-pill d-flex align-items-center shadow-sm text-white"
               onClick={() => handleAction('resume', 'Resume Tracking', 'Time Tracking Resumed')}
             >
               <Play size={18} className="me-2" /> Resume
