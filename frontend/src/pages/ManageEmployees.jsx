@@ -12,7 +12,7 @@ const ManageEmployees = () => {
   const [employees, setEmployees] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [formData, setFormData] = useState({ id: '', name: '', username: '', password: '' });
+  const [formData, setFormData] = useState({ id: '', name: '', username: '', password: '', accessiblePages: [] });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -31,9 +31,22 @@ const ManageEmployees = () => {
     fetchEmployees();
   }, []);
 
+  const availablePages = ['Orders', 'Tasks', 'Clients', 'Quotation', 'Settings', 'Time Tracking', 'Other Employees'];
+
+  const handlePageToggle = (page) => {
+    setFormData(prev => {
+      const isSelected = prev.accessiblePages.includes(page);
+      if (isSelected) {
+        return { ...prev, accessiblePages: prev.accessiblePages.filter(p => p !== page) };
+      } else {
+        return { ...prev, accessiblePages: [...prev.accessiblePages, page] };
+      }
+    });
+  };
+
   const handleShow = () => {
     setEditMode(false);
-    setFormData({ id: '', name: '', username: '', password: '' });
+    setFormData({ id: '', name: '', username: '', password: '', accessiblePages: ['Orders', 'Tasks', 'Clients', 'Quotation', 'Settings', 'Time Tracking', 'Other Employees'] });
     setError('');
     setShowPassword(false);
     setShowModal(true);
@@ -41,7 +54,7 @@ const ManageEmployees = () => {
 
   const handleEdit = (emp) => {
     setEditMode(true);
-    setFormData({ id: emp._id, name: emp.name, username: emp.username, password: '' });
+    setFormData({ id: emp._id, name: emp.name, username: emp.username, password: '', accessiblePages: emp.accessiblePages || ['Orders', 'Tasks', 'Clients', 'Quotation', 'Settings', 'Time Tracking', 'Other Employees'] });
     setError('');
     setShowPassword(false);
     setShowModal(true);
@@ -77,7 +90,8 @@ const ManageEmployees = () => {
         await api.put(`/users/${formData.id}`, {
           name: formData.name,
           username: formData.username,
-          password: formData.password || undefined
+          password: formData.password || undefined,
+          accessiblePages: formData.accessiblePages
         });
       } else {
         await api.post('/users', formData);
@@ -204,6 +218,22 @@ const ManageEmployees = () => {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </Button>
               </InputGroup>
+            </Form.Group>
+            
+            <Form.Group className="mb-4">
+              <Form.Label className="fw-bold">Access Control (Allowed Pages)</Form.Label>
+              <div className="border rounded p-3 bg-light d-flex flex-wrap gap-3">
+                {availablePages.map(page => (
+                  <Form.Check 
+                    key={page}
+                    type="switch"
+                    id={`page-switch-${page.replace(/\s+/g, '-')}`}
+                    label={page}
+                    checked={formData.accessiblePages.includes(page)}
+                    onChange={() => handlePageToggle(page)}
+                  />
+                ))}
+              </div>
             </Form.Group>
           </Modal.Body>
           <Modal.Footer className="border-0 px-4 pb-4">

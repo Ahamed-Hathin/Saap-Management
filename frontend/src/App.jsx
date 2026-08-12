@@ -22,7 +22,7 @@ import MyAttendance from './pages/MyAttendance';
 import MonthlyAttendance from './pages/MonthlyAttendance';
 import OverallMonthlyAttendance from './pages/OverallMonthlyAttendance';
 
-const PrivateRoute = ({ children, role, excludeUser }) => {
+const PrivateRoute = ({ children, role, excludeUser, requiredPage }) => {
   const { user, loading, logout } = useContext(AuthContext);
 
   if (loading) return <div>Loading...</div>;
@@ -30,6 +30,18 @@ const PrivateRoute = ({ children, role, excludeUser }) => {
   if (!user) return <Navigate to="/login" />;
 
   if (role && user.role !== role) {
+    return (
+      <div className="p-5 text-center">
+        <h4>Unauthorized Access</h4>
+        <p>You don't have permission to view this page.</p>
+        <button className="btn btn-primary" onClick={() => { logout(); window.location.href = '/login'; }}>Logout</button>
+      </div>
+    );
+  }
+  
+  if (user.role === 'Admin') return children;
+
+  if (requiredPage && (!user.accessiblePages || !user.accessiblePages.includes(requiredPage))) {
     return (
       <div className="p-5 text-center">
         <h4>Unauthorized Access</h4>
@@ -84,18 +96,18 @@ function App() {
         <Route path="/admin/settings" element={<PrivateRoute role="Admin"><Settings /></PrivateRoute>} />
 
         {/* Employee Routes */}
-        <Route path="/employee/orders" element={<PrivateRoute role="Employee"><EmployeeDashboard /></PrivateRoute>} />
-        <Route path="/employee/user/:id" element={<PrivateRoute role="Employee"><EmployeeDashboard /></PrivateRoute>} />
-        <Route path="/employee/tasks" element={<PrivateRoute role="Employee"><Tasks /></PrivateRoute>} />
-        <Route path="/employee/settings" element={<PrivateRoute role="Employee"><Settings /></PrivateRoute>} />
-        <Route path="/employee/attendance" element={<PrivateRoute role="Employee"><MyAttendance /></PrivateRoute>} />
+        <Route path="/employee/orders" element={<PrivateRoute role="Employee" requiredPage="Orders"><EmployeeDashboard /></PrivateRoute>} />
+        <Route path="/employee/user/:id" element={<PrivateRoute role="Employee" requiredPage="Other Employees"><EmployeeDashboard /></PrivateRoute>} />
+        <Route path="/employee/tasks" element={<PrivateRoute role="Employee" requiredPage="Tasks"><Tasks /></PrivateRoute>} />
+        <Route path="/employee/settings" element={<PrivateRoute role="Employee" requiredPage="Settings"><Settings /></PrivateRoute>} />
+        <Route path="/employee/attendance" element={<PrivateRoute role="Employee" requiredPage="Time Tracking"><MyAttendance /></PrivateRoute>} />
         
         {/* Dynamic Routes */}
-        <Route path="/clients" element={<PrivateRoute excludeUser="staff 2"><ManageClients /></PrivateRoute>} />
-        <Route path="/clients/:id" element={<PrivateRoute excludeUser="staff 2"><ClientDetails /></PrivateRoute>} />
-        <Route path="/client-orders" element={<PrivateRoute excludeUser="staff 2"><ClientOrders /></PrivateRoute>} />
+        <Route path="/clients" element={<PrivateRoute requiredPage="Clients"><ManageClients /></PrivateRoute>} />
+        <Route path="/clients/:id" element={<PrivateRoute requiredPage="Clients"><ClientDetails /></PrivateRoute>} />
+        <Route path="/client-orders" element={<PrivateRoute requiredPage="Clients"><ClientOrders /></PrivateRoute>} />
         <Route path="/orders/:id" element={<PrivateRoute><OrderDetails /></PrivateRoute>} />
-        <Route path="/quotation" element={<PrivateRoute><Quotation /></PrivateRoute>} />
+        <Route path="/quotation" element={<PrivateRoute requiredPage="Quotation"><Quotation /></PrivateRoute>} />
         
         {/* Catch-all Route */}
         <Route path="*" element={<Navigate to="/" replace />} />

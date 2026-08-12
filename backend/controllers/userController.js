@@ -19,6 +19,7 @@ const createEmployee = async (req, res) => {
     username,
     password,
     role: 'Employee',
+    accessiblePages: req.body.accessiblePages || ['Orders', 'Tasks', 'Clients', 'Quotation', 'Settings', 'Time Tracking', 'Other Employees'],
   });
 
   if (user) {
@@ -34,13 +35,17 @@ const createEmployee = async (req, res) => {
 };
 
 const updateEmployee = async (req, res) => {
-  const user = await User.findById(req.params.id);
+  try {
+    const user = await User.findById(req.params.id);
 
   if (user) {
     user.name = req.body.name || user.name;
     user.username = req.body.username || user.username;
     if (req.body.password) {
       user.password = req.body.password;
+    }
+    if (req.body.accessiblePages) {
+      user.accessiblePages = req.body.accessiblePages;
     }
 
     const updatedUser = await user.save();
@@ -50,9 +55,14 @@ const updateEmployee = async (req, res) => {
       name: updatedUser.name,
       username: updatedUser.username,
       role: updatedUser.role,
+      accessiblePages: updatedUser.accessiblePages,
     });
-  } else {
-    res.status(404).json({ message: 'User not found' });
+    } else {
+      res.status(404).json({ message: 'User not found' });
+    }
+  } catch (error) {
+    console.error('Update Employee Error:', error);
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 };
 

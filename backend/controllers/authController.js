@@ -18,6 +18,7 @@ const authUser = async (req, res) => {
       name: user.name,
       username: user.username,
       role: user.role,
+      accessiblePages: user.accessiblePages,
       token: generateToken(user._id),
     });
   } else {

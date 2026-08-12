@@ -1103,13 +1103,15 @@ const ClientOrders = () => {
             }}
           >
             {/* Header */}
-            <div style={{ fontWeight: 'bold', fontSize: '18px', textAlign: 'center', marginBottom: '5px' }}>INVOICE</div>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '5px' }}>
-              <img src={logoImg} alt="SAPP Creation Logo" style={{ height: '50px' }} />
-            </div>
-            <div style={{ textAlign: 'center', fontSize: '10px', marginBottom: '10px' }}>
-              <div>No.3/4, Shop No.03, 1st Floor, Alam Tower, Allimal St, Trichy - 8.</div>
-              <div>Ph: 0431-4010547, Cell: 88833 72047</div>
+            <div style={{ backgroundColor: 'rgba(253, 192, 47, 0.15)', padding: '10px', borderRadius: '8px', marginBottom: '10px' }}>
+              <div style={{ fontWeight: 'bold', fontSize: '18px', textAlign: 'center', marginBottom: '5px' }}>INVOICE</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '5px' }}>
+                <img src={logoImg} alt="SAPP Creation Logo" style={{ height: '50px' }} />
+              </div>
+              <div style={{ textAlign: 'center', fontSize: '10px' }}>
+                <div>No.3/4, Shop No.03, 1st Floor, Alam Tower, Allimal St, Trichy - 8.</div>
+                <div>Ph: 0431-4010547, Cell: 88833 72047</div>
+              </div>
             </div>
 
             <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
@@ -1134,9 +1136,8 @@ const ClientOrders = () => {
             <div style={{ display: 'flex', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '13px' }}>
               <div style={{ flex: 0.5, textAlign: 'center' }}>SL.</div>
               <div style={{ flex: 2 }}>ITEM NAME</div>
-              <div style={{ flex: 1, textAlign: 'center' }}>QTY</div>
-              <div style={{ flex: 1, textAlign: 'center' }}>PRICE</div>
-              <div style={{ flex: 1.2, textAlign: 'right' }}>TOTAL AMOUNT</div>
+              <div style={{ flex: 0.8, textAlign: 'center' }}>QTY</div>
+              <div style={{ flex: 1.2, textAlign: 'right', paddingRight: '15px' }}>PRICE</div>
             </div>
             
             <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
@@ -1147,9 +1148,8 @@ const ClientOrders = () => {
                 <div key={idx} style={{ display: 'flex', fontSize: '15px', marginBottom: '8px' }}>
                   <div style={{ flex: 0.5, textAlign: 'center' }}>{idx + 1}</div>
                   <div style={{ flex: 2 }}>{item.itemName || '-'}</div>
-                  <div style={{ flex: 1, textAlign: 'center' }}>{item.totalQty || 1}</div>
-                  <div style={{ flex: 1, textAlign: 'center' }}>{item.price?.toFixed(2) || '0.00'}</div>
-                  <div style={{ flex: 1.2, textAlign: 'right' }}>{(item.price || 0).toFixed(2)}</div>
+                  <div style={{ flex: 0.8, textAlign: 'center' }}>{item.totalQty || 1}</div>
+                  <div style={{ flex: 1.2, textAlign: 'right', paddingRight: '15px' }}>{item.price?.toFixed(2) || '0.00'}</div>
                 </div>
               ))
             ) : (
@@ -1160,9 +1160,8 @@ const ClientOrders = () => {
                     <div style={{ marginTop: '5px', fontSize: '14px', whiteSpace: 'pre-wrap' }}>{downloadInvoice.description}</div>
                   )}
                 </div>
-                <div style={{ flex: 1, textAlign: 'center' }}>{downloadInvoice.totalQty || 1}</div>
-                <div style={{ flex: 1, textAlign: 'center' }}>{downloadInvoice.totalAmount?.toFixed(2)}</div>
-                <div style={{ flex: 1.2, textAlign: 'right' }}>{downloadInvoice.totalAmount?.toFixed(2)}</div>
+                <div style={{ flex: 0.8, textAlign: 'center' }}>{downloadInvoice.totalQty || 1}</div>
+                <div style={{ flex: 1.2, textAlign: 'right', paddingRight: '15px' }}>{downloadInvoice.totalAmount?.toFixed(2)}</div>
               </div>
             )}
 
@@ -1196,13 +1195,15 @@ const ClientOrders = () => {
             <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
 
             {/* Footer */}
-            <div style={{ fontSize: '10px', marginTop: '10px', textAlign: 'left', lineHeight: '1.2' }}>
-              <strong>Terms & Condition:</strong><br />
-              1. 50% Advance Payment should be paid at the time of Order Placement.<br />
-              2. Credit Facility not Available ( Make the Full Payment at the time of delivery ).
-            </div>
-            <div style={{ textAlign: 'center', fontStyle: 'italic', color: '#000', fontWeight: 'bold', marginTop: '15px' }}>
-              Thank you for your business!
+            <div style={{ backgroundColor: 'rgba(253, 192, 47, 0.15)', padding: '10px', borderRadius: '8px', marginTop: '10px' }}>
+              <div style={{ fontSize: '10px', textAlign: 'left', lineHeight: '1.2' }}>
+                <strong>Terms & Condition:</strong><br />
+                1. 50% Advance Payment should be paid at the time of Order Placement.<br />
+                2. Credit Facility not Available ( Make the Full Payment at the time of delivery ).
+              </div>
+              <div style={{ textAlign: 'center', fontStyle: 'italic', color: '#000', fontWeight: 'bold', marginTop: '10px' }}>
+                Thank you for your business!
+              </div>
             </div>
           </div>
         </div>

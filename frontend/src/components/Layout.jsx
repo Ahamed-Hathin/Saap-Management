@@ -77,31 +77,41 @@ const Layout = ({ children }) => {
         </>
       ) : (
         <>
-          <NavLink to="/employee/orders" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
-            <ShoppingCart className="me-3" size={20} /> My Orders
-          </NavLink>
-          {employees.map(emp => (
+          {(!user.accessiblePages || user.accessiblePages.includes('Orders')) && (
+            <NavLink to="/employee/orders" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+              <ShoppingCart className="me-3" size={20} /> My Orders
+            </NavLink>
+          )}
+          {(!user.accessiblePages || user.accessiblePages.includes('Other Employees')) && employees.map(emp => (
             <NavLink key={emp._id} to={`/employee/user/${emp._id}`} state={{ employeeName: emp.name }} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
               <Users className="me-3" size={20} /> {emp.name}
             </NavLink>
           ))}
-          <NavLink to="/employee/tasks" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
-            <ClipboardList className="me-3" size={20} /> Tasks
-          </NavLink>
-          {user?.name?.toLowerCase() !== 'staff 2' && (
+          {(!user.accessiblePages || user.accessiblePages.includes('Tasks')) && (
+            <NavLink to="/employee/tasks" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+              <ClipboardList className="me-3" size={20} /> Tasks
+            </NavLink>
+          )}
+          {(!user.accessiblePages || user.accessiblePages.includes('Clients')) && (
             <NavLink to="/clients" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
               <UserCheck className="me-3" size={20} /> Clients
             </NavLink>
           )}
-          <NavLink to="/quotation" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
-            <FileText className="me-3" size={20} /> Quotation
-          </NavLink>
-          <NavLink to="/employee/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
-            <Settings className="me-3" size={20} /> Settings
-          </NavLink>
-          <NavLink to="/employee/attendance" className={({ isActive }) => `nav-link d-none d-md-block ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
-            <Clock className="me-3" size={20} /> My Time Tracking
-          </NavLink>
+          {(!user.accessiblePages || user.accessiblePages.includes('Quotation')) && (
+            <NavLink to="/quotation" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+              <FileText className="me-3" size={20} /> Quotation
+            </NavLink>
+          )}
+          {(!user.accessiblePages || user.accessiblePages.includes('Settings')) && (
+            <NavLink to="/employee/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+              <Settings className="me-3" size={20} /> Settings
+            </NavLink>
+          )}
+          {(!user.accessiblePages || user.accessiblePages.includes('Time Tracking')) && (
+            <NavLink to="/employee/attendance" className={({ isActive }) => `nav-link d-none d-md-block ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+              <Clock className="me-3" size={20} /> My Time Tracking
+            </NavLink>
+          )}
         </>
       )}
     </Nav>
@@ -154,20 +164,24 @@ const Layout = ({ children }) => {
               </>
             ) : (
               <>
-                <NavLink to="/employee/orders" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
-                  <ShoppingCart size={24} className="d-block mx-auto mb-1" />
-                  <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>My Orders</span>
-                </NavLink>
-                {user?.name?.toLowerCase() !== 'staff 2' && (
+                {(!user.accessiblePages || user.accessiblePages.includes('Orders')) && (
+                  <NavLink to="/employee/orders" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
+                    <ShoppingCart size={24} className="d-block mx-auto mb-1" />
+                    <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>My Orders</span>
+                  </NavLink>
+                )}
+                {(!user.accessiblePages || user.accessiblePages.includes('Clients')) && (
                   <NavLink to="/clients" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
                     <UserCheck size={24} className="d-block mx-auto mb-1" />
                     <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Clients</span>
                   </NavLink>
                 )}
-                <NavLink to="/employee/settings" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
-                  <Settings size={24} className="d-block mx-auto mb-1" />
-                  <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Settings</span>
-                </NavLink>
+                {(!user.accessiblePages || user.accessiblePages.includes('Settings')) && (
+                  <NavLink to="/employee/settings" className={({ isActive }) => `text-center text-decoration-none ${isActive ? 'text-primary' : 'text-muted'}`}>
+                    <Settings size={24} className="d-block mx-auto mb-1" />
+                    <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>Settings</span>
+                  </NavLink>
+                )}
               </>
             )}
           </div>

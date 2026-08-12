@@ -21,6 +21,10 @@ const userSchema = mongoose.Schema(
       enum: ['Admin', 'Employee'],
       default: 'Employee',
     },
+    accessiblePages: {
+      type: [String],
+      default: ['Orders', 'Tasks', 'Clients', 'Quotation', 'Settings', 'Time Tracking', 'Other Employees'],
+    },
   },
   {
     timestamps: true,
@@ -31,9 +35,9 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', async function () {
   if (!this.isModified('password')) {
-    return next();
+    return;
   }
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
