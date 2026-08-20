@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import { Form, Button, Row, Col, Table, Modal, Alert } from 'react-bootstrap';
 import { Plus, Trash2, FileText, Download, Edit, Trash, CheckCircle } from 'lucide-react';
@@ -32,6 +33,7 @@ const BANK_DETAILS = [
 ];
 
 const Quotation = () => {
+  const { user } = useContext(AuthContext);
   const [quotations, setQuotations] = useState([]);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -47,6 +49,7 @@ const Quotation = () => {
     date: new Date().toISOString().split('T')[0],
     bankIndex: 0,
     gstPercentage: 0,
+    adminNotes: '',
     items: [
       { id: 1, description: '', qtyPerItem: '', totalQuantity: '', price: '' }
     ]
@@ -79,6 +82,7 @@ const Quotation = () => {
       date: new Date().toISOString().split('T')[0],
       bankIndex: 0,
       gstPercentage: 0,
+      adminNotes: '',
       items: [{ id: Date.now(), description: '', qtyPerItem: '', totalQuantity: '', price: '' }]
     });
   };
@@ -149,6 +153,10 @@ const Quotation = () => {
       const gstAmount = subTotal * (Number(formData.gstPercentage) || 0) / 100;
       const totalAmount = subTotal + gstAmount;
       const payload = { ...formData, totalAmount, gstPercentage: Number(formData.gstPercentage) || 0 };
+      
+      if (user?.role !== 'Admin') {
+        delete payload.adminNotes;
+      }
 
       if (editingId) {
         await api.put(`/quotations/${editingId}`, payload);
@@ -171,6 +179,7 @@ const Quotation = () => {
       date: new Date(q.date).toISOString().split('T')[0],
       bankIndex: q.bankIndex || 0,
       gstPercentage: q.gstPercentage || 0,
+      adminNotes: q.adminNotes || '',
       items: q.items.map(i => ({ ...i, id: i._id || Date.now() }))
     });
     setEditingId(q._id);
@@ -373,6 +382,13 @@ const Quotation = () => {
                   <small className="text-muted d-block mb-1">To</small>
                   <p className="text-truncate mb-0" title={q.toAddress}>{q.toAddress || 'N/A'}</p>
                 </div>
+
+                {user?.role === 'Admin' && q.adminNotes && (
+                  <div className="mb-3 p-2 bg-light rounded border">
+                    <small className="text-muted d-block mb-1 fw-bold">Admin Notes</small>
+                    <p className="mb-0 small text-break">{q.adminNotes}</p>
+                  </div>
+                )}
                 
                 <div className="mb-4">
                   <small className="text-muted d-block mb-1">Total Amount</small>
@@ -484,6 +500,20 @@ const Quotation = () => {
               />
               <Form.Control.Feedback type="invalid">{errors.toAddress}</Form.Control.Feedback>
             </Form.Group>
+
+            {user?.role === 'Admin' && (
+              <Form.Group className="mb-4">
+                <Form.Label>Admin Notes / Remarks (Internal Use Only)</Form.Label>
+                <Form.Control 
+                  as="textarea" 
+                  rows={2} 
+                  name="adminNotes" 
+                  value={formData.adminNotes} 
+                  onChange={handleInputChange}
+                  placeholder="Notes visible only to admins"
+                />
+              </Form.Group>
+            )}
 
             <div className="d-flex justify-content-between align-items-center mb-3 border-top pt-3">
               <h6 className="fw-bold mb-0">Quotation Items</h6>

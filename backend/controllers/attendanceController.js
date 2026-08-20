@@ -387,3 +387,84 @@ exports.getAllMonthlyAttendance = async (req, res) => {
     res.status(500).json({ message: 'Server error fetching overall monthly attendance' });
   }
 };
+
+exports.adminUpdateAttendance = async (req, res) => {
+  try {
+    const { employeeId, date, checkIn, lunchStart, lunchEnd, checkOut } = req.body;
+    if (!employeeId || !date) {
+      return res.status(400).json({ message: 'Employee ID and date are required' });
+    }
+
+    let attendance = await Attendance.findOne({ employeeId, date });
+    
+    if (!attendance) {
+      attendance = new Attendance({ employeeId, date });
+    }
+
+    if (checkIn) attendance.checkIn = new Date(checkIn);
+    else attendance.checkIn = null;
+
+    if (lunchStart) attendance.lunchStart = new Date(lunchStart);
+    else attendance.lunchStart = null;
+
+    if (lunchEnd) attendance.lunchEnd = new Date(lunchEnd);
+    else attendance.lunchEnd = null;
+
+    if (checkOut) attendance.checkOut = new Date(checkOut);
+    else attendance.checkOut = null;
+
+    // Recalculate durations
+    if (attendance.lunchStart && attendance.lunchEnd) {
+      const lunchMs = attendance.lunchEnd.getTime() - attendance.lunchStart.getTime();
+      attendance.lunchDuration = Math.max(0, Math.round(lunchMs / 60000));
+    } else {
+      attendance.lunchDuration = 0;
+    }
+
+    if (attendance.checkIn && attendance.checkOut) {
+      let workingMs = attendance.checkOut.getTime() - attendance.checkIn.getTime();
+      workingMs -= (attendance.lunchDuration * 60000);
+      workingMs -= ((attendance.pauseDuration || 0) * 60000);
+      attendance.workingMinutes = Math.max(0, Math.round(workingMs / 60000));
+      attendance.status = 'Completed';
+    } else if (attendance.checkIn) {
+      attendance.workingMinutes = 0;
+      if (attendance.lunchStart && !attendance.lunchEnd) {
+        attendance.status = 'Lunch Break';
+      } else if (attendance.lunchEnd) {
+        attendance.status = 'Working After Lunch';
+      } else {
+        attendance.status = 'Working';
+      }
+    } else {
+      attendance.workingMinutes = 0;
+      attendance.status = 'Absent';
+    }
+
+    // Determine late check-in
+    if (attendance.checkIn) {
+      const cutoff = new Date(`${date}T10:15:00`);
+      attendance.isLate = attendance.checkIn > cutoff;
+    } else {
+      attendance.isLate = false;
+    }
+
+    // Determine early checkout
+    if (attendance.checkOut) {
+      const cutoff = new Date(`${date}T20:45:00`);
+      attendance.isEarlyExit = attendance.checkOut < cutoff;
+      if (attendance.isEarlyExit && attendance.status === 'Completed') {
+        attendance.status = 'Early Exit';
+      }
+    } else {
+      attendance.isEarlyExit = false;
+    }
+
+    await attendance.save();
+    res.json(attendance);
+
+  } catch (error) {
+    console.error('Error in adminUpdateAttendance:', error);
+    res.status(500).json({ message: error.message });
+  }
+};

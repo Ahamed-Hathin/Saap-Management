@@ -12,6 +12,7 @@ const {
   getAllMonthlyAttendance,
   pauseTracking,
   resumeTracking,
+  adminUpdateAttendance,
 } = require('../controllers/attendanceController');
 
 router.get('/today', protect, getTodayAttendance);
@@ -22,6 +23,7 @@ router.post('/checkout', protect, checkOut);
 router.post('/pause', protect, pauseTracking);
 router.post('/resume', protect, resumeTracking);
 router.get('/admin', protect, admin, getAdminDashboard);
+router.put('/admin/update', protect, admin, adminUpdateAttendance);
 router.get('/monthly-all', protect, admin, getAllMonthlyAttendance);
 router.get('/monthly/:employeeId', protect, admin, getMonthlyAttendance);
 

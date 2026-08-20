@@ -56,6 +56,11 @@ const ClientOrders = () => {
     return `${baseUrl}/${imagePath.replace(/\\/g, '/').replace(/^\//, '')}`;
   };
 
+  const formatItemName = (name) => {
+    if (!name) return '-';
+    return name.length > 5 ? name.substring(0, 5) + '...' : name;
+  };
+
   const fetchData = async () => {
     try {
       const ordersRes = await api.get('/orders');
@@ -566,7 +571,7 @@ const ClientOrders = () => {
                                 style={{ cursor: 'pointer' }}
                                 onClick={() => setSelectedItemDetailsOrder(order)}
                               >
-                                {item.itemName}
+                                {formatItemName(item.itemName)}
                               </div>
                             ))}
                           </div>
@@ -576,7 +581,7 @@ const ClientOrders = () => {
                             style={{ cursor: 'pointer' }}
                             onClick={() => setSelectedItemDetailsOrder(order)}
                           >
-                            {order.itemName || order.description || '-'}
+                            {formatItemName(order.itemName || order.description)}
                           </div>
                         )}
                       </td>
@@ -679,7 +684,7 @@ const ClientOrders = () => {
                                 style={{ cursor: 'pointer' }}
                                 onClick={() => setSelectedItemDetailsOrder(order)}
                               >
-                                {item.itemName}
+                                {formatItemName(item.itemName)}
                               </span>
                             ))}
                           </div>
@@ -692,7 +697,7 @@ const ClientOrders = () => {
                             style={{ cursor: 'pointer' }}
                             onClick={() => setSelectedItemDetailsOrder(order)}
                           >
-                            {order.itemName || order.description || '-'}
+                            {formatItemName(order.itemName || order.description)}
                           </span>
                         </div>
                       )}
@@ -1086,28 +1091,28 @@ const ClientOrders = () => {
       {/* Hidden Download Container */}
       {downloadInvoice && (
         <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
-          <div 
-            ref={invoiceRef}
-            style={{
-              width: '380px',
-              backgroundColor: 'white',
-              padding: '30px 20px',
-              fontFamily: 'monospace',
-              color: '#000',
-              display: 'flex',
-              flexDirection: 'column',
-              fontSize: '14px',
-              lineHeight: '1.4',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-          >
-            {/* Header */}
-            <div style={{ backgroundColor: 'rgba(253, 192, 47, 0.15)', padding: '10px', borderRadius: '8px', marginBottom: '10px' }}>
-              <div style={{ fontWeight: 'bold', fontSize: '18px', textAlign: 'center', marginBottom: '5px' }}>INVOICE</div>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '5px' }}>
-                <img src={logoImg} alt="SAPP Creation Logo" style={{ height: '50px' }} />
-              </div>
+            <div 
+              ref={invoiceRef}
+              style={{
+                width: '380px',
+                backgroundColor: 'white',
+                padding: '40px 30px',
+                fontFamily: 'monospace',
+                color: '#000',
+                display: 'flex',
+                flexDirection: 'column',
+                fontSize: '14px',
+                lineHeight: '1.4',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              {/* Header */}
+              <div style={{ backgroundColor: 'rgba(253, 192, 47, 0.15)', padding: '10px', borderRadius: '8px', marginBottom: '10px' }}>
+                <div style={{ fontWeight: 'bold', fontSize: '18px', textAlign: 'center', marginBottom: '5px' }}>INVOICE</div>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '5px', fontSize: '24px', fontWeight: 'bold' }}>
+                  SAPP Creation
+                </div>
               <div style={{ textAlign: 'center', fontSize: '10px' }}>
                 <div>No.3/4, Shop No.03, 1st Floor, Alam Tower, Allimal St, Trichy - 8.</div>
                 <div>Ph: 0431-4010547, Cell: 88833 72047</div>

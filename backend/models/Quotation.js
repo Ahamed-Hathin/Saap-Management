@@ -15,7 +15,8 @@ const quotationSchema = new mongoose.Schema({
   totalAmount: { type: Number, default: 0 },
   gstPercentage: { type: Number, default: 0 },
   bankIndex: { type: Number, default: 0 },
-  isDone: { type: Boolean, default: false }
+  isDone: { type: Boolean, default: false },
+  adminNotes: { type: String, default: '' }
 }, {
   timestamps: true
 });

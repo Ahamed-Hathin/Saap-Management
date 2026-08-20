@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Badge, Row, Col, Form, ButtonGroup, Button } from 'react-bootstrap';
-import { Users, UserCheck, UserX, Clock, LogOut, Calendar } from 'lucide-react';
+import { Card, Table, Badge, Row, Col, Form, ButtonGroup, Button, Modal } from 'react-bootstrap';
+import { Users, UserCheck, UserX, Clock, LogOut, Calendar, Edit } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
 import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import { useContext } from 'react';
+import Swal from 'sweetalert2';
 
 const AttendanceDashboard = () => {
   const { user } = useContext(AuthContext);
@@ -14,6 +15,73 @@ const AttendanceDashboard = () => {
   const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]);
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [editForm, setEditForm] = useState({
+    checkIn: '',
+    lunchStart: '',
+    lunchEnd: '',
+    checkOut: ''
+  });
+
+  const handleEditClick = (att) => {
+    setSelectedEmployee(att.employeeId);
+    
+    const formatForInput = (dateString) => {
+      if (!dateString) return '';
+      const d = new Date(dateString);
+      return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    setEditForm({
+      checkIn: formatForInput(att.checkIn),
+      lunchStart: formatForInput(att.lunchStart),
+      lunchEnd: formatForInput(att.lunchEnd),
+      checkOut: formatForInput(att.checkOut),
+    });
+    setShowEditModal(true);
+  };
+
+  const handleSaveAttendance = async () => {
+    try {
+      const constructDateTime = (timeString) => {
+        if (!timeString) return null;
+        return new Date(`${dateFilter}T${timeString}:00`);
+      };
+
+      await api.put('/attendance/admin/update', {
+        employeeId: selectedEmployee._id,
+        date: dateFilter,
+        checkIn: constructDateTime(editForm.checkIn),
+        lunchStart: constructDateTime(editForm.lunchStart),
+        lunchEnd: constructDateTime(editForm.lunchEnd),
+        checkOut: constructDateTime(editForm.checkOut),
+      });
+
+      setShowEditModal(false);
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Attendance updated successfully',
+        showConfirmButton: false,
+        timer: 1500
+      });
+      // reload attendance
+      setLoading(true);
+      const res = await api.get(`/attendance/admin?date=${dateFilter}`);
+      setAttendances(res.data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error updating attendance:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Update Failed',
+        text: error.response?.data?.message || 'Something went wrong'
+      });
+    }
+  };
 
   useEffect(() => {
     const fetchAttendances = async () => {
@@ -197,14 +265,24 @@ const AttendanceDashboard = () => {
                     <td>{getStatusBadge(att.status)}</td>
                     <td>
                       {att.employeeId && (
-                        <Button 
-                          variant="outline-primary" 
-                          size="sm" 
-                          onClick={() => navigate(`/admin/attendance/employee/${att.employeeId._id}/monthly`)}
-                          title="View Monthly History"
-                        >
-                          <Calendar size={14} />
-                        </Button>
+                        <div className="d-flex gap-2 justify-content-center">
+                          <Button 
+                            variant="outline-primary" 
+                            size="sm" 
+                            onClick={() => navigate(`/admin/attendance/employee/${att.employeeId._id}/monthly`)}
+                            title="View Monthly History"
+                          >
+                            <Calendar size={14} />
+                          </Button>
+                          <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            onClick={() => handleEditClick(att)}
+                            title="Edit / Set Time"
+                          >
+                            <Edit size={14} />
+                          </Button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -214,6 +292,57 @@ const AttendanceDashboard = () => {
           </Table>
         </Card.Body>
       </Card>
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>
+            Edit Attendance: {selectedEmployee?.name}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Check In</Form.Label>
+              <Form.Control 
+                type="time" 
+                value={editForm.checkIn}
+                onChange={(e) => setEditForm({...editForm, checkIn: e.target.value})}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Lunch Start</Form.Label>
+              <Form.Control 
+                type="time" 
+                value={editForm.lunchStart}
+                onChange={(e) => setEditForm({...editForm, lunchStart: e.target.value})}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Lunch End</Form.Label>
+              <Form.Control 
+                type="time" 
+                value={editForm.lunchEnd}
+                onChange={(e) => setEditForm({...editForm, lunchEnd: e.target.value})}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Check Out</Form.Label>
+              <Form.Control 
+                type="time" 
+                value={editForm.checkOut}
+                onChange={(e) => setEditForm({...editForm, checkOut: e.target.value})}
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={handleSaveAttendance}>
+            Save Changes
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Layout>
   );
 };

@@ -49,6 +49,11 @@ const ManageOrders = () => {
     return `${baseUrl}/${imagePath.replace(/\\/g, '/').replace(/^\//, '')}`;
   };
 
+  const formatItemName = (name) => {
+    if (!name) return '-';
+    return name.length > 5 ? name.substring(0, 5) + '...' : name;
+  };
+
   const fetchData = async () => {
     try {
       const ordersRes = await api.get('/orders');
@@ -558,7 +563,7 @@ const ManageOrders = () => {
                                 style={{ cursor: 'pointer' }}
                                 onClick={() => setSelectedItemDetailsOrder(order)}
                               >
-                                {item.itemName}
+                                {formatItemName(item.itemName)}
                               </div>
                             ))}
                           </div>
@@ -568,7 +573,7 @@ const ManageOrders = () => {
                             style={{ cursor: 'pointer' }}
                             onClick={() => setSelectedItemDetailsOrder(order)}
                           >
-                            {order.itemName || order.description || '-'}
+                            {formatItemName(order.itemName || order.description)}
                           </div>
                         )}
                       </td>
@@ -664,7 +669,7 @@ const ManageOrders = () => {
                                 style={{ cursor: 'pointer' }}
                                 onClick={() => setSelectedItemDetailsOrder(order)}
                               >
-                                {item.itemName}
+                                {formatItemName(item.itemName)}
                               </span>
                             ))}
                           </div>
@@ -677,7 +682,7 @@ const ManageOrders = () => {
                             style={{ cursor: 'pointer' }}
                             onClick={() => setSelectedItemDetailsOrder(order)}
                           >
-                            {order.itemName || order.description || '-'}
+                            {formatItemName(order.itemName || order.description)}
                           </span>
                         </div>
                       )}
@@ -1075,7 +1080,7 @@ const ManageOrders = () => {
             style={{
               width: '380px',
               backgroundColor: 'white',
-              padding: '20px 10px',
+              padding: '40px 30px',
               fontFamily: 'monospace',
               color: '#000',
               display: 'flex',
@@ -1088,8 +1093,8 @@ const ManageOrders = () => {
           >
             {/* Header */}
             <div style={{ fontWeight: 'bold', fontSize: '19px', textAlign: 'center', marginBottom: '5px' }}>INVOICE</div>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '5px' }}>
-              <img src={logoImg} alt="SAPP Creation Logo" style={{ height: '50px' }} />
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '5px', fontSize: '24px', fontWeight: 'bold' }}>
+              SAPP Creation
             </div>
             <div style={{ textAlign: 'center', fontSize: '11px', marginBottom: '10px' }}>
               <div>No.3/4, Shop No.03, 1st Floor, Alam Tower, Allimal St, Trichy - 8.</div>
