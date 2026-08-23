@@ -21,6 +21,7 @@ import AttendanceDashboard from './pages/AttendanceDashboard';
 import MyAttendance from './pages/MyAttendance';
 import MonthlyAttendance from './pages/MonthlyAttendance';
 import OverallMonthlyAttendance from './pages/OverallMonthlyAttendance';
+import SalaryAutomate from './pages/SalaryAutomate';
 
 const PrivateRoute = ({ children, role, excludeUser, requiredPage }) => {
   const { user, loading, logout } = useContext(AuthContext);
@@ -93,6 +94,7 @@ function App() {
         <Route path="/admin/attendance" element={<PrivateRoute role="Admin"><AttendanceDashboard /></PrivateRoute>} />
         <Route path="/admin/attendance/overall" element={<PrivateRoute role="Admin"><OverallMonthlyAttendance /></PrivateRoute>} />
         <Route path="/admin/attendance/employee/:id/monthly" element={<PrivateRoute role="Admin"><MonthlyAttendance /></PrivateRoute>} />
+        <Route path="/admin/salary-automate" element={<PrivateRoute role="Admin"><SalaryAutomate /></PrivateRoute>} />
         <Route path="/admin/settings" element={<PrivateRoute role="Admin"><Settings /></PrivateRoute>} />
 
         {/* Employee Routes */}

@@ -206,7 +206,7 @@ const ClientDetails = () => {
               <th className="py-3 px-4 text-muted font-monospace text-uppercase" style={{fontSize: '0.85rem'}}>Date</th>
               <th className="py-3 px-4 text-muted font-monospace text-uppercase" style={{fontSize: '0.85rem'}}>Order No</th>
               <th className="py-3 px-4 text-muted font-monospace text-uppercase" style={{fontSize: '0.85rem'}}>Job Type</th>
-              <th className="py-3 px-4 text-muted font-monospace text-uppercase" style={{fontSize: '0.85rem'}}>Description</th>
+              <th className="py-3 px-4 text-muted font-monospace text-uppercase" style={{fontSize: '0.85rem'}}>Item Details</th>
               <th className="py-3 px-4 text-muted font-monospace text-uppercase" style={{fontSize: '0.85rem'}}>Status</th>
               <th className="py-3 px-4 text-muted font-monospace text-uppercase text-end" style={{fontSize: '0.85rem'}}>Total</th>
               <th className="py-3 px-4 text-muted font-monospace text-uppercase text-end" style={{fontSize: '0.85rem'}}>Pending</th>
@@ -241,15 +241,21 @@ const ClientDetails = () => {
                   <td className="py-3 px-4">{order.cardType}</td>
                   <td 
                     className="py-3 px-4 text-truncate" 
-                    style={{ maxWidth: '200px', cursor: order.description ? 'pointer' : 'default' }} 
-                    title={order.description ? "Click to view full description" : ""}
+                    style={{ maxWidth: '200px', cursor: (order.items?.length > 0 || order.itemName) ? 'pointer' : 'default' }} 
+                    title={(order.items?.length > 0 || order.itemName) ? "Click to view full item details" : ""}
                     onClick={() => {
-                      if (order.description) {
-                        Swal.fire({ title: 'Description', html: `<div style="text-align: left; font-size: 15px; line-height: 1.5;">${order.description.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>")}</div>` });
+                      let htmlContent = '';
+                      if (order.items && order.items.length > 0) {
+                        htmlContent = `<ul style="text-align: left; margin: 0; padding-left: 20px;">` + order.items.map(item => `<li style="margin-bottom: 5px;"><strong>${item.itemName}</strong> (Qty: ${item.totalQty})</li>`).join('') + `</ul>`;
+                      } else if (order.itemName) {
+                        htmlContent = `<div style="text-align: left;"><strong>${order.itemName}</strong></div>`;
+                      }
+                      if (htmlContent) {
+                        Swal.fire({ title: 'Item Details', html: htmlContent });
                       }
                     }}
                   >
-                    {order.description || '-'}
+                    {order.items?.length > 0 ? order.items.map(i => i.itemName).join(', ') : (order.itemName || '-')}
                   </td>
                   <td className="py-3 px-4">
                     <Form.Select 

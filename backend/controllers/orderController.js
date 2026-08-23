@@ -19,6 +19,7 @@ const createOrder = async (req, res) => {
       pricePerQty,
       items,
       isClientOrder,
+      status,
     } = req.body;
 
     if (clientName) {
@@ -51,6 +52,7 @@ const createOrder = async (req, res) => {
       pricePerQty,
       items: Array.isArray(items) ? items : [],
       isClientOrder: isClientOrder || false,
+      ...(status ? { status } : {}),
     });
 
     const createdOrder = await order.save();

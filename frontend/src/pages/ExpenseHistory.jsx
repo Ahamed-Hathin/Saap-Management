@@ -290,7 +290,7 @@ const ExpenseHistory = () => {
             <Form.Group className="mb-3">
               <Form.Label className="fw-medium text-secondary small">Amount</Form.Label>
               <Form.Control
-                type="number"
+                type="number" placeholder="0"
                 required
                 min="0"
                 value={payFormData.amount}
@@ -368,7 +368,7 @@ const ExpenseHistory = () => {
             <Form.Group className="mb-3">
               <Form.Label className="fw-medium text-secondary small">Total Amount</Form.Label>
               <Form.Control
-                type="number"
+                type="number" placeholder="0"
                 required
                 min="0"
                 value={globalPayFormData.amount}
@@ -422,7 +422,7 @@ const ExpenseHistory = () => {
             <Form.Group className="mb-3">
               <Form.Label className="fw-bold text-dark small mb-2">Total Amount <span className="text-danger">*</span></Form.Label>
               <Form.Control
-                type="number"
+                type="number" placeholder="0"
                 required
                 min="0"
                 value={addFormData.amount}

@@ -46,7 +46,8 @@ const ClientOrders = () => {
     advanceReceived: false,
     paymentMethod: '',
     printingCompany: '',
-    items: [{ itemName: '', totalQty: 1, price: 0 }]
+    status: 'Pending',
+    items: [{ itemName: '', totalQty: '', price: '' }]
   });
 
   const getImageUrl = (imagePath) => {
@@ -83,7 +84,7 @@ const ClientOrders = () => {
   const handleShow = () => {
     setFormData({
       clientName: '', mobileNumber: '', cardType: '', advanceAmount: '', totalAmount: '',
-      assignedEmployee: '', advanceReceived: false, paymentMethod: '', printingCompany: '', items: [{ itemName: '', totalQty: 1, price: 0 }]
+      assignedEmployee: '', advanceReceived: false, paymentMethod: '', printingCompany: '', status: 'Pending', items: [{ itemName: '', totalQty: '', price: '' }]
     });
     setFile(null);
     setError('');
@@ -527,7 +528,6 @@ const ClientOrders = () => {
                 <thead>
                   <tr>
                     <th>S.No</th>
-                    <th>Username</th>
                     <th>Customer Name</th>
                     <th>Number</th>
                     <th>Job</th>
@@ -547,7 +547,6 @@ const ClientOrders = () => {
                     return (
                     <tr key={order._id}>
                       <td>{displayedOrders.length - index}</td>
-                      <td className="fw-bold text-primary">{username}</td>
                       <td>{order.clientName}</td>
                       <td>{order.mobileNumber}</td>
                       <td className="text-capitalize">{order.cardType}</td>
@@ -831,7 +830,7 @@ const ClientOrders = () => {
               <div className="col-12 mt-4">
                 <div className="d-flex justify-content-between align-items-center mb-2">
                   <h6 className="fw-bold mb-0">Order Items</h6>
-                  <Button variant="outline-primary" size="sm" onClick={() => setFormData({ ...formData, items: [...formData.items, { itemName: '', totalQty: 1, price: 0 }] })}>
+                  <Button variant="outline-primary" size="sm" onClick={() => setFormData({ ...formData, items: [...formData.items, { itemName: '', totalQty: '', price: '' }] })}>
                     <Plus size={16} className="me-1" /> Add Item
                   </Button>
                 </div>
@@ -857,7 +856,7 @@ const ClientOrders = () => {
                       </div>
                       <div className="col-md-6">
                         <Form.Label>Qty</Form.Label>
-                        <Form.Control type="number" required value={item.totalQty} onChange={(e) => {
+                        <Form.Control type="number" placeholder="0" required value={item.totalQty} onChange={(e) => {
                           const newItems = [...formData.items];
                           newItems[index].totalQty = e.target.value;
                           setFormData({ ...formData, items: newItems });
@@ -865,7 +864,7 @@ const ClientOrders = () => {
                       </div>
                       <div className="col-md-6">
                         <Form.Label>Price</Form.Label>
-                        <Form.Control type="number" required value={item.price} onChange={(e) => {
+                        <Form.Control type="number" placeholder="0" required value={item.price} onChange={(e) => {
                           const newItems = [...formData.items];
                           newItems[index].price = e.target.value;
                           const newTotal = newItems.reduce((sum, it) => sum + Number(it.price), 0);
@@ -882,7 +881,7 @@ const ClientOrders = () => {
               </div>
               <div className="col-md-6">
                 <Form.Label>Total Amount</Form.Label>
-                <Form.Control type="number" required value={formData.totalAmount} onChange={(e) => setFormData({ ...formData, totalAmount: e.target.value })} className="bg-light" />
+                <Form.Control type="number" placeholder="0" required value={formData.totalAmount} onChange={(e) => setFormData({ ...formData, totalAmount: e.target.value })} className="bg-light" />
               </div>
               <div className="col-md-6 pt-4">
                 <Form.Check type="switch" id="advance-switch" label="Advance Amount Received" checked={formData.advanceReceived} onChange={(e) => setFormData({ ...formData, advanceReceived: e.target.checked })} className="fw-medium" />
@@ -905,11 +904,20 @@ const ClientOrders = () => {
                   ))}
                 </Form.Select>
               </div>
+              <Form.Group className="mb-3">
+                <Form.Label className="fw-semibold">Status</Form.Label>
+                <Form.Select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="bg-light">
+                  <option value="Pending">Pending</option>
+                  {statusOptions.filter(opt => opt !== 'Pending').map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
               {formData.advanceReceived && (
                 <>
                   <div className="col-md-6">
                     <Form.Label>Advance Amount</Form.Label>
-                    <Form.Control type="number" required value={formData.advanceAmount} onChange={(e) => setFormData({ ...formData, advanceAmount: e.target.value })} className="bg-light" />
+                    <Form.Control type="number" placeholder="0" required value={formData.advanceAmount} onChange={(e) => setFormData({ ...formData, advanceAmount: e.target.value })} className="bg-light" />
                   </div>
                   <div className="col-md-6">
                     <Form.Label>Payment Method</Form.Label>
@@ -947,7 +955,7 @@ const ClientOrders = () => {
             <Form.Group className="mb-3">
               <Form.Label>Advance Amount</Form.Label>
               <Form.Control
-                type="number"
+                type="number" placeholder="0"
                 value={paymentFormData.advanceAmount}
                 onChange={(e) => setPaymentFormData({ ...paymentFormData, advanceAmount: e.target.value })}
                 className="bg-light"
@@ -1110,7 +1118,7 @@ const ClientOrders = () => {
               {/* Header */}
               <div style={{ backgroundColor: 'rgba(253, 192, 47, 0.15)', padding: '10px', borderRadius: '8px', marginBottom: '10px' }}>
                 <div style={{ fontWeight: 'bold', fontSize: '18px', textAlign: 'center', marginBottom: '5px' }}>INVOICE</div>
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '5px', fontSize: '24px', fontWeight: 'bold' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '5px', fontSize: '32px', fontWeight: 'bold', color: 'red' }}>
                   SAPP Creation
                 </div>
               <div style={{ textAlign: 'center', fontSize: '10px' }}>

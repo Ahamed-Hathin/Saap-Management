@@ -49,6 +49,7 @@ const Quotation = () => {
     date: new Date().toISOString().split('T')[0],
     bankIndex: 0,
     gstPercentage: 0,
+    deliveryTime: '',
     adminNotes: '',
     items: [
       { id: 1, description: '', qtyPerItem: '', totalQuantity: '', price: '' }
@@ -82,6 +83,7 @@ const Quotation = () => {
       date: new Date().toISOString().split('T')[0],
       bankIndex: 0,
       gstPercentage: 0,
+      deliveryTime: '',
       adminNotes: '',
       items: [{ id: Date.now(), description: '', qtyPerItem: '', totalQuantity: '', price: '' }]
     });
@@ -475,6 +477,17 @@ const Quotation = () => {
             </Form.Group>
 
             <Form.Group className="mb-3">
+              <Form.Label>Delivery Time (Days) (Optional)</Form.Label>
+              <Form.Control 
+                type="text" 
+                name="deliveryTime" 
+                value={formData.deliveryTime} 
+                onChange={handleInputChange}
+                placeholder="e.g. 10"
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
               <Form.Label>GST Percentage (%) (Optional)</Form.Label>
               <Form.Control 
                 type="number" 
@@ -728,6 +741,9 @@ const Quotation = () => {
                 <div style={{ color: '#151965', marginTop: '25px', fontSize: '12px', fontFamily: 'Arial, sans-serif' }}>
                   <div style={{ fontWeight: 'bold' }}>Terms & Conditions:</div>
                   <div style={{ fontWeight: 'bold' }}>Payment Immediately</div>
+                  {downloadQuotation.deliveryTime && (
+                    <div style={{ fontWeight: 'bold' }}>After Confirmation of PO and Proof Delivery Time will be delivery({downloadQuotation.deliveryTime}) Days</div>
+                  )}
                 </div>
               </div>
               <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', paddingRight: '10px' }}>

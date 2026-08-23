@@ -27,10 +27,10 @@ const OrderDetails = () => {
     clientName: '',
     mobileNumber: '',
     cardType: '',
-    items: [{ itemName: '', totalQty: 1, price: 0 }],
-    totalAmount: 0,
-    advanceAmount: 0,
-    balanceAmount: 0
+    items: [{ itemName: '', totalQty: '', price: '' }],
+    totalAmount: '',
+    advanceAmount: '',
+    balanceAmount: ''
   });
 
   const statusOptions = settings?.orderStatuses || ['Printing', 'Cutting', 'Ready To Dispatch', 'Delivered'];
@@ -231,7 +231,7 @@ const OrderDetails = () => {
                 <div className="d-flex justify-content-between align-items-center mb-2">
                   <span className="text-muted fw-medium">Order Items</span>
                   {isEditing && (
-                    <Button variant="outline-primary" size="sm" onClick={() => setEditForm({...editForm, items: [...editForm.items, { itemName: '', totalQty: 1, price: 0 }]})}>
+                    <Button variant="outline-primary" size="sm" onClick={() => setEditForm({...editForm, items: [...editForm.items, { itemName: '', totalQty: '', price: '' }]})}>
                       <Plus size={16} className="me-1" /> Add Item
                     </Button>
                   )}
@@ -297,19 +297,19 @@ const OrderDetails = () => {
               <Row className="mb-3">
                 <Col sm={4} className="text-muted fw-medium">Total Amount</Col>
                 <Col sm={8} className={isEditing ? "" : "fw-bold"}>
-                  {isEditing ? <Form.Control type="number" value={editForm.totalAmount} onChange={(e) => setEditForm({...editForm, totalAmount: e.target.value})} /> : `₹${order.totalAmount}`}
+                  {isEditing ? <Form.Control type="number" placeholder="0" value={editForm.totalAmount} onChange={(e) => setEditForm({...editForm, totalAmount: e.target.value})} /> : `₹${order.totalAmount}`}
                 </Col>
               </Row>
               <Row className="mb-3">
                 <Col sm={4} className="text-muted fw-medium">Advance Amount</Col>
                 <Col sm={8}>
-                  {isEditing ? <Form.Control type="number" value={editForm.advanceAmount} onChange={(e) => setEditForm({...editForm, advanceAmount: e.target.value})} /> : `₹${order.advanceAmount} ${order.advanceAmount > 0 ? `(${order.paymentMethod || 'None'})` : ''}`}
+                  {isEditing ? <Form.Control type="number" placeholder="0" value={editForm.advanceAmount} onChange={(e) => setEditForm({...editForm, advanceAmount: e.target.value})} /> : `₹${order.advanceAmount} ${order.advanceAmount > 0 ? `(${order.paymentMethod || 'None'})` : ''}`}
                 </Col>
               </Row>
               <Row className="mb-3">
                 <Col sm={4} className="text-muted fw-medium">Balance Paid</Col>
                 <Col sm={8}>
-                  {isEditing ? <Form.Control type="number" value={editForm.balanceAmount} onChange={(e) => setEditForm({...editForm, balanceAmount: e.target.value})} /> : (
+                  {isEditing ? <Form.Control type="number" placeholder="0" value={editForm.balanceAmount} onChange={(e) => setEditForm({...editForm, balanceAmount: e.target.value})} /> : (
                     <>
                       <div>₹{order.balanceAmount || 0}</div>
                       {order.balancePayments && order.balancePayments.length > 0 && (

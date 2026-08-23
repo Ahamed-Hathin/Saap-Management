@@ -43,12 +43,12 @@ const EmployeeDashboard = () => {
     clientName: '',
     mobileNumber: '',
     cardType: settings.jobTypes.length > 0 ? settings.jobTypes[0] : '',
-    advanceAmount: 0,
-    totalAmount: 0,
+    advanceAmount: '',
+    totalAmount: '',
     advanceReceived: false,
     paymentMethod: 'GPay',
     printingCompany: settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite',
-    items: [{ itemName: '', totalQty: 1, price: 0 }]
+    items: [{ itemName: '', totalQty: '', price: '' }]
   });
 
   const getImageUrl = (imagePath) => {
@@ -84,8 +84,8 @@ const EmployeeDashboard = () => {
 
   const handleShow = () => {
     setFormData({
-      clientName: '', mobileNumber: '', cardType: settings.jobTypes.length > 0 ? settings.jobTypes[0] : 'Visiting Card', advanceAmount: 0, totalAmount: 0,
-      advanceReceived: false, paymentMethod: 'GPay', printingCompany: settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite', items: [{ itemName: '', totalQty: 1, price: 0 }]
+      clientName: '', mobileNumber: '', cardType: settings.jobTypes.length > 0 ? settings.jobTypes[0] : 'Visiting Card', advanceAmount: '', totalAmount: '',
+      advanceReceived: false, paymentMethod: 'GPay', printingCompany: settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite', items: [{ itemName: '', totalQty: '', price: '' }]
     });
     setFile(null);
     setError('');
@@ -610,7 +610,7 @@ const EmployeeDashboard = () => {
               <div className="col-12 mt-4">
                 <div className="d-flex justify-content-between align-items-center mb-2">
                   <h6 className="fw-bold mb-0">Order Items</h6>
-                  <Button variant="outline-primary" size="sm" onClick={() => setFormData({ ...formData, items: [...formData.items, { itemName: '', totalQty: 1, price: 0 }] })}>
+                  <Button variant="outline-primary" size="sm" onClick={() => setFormData({ ...formData, items: [...formData.items, { itemName: '', totalQty: '', price: '' }] })}>
                     <Plus size={16} className="me-1" /> Add Item
                   </Button>
                 </div>
@@ -636,7 +636,7 @@ const EmployeeDashboard = () => {
                       </div>
                       <div className="col-md-6">
                         <Form.Label>Qty</Form.Label>
-                        <Form.Control type="number" required value={item.totalQty} onChange={(e) => {
+                        <Form.Control type="number" placeholder="0" required value={item.totalQty} onChange={(e) => {
                           const newItems = [...formData.items];
                           newItems[index].totalQty = e.target.value;
                           setFormData({ ...formData, items: newItems });
@@ -644,7 +644,7 @@ const EmployeeDashboard = () => {
                       </div>
                       <div className="col-md-6">
                         <Form.Label>Price</Form.Label>
-                        <Form.Control type="number" required value={item.price} onChange={(e) => {
+                        <Form.Control type="number" placeholder="0" required value={item.price} onChange={(e) => {
                           const newItems = [...formData.items];
                           newItems[index].price = e.target.value;
                           const newTotal = newItems.reduce((sum, it) => sum + Number(it.price), 0);
@@ -661,7 +661,7 @@ const EmployeeDashboard = () => {
               </div>
               <div className="col-md-6">
                 <Form.Label>Total Amount</Form.Label>
-                <Form.Control type="number" required value={formData.totalAmount} onChange={(e) => setFormData({ ...formData, totalAmount: e.target.value })} className="bg-light" />
+                <Form.Control type="number" placeholder="0" required value={formData.totalAmount} onChange={(e) => setFormData({ ...formData, totalAmount: e.target.value })} className="bg-light" />
               </div>
               <div className="col-md-6">
                 <Form.Label>Printing Method</Form.Label>
@@ -678,7 +678,7 @@ const EmployeeDashboard = () => {
                 <>
                   <div className="col-md-6">
                     <Form.Label>Advance Amount</Form.Label>
-                    <Form.Control type="number" required value={formData.advanceAmount} onChange={(e) => setFormData({ ...formData, advanceAmount: e.target.value })} className="bg-light" />
+                    <Form.Control type="number" placeholder="0" required value={formData.advanceAmount} onChange={(e) => setFormData({ ...formData, advanceAmount: e.target.value })} className="bg-light" />
                   </div>
                   <div className="col-md-6">
                     <Form.Label>Payment Method</Form.Label>
@@ -713,7 +713,7 @@ const EmployeeDashboard = () => {
             <Form.Group className="mb-3">
               <Form.Label>Advance Amount</Form.Label>
               <Form.Control 
-                type="number" 
+                type="number" placeholder="0" 
                 value={paymentFormData.advanceAmount} 
                 onChange={(e) => setPaymentFormData({ ...paymentFormData, advanceAmount: e.target.value })} 
                 className="bg-light"
@@ -856,29 +856,29 @@ const EmployeeDashboard = () => {
     {/* Hidden Download Container */}
       {downloadInvoice && (
         <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
-          <div 
-            ref={invoiceRef}
-            style={{
-              width: '380px',
-              backgroundColor: 'white',
-              padding: '40px 30px',
-              fontFamily: 'monospace',
-              color: '#000',
-              display: 'flex',
-              flexDirection: 'column',
-              fontSize: '16px',
-              lineHeight: '1.5',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-          >
-            {/* Header */}
-            <div style={{ backgroundColor: 'rgba(253, 192, 47, 0.15)', padding: '10px', borderRadius: '8px', marginBottom: '10px' }}>
-              <div style={{ fontWeight: 'bold', fontSize: '19px', textAlign: 'center', marginBottom: '5px' }}>INVOICE</div>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '5px', fontSize: '24px', fontWeight: 'bold' }}>
-                SAPP Creation
-              </div>
-              <div style={{ textAlign: 'center', fontSize: '11px' }}>
+            <div 
+              ref={invoiceRef}
+              style={{
+                width: '380px',
+                backgroundColor: 'white',
+                padding: '40px 30px',
+                fontFamily: 'monospace',
+                color: '#000',
+                display: 'flex',
+                flexDirection: 'column',
+                fontSize: '14px',
+                lineHeight: '1.4',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              {/* Header */}
+              <div style={{ backgroundColor: 'rgba(253, 192, 47, 0.15)', padding: '10px', borderRadius: '8px', marginBottom: '10px' }}>
+                <div style={{ fontWeight: 'bold', fontSize: '18px', textAlign: 'center', marginBottom: '5px' }}>INVOICE</div>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '5px', fontSize: '32px', fontWeight: 'bold', color: 'red' }}>
+                  SAPP Creation
+                </div>
+              <div style={{ textAlign: 'center', fontSize: '10px' }}>
                 <div>No.3/4, Shop No.03, 1st Floor, Alam Tower, Allimal St, Trichy - 8.</div>
                 <div>Ph: 0431-4010547, Cell: 88833 72047</div>
               </div>
@@ -887,7 +887,7 @@ const EmployeeDashboard = () => {
             <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
 
             {/* Bill Info */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '12px' }}>
               <div>DATE<br/><span style={{fontWeight: 'normal'}}>{downloadInvoice.createdAt ? formatDate(downloadInvoice.createdAt).split(',')[0] : formatDate().split(',')[0]}</span></div>
               <div style={{ textAlign: 'right' }}>TIME<br/><span style={{fontWeight: 'normal'}}>{downloadInvoice.createdAt ? new Date(downloadInvoice.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>
             </div>
@@ -895,16 +895,15 @@ const EmployeeDashboard = () => {
             <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
 
             {/* Client Info */}
-            <div style={{ fontWeight: 'bold', textTransform: 'uppercase', fontSize: '15px' }}>
-              <div style={{ display: 'flex' }}><span style={{width: '100px'}}>S.No</span><span>: {downloadInvoice.serialNumber || '-'}</span></div>
-              <div style={{ display: 'flex' }}><span style={{width: '100px'}}>Invoice to</span><span>: {downloadInvoice.clientName || 'Client Name'}</span></div>
-              <div style={{ display: 'flex' }}><span style={{width: '100px'}}>Mobile</span><span>: {downloadInvoice.mobileNumber || '-'}</span></div>
+            <div style={{ fontWeight: 'bold', textTransform: 'uppercase', fontSize: '13px' }}>
+              <div style={{ display: 'flex' }}><span style={{width: '90px'}}>Invoice to</span><span>: {downloadInvoice.clientName || 'Client Name'}</span></div>
+              <div style={{ display: 'flex' }}><span style={{width: '90px'}}>Mobile</span><span>: {downloadInvoice.mobileNumber || '-'}</span></div>
             </div>
 
             <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
 
             {/* Table Header */}
-            <div style={{ display: 'flex', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '14px' }}>
+            <div style={{ display: 'flex', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '13px' }}>
               <div style={{ flex: 0.5, textAlign: 'center' }}>SL.</div>
               <div style={{ flex: 2 }}>ITEM NAME</div>
               <div style={{ flex: 0.8, textAlign: 'center' }}>QTY</div>
@@ -946,20 +945,20 @@ const EmployeeDashboard = () => {
             <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
 
             {/* Payment Summary */}
-            <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '10px' }}>Payment Summary:</div>
+            <div style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '10px' }}>Payment Summary:</div>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '15px', marginBottom: '5px' }}>
-              <div style={{ width: '160px' }}>Total Amount:</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '13px', marginBottom: '5px' }}>
+              <div style={{ width: '150px' }}>Total Amount:</div>
               <div>Rs. {downloadInvoice.totalAmount?.toFixed(2)}</div>
             </div>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '15px', marginBottom: '5px' }}>
-              <div style={{ width: '160px' }}>Advance Paid:</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '13px', marginBottom: '5px' }}>
+              <div style={{ width: '150px' }}>Advance Paid:</div>
               <div>Rs. {(downloadInvoice.advanceAmount || 0).toFixed(2)} {(downloadInvoice.paymentMethod && downloadInvoice.paymentMethod !== 'None') ? `(${downloadInvoice.paymentMethod})` : ''}</div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '15px', color: '#ff0000' }}>
-              <div style={{ width: '160px' }}>Balance Amount:</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '13px', color: '#ff0000' }}>
+              <div style={{ width: '150px' }}>Balance Amount:</div>
               <div>Rs. {Math.max(0, (downloadInvoice.totalAmount || 0) - (downloadInvoice.advanceAmount || 0) - (downloadInvoice.balanceAmount || 0)).toFixed(2)}</div>
             </div>
 
@@ -972,7 +971,7 @@ const EmployeeDashboard = () => {
                 1. 50% Advance Payment should be paid at the time of Order Placement.<br />
                 2. Credit Facility not Available ( Make the Full Payment at the time of delivery ).
               </div>
-              <div style={{ textAlign: 'center', fontStyle: 'italic', color: '#000', fontWeight: 'bold', marginTop: '10px', fontSize: '16px' }}>
+              <div style={{ textAlign: 'center', fontStyle: 'italic', color: '#000', fontWeight: 'bold', marginTop: '10px' }}>
                 Thank you for your business!
               </div>
             </div>
