@@ -51,6 +51,7 @@ const Login = () => {
                     required
                     placeholder="Enter your username"
                     className="bg-light"
+                    style={{ textTransform: 'none' }}
                     disabled={isLoading}
                   />
                 </Form.Group>
