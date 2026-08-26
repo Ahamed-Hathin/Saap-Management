@@ -361,9 +361,11 @@ const ManageOrders = () => {
 
   const handleExportMonthlyReport = () => {
     const headers = ['S.NO', 'DATE', 'CUSTOMER NAME', 'NUMBER', 'DESCRIPTION', 'PAYMENT STATUS', 'TOTAL AMOUNT', 'PAID AMOUNT', 'PENDING AMOUNT', 'ORDER STATUS'];
-    const csvRows = [headers.join(',')];
+    const csvRows = [];
 
     const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
 
     // Get walk-in orders only
     const walkInOrders = orders.filter(order => {
@@ -371,14 +373,24 @@ const ManageOrders = () => {
       return !permanentClientPhones.has(orderPhoneRaw);
     });
 
-    // All previous data until today: Only delivered AND payment completed
-    const reportOrders = walkInOrders.filter(o => {
+    // Completed orders: Delivered AND payment completed
+    const completedOrders = walkInOrders.filter(o => {
       const orderDate = new Date(o.createdAt);
       const pendingAmount = (o.totalAmount || 0) - (o.advanceAmount || 0) - (o.balanceAmount || 0);
       return orderDate <= now && o.status === 'Delivered' && pendingAmount <= 0;
     });
 
-    reportOrders.forEach((order, index) => {
+    // Pending orders: Not completed (either not delivered or payment pending), AND created in the current month/year
+    const pendingOrders = walkInOrders.filter(o => {
+      const orderDate = new Date(o.createdAt);
+      const pendingAmount = (o.totalAmount || 0) - (o.advanceAmount || 0) - (o.balanceAmount || 0);
+      const isCompleted = o.status === 'Delivered' && pendingAmount <= 0;
+      
+      const isCurrentMonth = orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear;
+      return !isCompleted && isCurrentMonth;
+    });
+
+    const formatOrderToCsvRow = (order, index) => {
       const sNo = index + 1;
       
       const escapeCsv = (str, forceString = false) => {
@@ -392,7 +404,6 @@ const ManageOrders = () => {
       const customerName = escapeCsv(order.clientName);
       const number = escapeCsv(order.mobileNumber, true);
       const description = escapeCsv(order.items?.length > 0 ? order.items.map(i => i.itemName).join(', ') : order.itemName || order.description || '');
-      const priceStr = escapeCsv(order.items?.length > 0 ? '-' : (order.price || order.pricePerQty || 0));
       
       const total = order.totalAmount || 0;
       const paid = (order.advanceAmount || 0) + (order.balanceAmount || 0);
@@ -406,7 +417,20 @@ const ManageOrders = () => {
 
       const status = escapeCsv(order.status || 'Pending');
 
-      csvRows.push([sNo, date, customerName, number, description, paymentStatusStr, totalStr, paidStr, pendingStr, status].join(','));
+      return [sNo, date, customerName, number, description, paymentStatusStr, totalStr, paidStr, pendingStr, status].join(',');
+    };
+
+    csvRows.push('COMPLETED');
+    csvRows.push(headers.join(','));
+    completedOrders.forEach((order, index) => {
+      csvRows.push(formatOrderToCsvRow(order, index));
+    });
+
+    csvRows.push('');
+    csvRows.push('PENDING');
+    csvRows.push(headers.join(','));
+    pendingOrders.forEach((order, index) => {
+      csvRows.push(formatOrderToCsvRow(order, index));
     });
 
     const csvString = csvRows.join('\n');
