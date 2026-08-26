@@ -23,6 +23,7 @@ const OrderDetails = () => {
   const [previewImage, setPreviewImage] = useState(null);
   
   const [isEditing, setIsEditing] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [editForm, setEditForm] = useState({
     clientName: '',
     mobileNumber: '',
@@ -101,6 +102,7 @@ const OrderDetails = () => {
 
   const handleStatusUpdate = async (e) => {
     e.preventDefault();
+    setIsUpdating(true);
     try {
       const payload = { 
         status, 
@@ -113,6 +115,7 @@ const OrderDetails = () => {
         payload.clientName = editForm.clientName;
         payload.mobileNumber = editForm.mobileNumber;
         payload.cardType = editForm.cardType;
+        payload.remarks = editForm.remarks;
         payload.items = editForm.items.map(i => ({
           itemName: i.itemName,
           totalQty: Number(i.totalQty) || 1,
@@ -129,6 +132,8 @@ const OrderDetails = () => {
       fetchOrder();
     } catch (err) {
       setMessage('Error updating order.');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -227,6 +232,18 @@ const OrderDetails = () => {
                 <Col sm={4} className="text-muted">Printing Method</Col>
                 <Col sm={8}>{order.printingCompany !== 'None' ? order.printingCompany : 'Not Set'}</Col>
               </Row>
+              {(order.remarks || isEditing) && (
+                <Row className="mb-3">
+                  <Col sm={4} className="text-muted">Remarks (Notes)</Col>
+                  <Col sm={8}>
+                    {isEditing ? (
+                      <Form.Control as="textarea" rows={2} value={editForm.remarks || ''} onChange={(e) => setEditForm({...editForm, remarks: e.target.value})} />
+                    ) : (
+                      order.remarks
+                    )}
+                  </Col>
+                </Row>
+              )}
               <div className="mb-4">
                 <div className="d-flex justify-content-between align-items-center mb-2">
                   <span className="text-muted fw-medium">Order Items</span>
@@ -416,7 +433,9 @@ const OrderDetails = () => {
                       </Form.Select>
                     </Form.Group>
 
-                <Button type="submit" variant="primary" className="w-100 fw-bold py-2">Update Order</Button>
+                <Button type="submit" variant="primary" className="w-100 fw-bold py-2" disabled={isUpdating}>
+                  {isUpdating ? 'Updating...' : 'Update Order'}
+                </Button>
               </Form>
             </Card.Body>
           </Card>

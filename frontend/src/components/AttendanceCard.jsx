@@ -7,6 +7,7 @@ import api from '../services/api';
 const AttendanceCard = () => {
   const [attendance, setAttendance] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -28,6 +29,7 @@ const AttendanceCard = () => {
   };
 
   const handleAction = async (endpoint, actionName, successMessage) => {
+    setActionLoading(true);
     try {
       const res = await api.post(`/attendance/${endpoint}`);
       setAttendance(res.data);
@@ -43,6 +45,8 @@ const AttendanceCard = () => {
         title: 'Action Failed',
         text: error.response?.data?.message || 'Something went wrong'
       });
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -179,7 +183,7 @@ const AttendanceCard = () => {
               variant="primary" 
               className="px-4 py-2 rounded-pill d-flex align-items-center shadow-sm"
               onClick={() => handleAction('checkin', 'Check In', 'Check In Successful')}
-              disabled={!!attendance?.checkIn}
+              disabled={!!attendance?.checkIn || actionLoading}
             >
               <Play size={18} className="me-2" /> Check In
             </Button>
@@ -188,6 +192,7 @@ const AttendanceCard = () => {
             <Button 
               variant="warning" 
               className="px-4 py-2 rounded-pill d-flex align-items-center shadow-sm text-dark"
+              disabled={actionLoading}
               onClick={() => {
                 Swal.fire({
                   title: 'Start Lunch Break?',
@@ -212,6 +217,7 @@ const AttendanceCard = () => {
             <Button 
               variant="success" 
               className="px-4 py-2 rounded-pill d-flex align-items-center shadow-sm"
+              disabled={actionLoading}
               onClick={() => {
                 Swal.fire({
                   title: 'End Lunch Break?',
@@ -235,6 +241,7 @@ const AttendanceCard = () => {
           <Button 
               variant="danger" 
               className="px-4 py-2 rounded-pill d-flex align-items-center shadow-sm"
+              disabled={!attendance?.checkIn || !!attendance?.checkOut || (!!attendance?.lunchStart && !attendance?.lunchEnd) || attendance?.status === 'Paused' || actionLoading}
               onClick={() => {
                 Swal.fire({
                   title: 'Are you sure?',
@@ -250,7 +257,6 @@ const AttendanceCard = () => {
                   }
                 });
               }}
-              disabled={!attendance?.checkIn || !!attendance?.checkOut || (!!attendance?.lunchStart && !attendance?.lunchEnd) || attendance?.status === 'Paused'}
             >
               <Square size={18} className="me-2" /> Check Out
             </Button>
@@ -259,6 +265,7 @@ const AttendanceCard = () => {
             <Button 
               variant="secondary" 
               className="px-4 py-2 rounded-pill d-flex align-items-center shadow-sm"
+              disabled={actionLoading}
               onClick={() => handleAction('pause', 'Pause Tracking', 'Time Tracking Paused')}
             >
               <Pause size={18} className="me-2" /> Pause
@@ -269,6 +276,7 @@ const AttendanceCard = () => {
             <Button 
               variant="info" 
               className="px-4 py-2 rounded-pill d-flex align-items-center shadow-sm text-white"
+              disabled={actionLoading}
               onClick={() => handleAction('resume', 'Resume Tracking', 'Time Tracking Resumed')}
             >
               <Play size={18} className="me-2" /> Resume

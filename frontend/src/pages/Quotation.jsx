@@ -42,6 +42,8 @@ const Quotation = () => {
   const [customEndDate, setCustomEndDate] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [downloadQuotation, setDownloadQuotation] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     toAddress: '',
@@ -58,7 +60,6 @@ const Quotation = () => {
 
   // Reference for the hidden print area
   const previewRef = useRef(null);
-  const [downloadQuotation, setDownloadQuotation] = useState(null);
 
   useEffect(() => {
     fetchQuotations();
@@ -149,6 +150,8 @@ const Quotation = () => {
       return;
     }
 
+    setIsSaving(true);
+
     try {
       setErrors({});
       const subTotal = formData.items.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
@@ -171,6 +174,8 @@ const Quotation = () => {
     } catch (err) {
       console.error('Error saving quotation:', err);
       alert('Failed to save quotation');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -601,16 +606,15 @@ const Quotation = () => {
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={handleClose}>
+          <Button variant="secondary" onClick={handleClose} disabled={isSaving}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={handleSave}>
-            Save Quotation
+          <Button variant="primary" onClick={handleSave} disabled={isSaving}>
+            {isSaving ? 'Saving...' : 'Save Quotation'}
           </Button>
         </Modal.Footer>
       </Modal>
 
-      {/* Hidden Download Container */}
       {/* Hidden Download Container */}
       {downloadQuotation && (
         <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>

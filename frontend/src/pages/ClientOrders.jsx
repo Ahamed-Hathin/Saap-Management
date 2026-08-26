@@ -24,6 +24,7 @@ const ClientOrders = () => {
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isPaymentLoading, setIsPaymentLoading] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState(null);
   const [paymentFormData, setPaymentFormData] = useState({ advanceAmount: '', balanceAmount: '', paymentMethod: '' });
@@ -47,6 +48,7 @@ const ClientOrders = () => {
     paymentMethod: '',
     printingCompany: '',
     status: 'Pending',
+    remarks: '',
     items: [{ itemName: '', totalQty: '', price: '' }]
   });
 
@@ -84,7 +86,7 @@ const ClientOrders = () => {
   const handleShow = () => {
     setFormData({
       clientName: '', mobileNumber: '', cardType: '', advanceAmount: '', totalAmount: '',
-      assignedEmployee: '', advanceReceived: false, paymentMethod: '', printingCompany: '', status: 'Pending', items: [{ itemName: '', totalQty: '', price: '' }]
+      assignedEmployee: '', advanceReceived: false, paymentMethod: '', printingCompany: '', status: 'Pending', remarks: '', items: [{ itemName: '', totalQty: '', price: '' }]
     });
     setFile(null);
     setError('');
@@ -155,6 +157,7 @@ const ClientOrders = () => {
 
   const handlePaymentSubmit = async (e) => {
     e.preventDefault();
+    setIsPaymentLoading(true);
     try {
       const validPayments = balancePayments.filter(p => p.amount && p.method);
       const payload = {
@@ -172,6 +175,8 @@ const ClientOrders = () => {
     } catch (err) {
       console.error('Error submitting payment:', err);
       Swal.fire('Error', 'Error saving payment', 'error');
+    } finally {
+      setIsPaymentLoading(false);
     }
   };
 
@@ -190,6 +195,7 @@ const ClientOrders = () => {
         totalAmount: formData.totalAmount === '' ? 0 : Number(formData.totalAmount),
         paymentMethod: formData.paymentMethod === '' ? 'None' : formData.paymentMethod,
         printingCompany: formData.printingCompany === '' ? 'None' : formData.printingCompany,
+        remarks: formData.remarks,
       };
       const { data: newOrder } = await api.post('/orders', payload);
 
@@ -927,7 +933,7 @@ const ClientOrders = () => {
                   ))}
                 </Form.Select>
               </div>
-              <Form.Group className="mb-3">
+              <Form.Group className="mb-3 col-md-12">
                 <Form.Label className="fw-semibold">Status</Form.Label>
                 <Form.Select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="bg-light">
                   <option value="Pending">Pending</option>
@@ -936,6 +942,10 @@ const ClientOrders = () => {
                   ))}
                 </Form.Select>
               </Form.Group>
+              <div className="col-12">
+                <Form.Label className="fw-semibold">Remarks (Notes - Admin/Staff Only)</Form.Label>
+                <Form.Control as="textarea" rows={2} placeholder="Internal notes not shown on invoice..." value={formData.remarks} onChange={(e) => setFormData({ ...formData, remarks: e.target.value })} className="bg-light" />
+              </div>
               {formData.advanceReceived && (
                 <>
                   <div className="col-md-6">
@@ -1052,8 +1062,10 @@ const ClientOrders = () => {
             </Button>
           </Modal.Body>
           <Modal.Footer className="border-0 px-4 pb-4">
-            <Button variant="light" onClick={() => setShowPaymentModal(false)} className="fw-medium">Cancel</Button>
-            <Button variant="primary" type="submit" className="fw-medium px-4">Save Payment</Button>
+            <Button variant="light" onClick={() => setShowPaymentModal(false)} className="fw-medium" disabled={isPaymentLoading}>Cancel</Button>
+            <Button variant="primary" type="submit" className="fw-medium px-4" disabled={isPaymentLoading}>
+              {isPaymentLoading ? 'Saving...' : 'Save Payment'}
+            </Button>
           </Modal.Footer>
         </Form>
       </Modal>
@@ -1141,7 +1153,7 @@ const ClientOrders = () => {
               {/* Header */}
               <div style={{ backgroundColor: 'rgba(253, 192, 47, 0.15)', padding: '10px', borderRadius: '8px', marginBottom: '10px' }}>
                 <div style={{ fontWeight: 'bold', fontSize: '18px', textAlign: 'center', marginBottom: '5px' }}>INVOICE</div>
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '5px', fontSize: '32px', fontWeight: 'bold', color: '#ff0000' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '5px', fontSize: '32px', fontWeight: 'bold', color: '#4d61f4' }}>
                   SAPP Creation
                 </div>
               <div style={{ textAlign: 'center', fontSize: '10px' }}>

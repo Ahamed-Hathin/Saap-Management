@@ -93,6 +93,10 @@ const orderSchema = mongoose.Schema(
       type: String,
       default: 'None',
     },
+    remarks: {
+      type: String,
+      default: '',
+    },
   },
   {
     timestamps: true,

@@ -20,6 +20,7 @@ const createOrder = async (req, res) => {
       items,
       isClientOrder,
       status,
+      remarks,
     } = req.body;
 
     if (clientName) {
@@ -52,6 +53,7 @@ const createOrder = async (req, res) => {
       pricePerQty,
       items: Array.isArray(items) ? items : [],
       isClientOrder: isClientOrder || false,
+      remarks: remarks || '',
       ...(status ? { status } : {}),
     });
 
@@ -104,6 +106,7 @@ const updateOrderStatus = async (req, res) => {
       if (req.body.totalQty !== undefined) order.totalQty = req.body.totalQty;
       if (req.body.pricePerQty !== undefined) order.pricePerQty = req.body.pricePerQty;
       if (req.body.items !== undefined) order.items = req.body.items;
+      if (req.body.remarks !== undefined) order.remarks = req.body.remarks;
       order.status = req.body.status || order.status;
       order.advanceReceived = req.body.paymentReceived !== undefined ? req.body.paymentReceived : order.advanceReceived;
       order.advanceAmount = req.body.advanceAmount !== undefined ? req.body.advanceAmount : order.advanceAmount;
