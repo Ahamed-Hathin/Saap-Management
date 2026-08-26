@@ -1104,7 +1104,7 @@ const ManageOrders = () => {
               {/* Header */}
               <div style={{ backgroundColor: 'rgba(253, 192, 47, 0.15)', padding: '10px', borderRadius: '8px', marginBottom: '10px' }}>
                 <div style={{ fontWeight: 'bold', fontSize: '18px', textAlign: 'center', marginBottom: '5px' }}>INVOICE</div>
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '5px', fontSize: '32px', fontWeight: 'bold', color: 'red' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '5px', fontSize: '32px', fontWeight: 'bold', color: '#ff0000' }}>
                   SAPP Creation
                 </div>
               <div style={{ textAlign: 'center', fontSize: '10px' }}>
