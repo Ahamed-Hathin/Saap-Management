@@ -14,6 +14,9 @@ const ClientDetails = () => {
   const [loading, setLoading] = useState(true);
   const [showPayAllModal, setShowPayAllModal] = useState(false);
   const [payAllPayments, setPayAllPayments] = useState([{ amount: '', method: '' }]);
+  const [showPayOrderModal, setShowPayOrderModal] = useState(false);
+  const [selectedOrderForPayment, setSelectedOrderForPayment] = useState(null);
+  const [payOrderPayments, setPayOrderPayments] = useState([{ amount: '', method: '' }]);
 
   useEffect(() => {
     fetchClientOrders();
@@ -60,6 +63,34 @@ const ClientDetails = () => {
     } catch (err) {
       console.error(err);
       Swal.fire('Error', err.response?.data?.message || 'Failed to clear payments', 'error');
+      setLoading(false);
+    }
+  };
+
+  const handlePayOrderSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedOrderForPayment) return;
+    try {
+      const validPayments = payOrderPayments.filter(p => p.amount && p.method).map(p => ({
+        amount: Number(p.amount),
+        method: p.method,
+        date: new Date().toISOString()
+      }));
+      
+      const totalEntered = validPayments.reduce((sum, p) => sum + p.amount, 0);
+      if (totalEntered > selectedOrderForPayment.pendingAmt) {
+        Swal.fire('Error', 'Total amount entered cannot exceed pending balance', 'error');
+        return;
+      }
+
+      setLoading(true);
+      await api.put(`/orders/${selectedOrderForPayment._id}`, { newBalancePayments: validPayments });
+      setShowPayOrderModal(false);
+      await fetchClientOrders();
+      Swal.fire('Success', 'Payment applied successfully', 'success');
+    } catch (err) {
+      console.error(err);
+      Swal.fire('Error', err.response?.data?.message || 'Failed to apply payment', 'error');
       setLoading(false);
     }
   };
@@ -272,7 +303,30 @@ const ClientDetails = () => {
                     </Form.Select>
                   </td>
                   <td className="py-3 px-4 text-end fw-bold">₹{order.totalAmount || 0}</td>
-                  <td className="py-3 px-4 text-end fw-bold text-danger">₹{orderPending}</td>
+                  <td className="py-3 px-4 text-end">
+                    <div className="d-flex flex-column align-items-end gap-1">
+                      <span className="fw-bold text-danger">₹{orderPending.toLocaleString()}</span>
+                      {orderPending > 0 && (
+                        <Button 
+                          variant="primary" 
+                          size="sm" 
+                          className="rounded-pill px-3 shadow-sm border-0" 
+                          style={{ 
+                            fontSize: '0.75rem', 
+                            fontWeight: '600',
+                            background: 'linear-gradient(135deg, #0d6efd, #0b5ed7)'
+                          }}
+                          onClick={() => {
+                            setSelectedOrderForPayment({ ...order, pendingAmt: orderPending });
+                            setPayOrderPayments([{ amount: orderPending, method: '' }]);
+                            setShowPayOrderModal(true);
+                          }}
+                        >
+                          Pay Now
+                        </Button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               );
             })}
@@ -346,6 +400,70 @@ const ClientDetails = () => {
           </Modal.Body>
           <Modal.Footer className="border-0 px-4 pb-4">
             <Button variant="light" onClick={() => setShowPayAllModal(false)} className="fw-medium">Cancel</Button>
+            <Button variant="primary" type="submit" className="fw-medium px-4">Submit Payment</Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      <Modal backdrop="static" show={showPayOrderModal} onHide={() => setShowPayOrderModal(false)} centered contentClassName="border-0 rounded-4 shadow-lg">
+        <Modal.Header closeButton className="border-0 pb-0 mt-3 mx-2">
+          <Modal.Title className="fw-bold">Pay Order #{selectedOrderForPayment?.serialNumber} (₹{selectedOrderForPayment?.pendingAmt})</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handlePayOrderSubmit}>
+          <Modal.Body className="px-4 pt-4">
+            {payOrderPayments.map((bp, i) => (
+              <div key={i} className="d-flex gap-2 mb-3">
+                <Form.Control
+                  type="number"
+                  placeholder="Amount"
+                  required={!!bp.method}
+                  value={bp.amount}
+                  onChange={(e) => {
+                    const newBps = [...payOrderPayments];
+                    newBps[i].amount = e.target.value;
+                    setPayOrderPayments(newBps);
+                  }}
+                  className="bg-light"
+                />
+                <Form.Select
+                  required={!!bp.amount}
+                  value={bp.method}
+                  onChange={(e) => {
+                    const newBps = [...payOrderPayments];
+                    newBps[i].method = e.target.value;
+                    setPayOrderPayments(newBps);
+                  }}
+                  className="bg-light"
+                >
+                  <option value="">Method</option>
+                  <option value="GPay">GPay</option>
+                  <option value="B-Gpay">B-Gpay</option>
+                  <option value="NEFT">NEFT</option>
+                  <option value="KVB">KVB</option>
+                  <option value="Dtdc Wallet">Dtdc Wallet</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Discount Amount">Discount Amount</option>
+                </Form.Select>
+                {payOrderPayments.length > 1 && (
+                  <Button variant="outline-danger" onClick={() => {
+                    const newBps = payOrderPayments.filter((_, idx) => idx !== i);
+                    setPayOrderPayments(newBps);
+                  }}>
+                    <Trash2 size={16} />
+                  </Button>
+                )}
+              </div>
+            ))}
+            <Button variant="outline-primary" size="sm" onClick={() => setPayOrderPayments([...payOrderPayments, { amount: '', method: '' }])}>
+              <Plus size={16} className="me-1" /> Add Payment Split
+            </Button>
+            
+            <div className="mt-3 text-muted small fw-medium">
+              Total split entered: ₹{payOrderPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0)} / ₹{selectedOrderForPayment?.pendingAmt}
+            </div>
+          </Modal.Body>
+          <Modal.Footer className="border-0 px-4 pb-4">
+            <Button variant="light" onClick={() => setShowPayOrderModal(false)} className="fw-medium">Cancel</Button>
             <Button variant="primary" type="submit" className="fw-medium px-4">Submit Payment</Button>
           </Modal.Footer>
         </Form>

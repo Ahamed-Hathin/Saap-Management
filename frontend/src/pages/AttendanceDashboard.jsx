@@ -239,6 +239,7 @@ const AttendanceDashboard = () => {
                 <th className="border-0">Lunch Duration</th>
                 <th className="border-0">Check Out</th>
                 <th className="border-0">Working Time</th>
+                <th className="border-0">Pause Duration</th>
                 <th className="border-0">Status</th>
                 <th className="border-0">Action</th>
               </tr>
@@ -262,6 +263,7 @@ const AttendanceDashboard = () => {
                     <td className="fw-medium">{formatDuration(att.lunchDuration)}</td>
                     <td>{formatTime(att.checkOut)}</td>
                     <td className="fw-medium">{formatDuration(att.workingMinutes)}</td>
+                    <td className="fw-medium text-muted">{formatDuration(att.pauseDuration)}</td>
                     <td>{getStatusBadge(att.status)}</td>
                     <td>
                       {att.employeeId && (

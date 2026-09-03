@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
 import { Card, Table, Badge, Form, Row, Col, Button } from 'react-bootstrap';
-import { Calendar, Clock, UserCheck, UserX, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Calendar, Clock, UserCheck, UserX, AlertTriangle, ArrowLeft, PauseCircle } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import api from '../services/api';
@@ -92,7 +92,8 @@ const MonthlyAttendance = () => {
     present: attendances.filter(a => ['Completed', 'Late', 'Early Exit'].includes(a.status) || a.checkIn).length,
     absent: attendances.filter(a => a.status === 'Absent').length,
     late: attendances.filter(a => a.isLate).length,
-    totalWorkingMins: attendances.reduce((acc, curr) => acc + (curr.workingMinutes || 0), 0)
+    totalWorkingMins: attendances.reduce((acc, curr) => acc + (curr.workingMinutes || 0), 0),
+    totalPauseMins: attendances.reduce((acc, curr) => acc + (curr.pauseDuration || 0), 0)
   };
 
   const years = Array.from(new Array(5), (val, index) => currentYear - index);
@@ -149,8 +150,8 @@ const MonthlyAttendance = () => {
         </div>
       </div>
 
-      <Row className="g-3 mb-4">
-        <Col md={3} xs={6}>
+      <Row className="g-3 mb-4 row-cols-2 row-cols-md-5">
+        <Col>
           <Card className="border-0 shadow-sm rounded-4 h-100 bg-white">
             <Card.Body className="text-center p-3">
               <UserCheck size={24} className="text-success mb-2" />
@@ -159,7 +160,7 @@ const MonthlyAttendance = () => {
             </Card.Body>
           </Card>
         </Col>
-        <Col md={3} xs={6}>
+        <Col>
           <Card className="border-0 shadow-sm rounded-4 h-100 bg-white">
             <Card.Body className="text-center p-3">
               <UserX size={24} className="text-dark mb-2" />
@@ -168,7 +169,7 @@ const MonthlyAttendance = () => {
             </Card.Body>
           </Card>
         </Col>
-        <Col md={3} xs={6}>
+        <Col>
           <Card className="border-0 shadow-sm rounded-4 h-100 bg-white">
             <Card.Body className="text-center p-3">
               <AlertTriangle size={24} className="text-danger mb-2" />
@@ -177,12 +178,21 @@ const MonthlyAttendance = () => {
             </Card.Body>
           </Card>
         </Col>
-        <Col md={3} xs={6}>
+        <Col>
           <Card className="border-0 shadow-sm rounded-4 h-100 bg-white">
             <Card.Body className="text-center p-3">
               <Clock size={24} className="text-primary mb-2" />
               <h3 className="fw-black mb-0">{formatDuration(stats.totalWorkingMins)}</h3>
               <small className="text-muted fw-medium">Total Working Time</small>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col>
+          <Card className="border-0 shadow-sm rounded-4 h-100 bg-white">
+            <Card.Body className="text-center p-3">
+              <PauseCircle size={24} className="text-warning mb-2" />
+              <h3 className="fw-black mb-0">{formatDuration(stats.totalPauseMins)}</h3>
+              <small className="text-muted fw-medium">Total Pause Time</small>
             </Card.Body>
           </Card>
         </Col>
@@ -199,6 +209,7 @@ const MonthlyAttendance = () => {
                 <th className="border-0">Lunch End</th>
                 <th className="border-0">Check Out</th>
                 <th className="border-0">Working Time</th>
+                <th className="border-0">Pause Duration</th>
                 <th className="border-0">Status</th>
               </tr>
             </thead>
@@ -220,6 +231,7 @@ const MonthlyAttendance = () => {
                     <td>{formatTime(att.lunchEnd)}</td>
                     <td>{formatTime(att.checkOut)}</td>
                     <td className="fw-medium">{formatDuration(att.workingMinutes)}</td>
+                    <td className="fw-medium text-muted">{formatDuration(att.pauseDuration)}</td>
                     <td>{getStatusBadge(att.status)}</td>
                   </tr>
                 ))

@@ -165,12 +165,15 @@ exports.checkOut = async (req, res) => {
     
     attendance.checkOut = now;
     
-    const isEarly = isEarlyCheckOut(dateStr, now);
-    attendance.isEarlyExit = isEarly;
-    
     const workingMs = now.getTime() - new Date(attendance.checkIn).getTime() - (attendance.lunchDuration * 60000) - ((attendance.pauseDuration || 0) * 60000);
     attendance.workingMinutes = Math.round(workingMs / 60000);
     
+    let isEarly = isEarlyCheckOut(dateStr, now);
+    if (attendance.workingMinutes >= 540) {
+      isEarly = false;
+    }
+    
+    attendance.isEarlyExit = isEarly;
     attendance.status = isEarly ? 'Early Exit' : 'Completed';
     
     await attendance.save();
@@ -453,6 +456,11 @@ exports.adminUpdateAttendance = async (req, res) => {
     if (attendance.checkOut) {
       const cutoff = new Date(`${date}T20:45:00`);
       attendance.isEarlyExit = attendance.checkOut < cutoff;
+      
+      if (attendance.workingMinutes >= 540) {
+        attendance.isEarlyExit = false;
+      }
+      
       if (attendance.isEarlyExit && attendance.status === 'Completed') {
         attendance.status = 'Early Exit';
       }
