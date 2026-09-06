@@ -20,6 +20,25 @@ const MonthlyAttendance = () => {
   const [attendances, setAttendances] = useState([]);
   const [loading, setLoading] = useState(true);
   const [employeeName, setEmployeeName] = useState('');
+  const [employees, setEmployees] = useState([]);
+
+  useEffect(() => {
+    const fetchEmployeesList = async () => {
+      if (user?.role === 'Admin') {
+        try {
+          const userRes = await api.get('/users');
+          setEmployees(userRes.data || []);
+          const current = (userRes.data || []).find(u => u._id === id);
+          if (current) {
+            setEmployeeName(current.name);
+          }
+        } catch (err) {
+          console.error('Error fetching users:', err);
+        }
+      }
+    };
+    fetchEmployeesList();
+  }, [id, user?.role]);
 
   useEffect(() => {
     const fetchMonthlyAttendance = async () => {
@@ -30,14 +49,13 @@ const MonthlyAttendance = () => {
         setAttendances(res.data);
         if (res.data.length > 0 && res.data[0].employeeId?.name) {
           setEmployeeName(res.data[0].employeeId.name);
-        } else {
-          // Fetch user name if needed, or leave blank if no attendance records
+        } else if (!employeeName) {
           try {
-             const userRes = await api.get('/users');
-             const emp = userRes.data.find(u => u._id === id);
-             if(emp) setEmployeeName(emp.name);
+            const userRes = await api.get('/users');
+            const emp = userRes.data.find(u => u._id === id);
+            if (emp) setEmployeeName(emp.name);
           } catch (error) {
-             console.error('Error fetching user for name:', error);
+            console.error('Error fetching user for name:', error);
           }
         }
       } catch (error) {
@@ -48,7 +66,7 @@ const MonthlyAttendance = () => {
     };
 
     fetchMonthlyAttendance();
-  }, [month, year, id, user.name]);
+  }, [month, year, id]);
 
   const formatHourDiff = (minsCount) => {
     const h = Math.floor(minsCount / 60);
@@ -155,7 +173,21 @@ const MonthlyAttendance = () => {
           </div>
         </div>
         
-        <div className="d-flex align-items-center gap-2">
+        <div className="d-flex align-items-center gap-2 flex-wrap">
+          {user?.role === 'Admin' && employees.length > 0 && (
+            <Form.Select 
+              value={id} 
+              onChange={(e) => navigate(`/admin/attendance/employee/${e.target.value}/monthly`)}
+              className="shadow-sm fw-medium"
+              style={{ minWidth: '180px', maxWidth: '240px' }}
+            >
+              {employees.map(emp => (
+                <option key={emp._id} value={emp._id}>
+                  {emp.name} {emp.role === 'Admin' ? '(Admin)' : ''}
+                </option>
+              ))}
+            </Form.Select>
+          )}
           <Form.Select 
             value={month} 
             onChange={(e) => setMonth(e.target.value)}

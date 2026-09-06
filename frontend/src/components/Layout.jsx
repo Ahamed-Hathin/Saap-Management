@@ -118,15 +118,15 @@ const Layout = ({ children }) => {
   );
 
   return (
-    <Container fluid className="p-0">
-      <Row className="g-0">
-        <Col md={2} className="sidebar p-4 d-none d-md-block d-flex flex-column">
+    <Container fluid className="p-0 vh-100 overflow-hidden">
+      <Row className="g-0 h-100 flex-nowrap">
+        <Col md={2} className="sidebar p-4 d-none d-md-block d-flex flex-column h-100 overflow-y-auto">
           <div>
             <h4 className="brand mb-5">SAPP Creation</h4>
             {renderNavLinks()}
           </div>
         </Col>
-        <Col md={10} className="d-flex flex-column vh-100">
+        <Col md={10} className="d-flex flex-column h-100 overflow-hidden">
           <Navbar className="glass-navbar px-4 py-3 d-md-none sticky-top d-flex justify-content-between align-items-center">
             <div className="d-flex align-items-center">
               <Navbar.Brand className="brand fw-bold m-0">SAPP Creation</Navbar.Brand>
@@ -137,7 +137,7 @@ const Layout = ({ children }) => {
               </Button>
             </div>
           </Navbar>
-          <div className="p-3 p-md-5 flex-grow-1 overflow-auto fade-in pb-5" style={{ backgroundColor: 'var(--bg-color)', paddingBottom: '80px' }}>
+          <div className="p-3 p-md-5 flex-grow-1 overflow-y-auto fade-in pb-5" style={{ backgroundColor: 'var(--bg-color)', paddingBottom: '80px' }}>
             {children}
           </div>
 

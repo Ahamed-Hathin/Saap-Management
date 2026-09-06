@@ -95,7 +95,20 @@ const EmployeeDashboard = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const { data: newOrder } = await api.post('/orders', formData);
+      const payload = {
+        ...formData,
+        items: formData.items.map(item => ({
+          itemName: item.itemName,
+          totalQty: Number(item.totalQty) || 1,
+          price: Number(item.price) || 0
+        })),
+        advanceAmount: formData.advanceAmount === '' || formData.advanceAmount === null || formData.advanceAmount === undefined ? 0 : Number(formData.advanceAmount),
+        totalAmount: formData.totalAmount === '' || formData.totalAmount === null || formData.totalAmount === undefined ? 0 : Number(formData.totalAmount),
+        paymentMethod: formData.paymentMethod === '' ? 'None' : formData.paymentMethod,
+        printingCompany: formData.printingCompany === '' ? 'None' : formData.printingCompany,
+        remarks: formData.remarks || '',
+      };
+      const { data: newOrder } = await api.post('/orders', payload);
 
       if (file) {
         const uploadData = new FormData();

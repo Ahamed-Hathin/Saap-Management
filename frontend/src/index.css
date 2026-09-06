@@ -24,16 +24,23 @@
   --info-text: #1e40af;
 }
 
-body {
+html, body {
   background-color: var(--bg-color);
   font-family: 'Outfit', sans-serif;
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
 }
 
 /* Sidebar */
 .sidebar {
-  min-height: 100vh;
+  height: 100vh;
   background-color: var(--sidebar-bg);
   color: var(--sidebar-text);
   border-right: 1px solid var(--border-color);

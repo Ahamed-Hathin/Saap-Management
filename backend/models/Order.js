@@ -45,17 +45,14 @@ const orderSchema = mongoose.Schema(
   },
     advanceAmount: {
       type: Number,
-      required: true,
       default: 0,
     },
     totalAmount: {
       type: Number,
-      required: true,
       default: 0,
     },
     balanceAmount: {
       type: Number,
-      required: true,
       default: 0,
     },
     balancePayments: [
