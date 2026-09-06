@@ -173,13 +173,13 @@ const MonthlyAttendance = () => {
           </div>
         </div>
         
-        <div className="d-flex align-items-center gap-2 flex-wrap">
+        <div className="d-flex align-items-center gap-2 flex-nowrap">
           {user?.role === 'Admin' && employees.length > 0 && (
             <Form.Select 
               value={id} 
               onChange={(e) => navigate(`/admin/attendance/employee/${e.target.value}/monthly`)}
               className="shadow-sm fw-medium"
-              style={{ minWidth: '180px', maxWidth: '240px' }}
+              style={{ minWidth: '150px', width: 'auto' }}
             >
               {employees.map(emp => (
                 <option key={emp._id} value={emp._id}>
@@ -192,7 +192,7 @@ const MonthlyAttendance = () => {
             value={month} 
             onChange={(e) => setMonth(e.target.value)}
             className="shadow-sm"
-            style={{ width: '140px' }}
+            style={{ width: '130px' }}
           >
             {months.map(m => (
               <option key={m.value} value={m.value}>{m.label}</option>
@@ -202,7 +202,7 @@ const MonthlyAttendance = () => {
             value={year} 
             onChange={(e) => setYear(e.target.value)}
             className="shadow-sm"
-            style={{ width: '100px' }}
+            style={{ width: '95px' }}
           >
             {years.map(y => (
               <option key={y} value={y}>{y}</option>
