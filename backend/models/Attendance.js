@@ -57,7 +57,8 @@ const attendanceSchema = new mongoose.Schema(
         'Late',
         'Completed',
         'Early Exit',
-        'Absent'
+        'Absent',
+        'Holiday'
       ],
       default: 'Not Checked In',
     },

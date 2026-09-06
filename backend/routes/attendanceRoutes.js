@@ -13,6 +13,9 @@ const {
   pauseTracking,
   resumeTracking,
   adminUpdateAttendance,
+  getHolidays,
+  addHoliday,
+  deleteHoliday,
 } = require('../controllers/attendanceController');
 
 router.get('/today', protect, getTodayAttendance);
@@ -26,5 +29,8 @@ router.get('/admin', protect, admin, getAdminDashboard);
 router.put('/admin/update', protect, admin, adminUpdateAttendance);
 router.get('/monthly-all', protect, admin, getAllMonthlyAttendance);
 router.get('/monthly/:employeeId', protect, admin, getMonthlyAttendance);
+router.get('/holidays', protect, getHolidays);
+router.post('/holidays', protect, admin, addHoliday);
+router.delete('/holidays/:id', protect, admin, deleteHoliday);
 
 module.exports = router;

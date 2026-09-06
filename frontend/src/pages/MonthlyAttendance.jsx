@@ -50,20 +50,49 @@ const MonthlyAttendance = () => {
     fetchMonthlyAttendance();
   }, [month, year, id, user.name]);
 
-  const getStatusBadge = (status) => {
+  const formatHourDiff = (minsCount) => {
+    const h = Math.floor(minsCount / 60);
+    const m = minsCount % 60;
+    if (h > 0 && m > 0) return `${h} hour ${m} min`;
+    if (h > 0) return `${h} hour${h > 1 ? 's' : ''}`;
+    return `${m} min${m > 1 ? 's' : ''}`;
+  };
+
+  const getStatusBadge = (att) => {
+    if (!att) return <Badge bg="secondary">Not Checked In</Badge>;
+    const status = att.status;
+
+    if (att.checkOut || ['Completed', 'Early Exit', 'Checked Out'].includes(status)) {
+      const targetMins = att.targetWorkingMinutes || ((att.hoursPerDay || 8) * 60);
+      const workingMins = att.workingMinutes || 0;
+      const diff = workingMins - targetMins;
+      const absDiff = Math.abs(diff);
+
+      if (diff > 0) {
+        return <Badge bg="success">Worked {formatHourDiff(diff)} extra</Badge>;
+      } else if (diff < 0) {
+        return <Badge bg="danger">{formatHourDiff(absDiff)} early exit</Badge>;
+      } else {
+        return <Badge bg="success">Completed</Badge>;
+      }
+    }
+
+    if (status === 'Holiday') {
+      return <Badge bg="info">{att.holidayTitle ? `Holiday (${att.holidayTitle})` : 'Holiday'}</Badge>;
+    }
+
     switch (status) {
       case 'Working':
       case 'Working After Lunch':
         return <Badge bg="primary">{status}</Badge>;
-      case 'Completed':
-        return <Badge bg="success">{status}</Badge>;
       case 'Late':
-      case 'Early Exit':
         return <Badge bg="danger">{status}</Badge>;
       case 'Absent':
         return <Badge bg="dark">{status}</Badge>;
       case 'Lunch Break':
         return <Badge bg="warning" text="dark">{status}</Badge>;
+      case 'Paused':
+        return <Badge bg="info">{status}</Badge>;
       default:
         return <Badge bg="secondary">{status}</Badge>;
     }
@@ -232,7 +261,7 @@ const MonthlyAttendance = () => {
                     <td>{formatTime(att.checkOut)}</td>
                     <td className="fw-medium">{formatDuration(att.workingMinutes)}</td>
                     <td className="fw-medium text-muted">{formatDuration(att.pauseDuration)}</td>
-                    <td>{getStatusBadge(att.status)}</td>
+                    <td>{getStatusBadge(att)}</td>
                   </tr>
                 ))
               )}

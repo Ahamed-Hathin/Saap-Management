@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import Layout from '../components/Layout';
-import { Form, Button, Card, Row, Col, Alert, Spinner, Modal } from 'react-bootstrap';
+import { Form, Button, Card, Row, Col, Alert, Spinner, Modal, ButtonGroup } from 'react-bootstrap';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import Swal from 'sweetalert2';
-import { Calculator, Save, User as UserIcon, Calendar, Settings } from 'lucide-react';
+import { Calculator, Save, User as UserIcon, Calendar, Settings, Users, Clock } from 'lucide-react';
 
 const SalaryAutomate = () => {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const location = useLocation();
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -130,10 +133,41 @@ const SalaryAutomate = () => {
 
   return (
     <Layout>
-      <div className="d-flex justify-content-between align-items-center mb-4 fade-in">
-        <h2 className="mb-0 fw-bold text-gradient">Salary Automate</h2>
-        <Button variant="outline-primary" onClick={() => setShowConfig(true)} className="d-flex align-items-center gap-2">
-          <Settings size={18} /> Salary Configuration
+      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div className="d-flex flex-column flex-md-row align-items-md-center align-items-start flex-grow-1 gap-3">
+          <div>
+            <h2 className="mb-1 fw-bold text-dark d-flex align-items-center">
+              <Users size={28} className="me-2 text-primary" />
+              Time Tracking Dashboard
+            </h2>
+            <p className="text-muted mb-0">Automate and calculate employee monthly salary</p>
+          </div>
+          <ButtonGroup className="ms-md-5 shadow-sm rounded-pill">
+            <Button 
+              variant={location.pathname === '/admin/my-attendance' ? 'primary' : 'light'} 
+              className={`px-4 rounded-start-pill ${location.pathname === '/admin/my-attendance' ? '' : 'text-muted'}`}
+              onClick={() => navigate('/admin/my-attendance')}
+            >
+              My Time Tracking
+            </Button>
+            <Button 
+              variant={location.pathname === '/admin/attendance' ? 'primary' : 'light'} 
+              className={`px-4 ${location.pathname === '/admin/attendance' ? '' : 'text-muted'}`}
+              onClick={() => navigate('/admin/attendance')}
+            >
+              Manage Time Tracking
+            </Button>
+            <Button 
+              variant={location.pathname === '/admin/salary-automate' ? 'primary' : 'light'} 
+              className={`px-4 rounded-end-pill ${location.pathname === '/admin/salary-automate' ? '' : 'text-muted'}`}
+              onClick={() => navigate('/admin/salary-automate')}
+            >
+              Salary Automate
+            </Button>
+          </ButtonGroup>
+        </div>
+        <Button variant="outline-primary" onClick={() => setShowConfig(true)} className="d-flex align-items-center gap-2 rounded-pill shadow-sm px-3 bg-white">
+          <Settings size={18} className="text-primary" /> Salary Configuration
         </Button>
       </div>
 

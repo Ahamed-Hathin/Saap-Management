@@ -608,11 +608,8 @@ const EmployeeDashboard = () => {
               </div>
               
               <div className="col-12 mt-4">
-                <div className="d-flex justify-content-between align-items-center mb-2">
+                <div className="mb-2">
                   <h6 className="fw-bold mb-0">Order Items</h6>
-                  <Button variant="outline-primary" size="sm" onClick={() => setFormData({ ...formData, items: [...formData.items, { itemName: '', totalQty: '', price: '' }] })}>
-                    <Plus size={16} className="me-1" /> Add Item
-                  </Button>
                 </div>
                 {formData.items.map((item, index) => (
                   <div key={index} className="border rounded p-3 mb-3 bg-white position-relative">
@@ -654,6 +651,9 @@ const EmployeeDashboard = () => {
                     </div>
                   </div>
                 ))}
+                <Button variant="outline-primary" size="sm" className="mb-2" onClick={() => setFormData({ ...formData, items: [...formData.items, { itemName: '', totalQty: '', price: '' }] })}>
+                  <Plus size={16} className="me-1" /> Add Item
+                </Button>
               </div>
               <div className="col-12">
                 <Form.Label>Design Image (Optional)</Form.Label>

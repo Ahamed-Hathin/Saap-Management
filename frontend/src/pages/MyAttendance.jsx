@@ -33,10 +33,17 @@ const MyAttendance = () => {
               </Button>
               <Button 
                 variant={location.pathname === '/admin/attendance' ? 'primary' : 'light'} 
-                className={`px-4 rounded-end-pill ${location.pathname === '/admin/attendance' ? '' : 'text-muted'}`}
+                className={`px-4 ${location.pathname === '/admin/attendance' ? '' : 'text-muted'}`}
                 onClick={() => navigate('/admin/attendance')}
               >
                 Manage Time Tracking
+              </Button>
+              <Button 
+                variant={location.pathname === '/admin/salary-automate' ? 'primary' : 'light'} 
+                className={`px-4 rounded-end-pill ${location.pathname === '/admin/salary-automate' ? '' : 'text-muted'}`}
+                onClick={() => navigate('/admin/salary-automate')}
+              >
+                Salary Automate
               </Button>
             </ButtonGroup>
           )}

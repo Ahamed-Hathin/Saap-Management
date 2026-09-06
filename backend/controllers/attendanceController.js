@@ -1,5 +1,7 @@
 const Attendance = require('../models/Attendance');
 const User = require('../models/User');
+const SalarySetting = require('../models/SalarySetting');
+const Holiday = require('../models/Holiday');
 
 const getLocalDateString = () => {
   const now = new Date();
@@ -23,6 +25,27 @@ const isEarlyCheckOut = (dateStr, checkOutDate) => {
 const autoMarkAbsentAndLate = async (dateStr) => {
   const now = new Date();
   const cutoff = new Date(`${dateStr}T10:15:00`);
+  
+  // Check if today is a company holiday
+  const holiday = await Holiday.findOne({ date: dateStr });
+  if (holiday) {
+    const employees = await User.find();
+    for (const emp of employees) {
+      const existing = await Attendance.findOne({ employeeId: emp._id, date: dateStr });
+      if (!existing) {
+        await Attendance.create({
+          employeeId: emp._id,
+          date: dateStr,
+          status: 'Holiday'
+        });
+      } else if (existing.status === 'Absent' || existing.status === 'Not Checked In') {
+        existing.status = 'Holiday';
+        await existing.save();
+      }
+    }
+    return;
+  }
+
   if (now > cutoff) {
     const employees = await User.find();
     for (const emp of employees) {
@@ -44,12 +67,28 @@ exports.getTodayAttendance = async (req, res) => {
     await autoMarkAbsentAndLate(dateStr);
     
     let attendance = await Attendance.findOne({ employeeId: req.user._id, date: dateStr });
+    const salarySetting = await SalarySetting.findOne({ employeeId: req.user._id });
+    const hoursPerDay = salarySetting?.hoursPerDay || 8;
+    const holiday = await Holiday.findOne({ date: dateStr });
     
     if (!attendance) {
-      attendance = { status: 'Not Checked In' };
+      if (holiday) {
+        return res.json({ status: 'Holiday', holidayTitle: holiday.title, date: dateStr, hoursPerDay, targetWorkingMinutes: hoursPerDay * 60 });
+      }
+      return res.json({ status: 'Not Checked In', hoursPerDay, targetWorkingMinutes: hoursPerDay * 60 });
     }
     
-    res.json(attendance);
+    const attObj = attendance.toObject();
+    attObj.hoursPerDay = hoursPerDay;
+    attObj.targetWorkingMinutes = hoursPerDay * 60;
+    if (holiday) {
+      attObj.holidayTitle = holiday.title;
+      if (!attendance.checkIn && attendance.status !== 'Working') {
+        attObj.status = 'Holiday';
+      }
+    }
+    
+    res.json(attObj);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -168,17 +207,21 @@ exports.checkOut = async (req, res) => {
     const workingMs = now.getTime() - new Date(attendance.checkIn).getTime() - (attendance.lunchDuration * 60000) - ((attendance.pauseDuration || 0) * 60000);
     attendance.workingMinutes = Math.round(workingMs / 60000);
     
-    let isEarly = isEarlyCheckOut(dateStr, now);
-    if (attendance.workingMinutes >= 540) {
-      isEarly = false;
-    }
+    const salarySetting = await SalarySetting.findOne({ employeeId: req.user._id });
+    const hoursPerDay = salarySetting?.hoursPerDay || 8;
+    const targetWorkingMinutes = hoursPerDay * 60;
     
+    const isEarly = attendance.workingMinutes < targetWorkingMinutes;
     attendance.isEarlyExit = isEarly;
     attendance.status = isEarly ? 'Early Exit' : 'Completed';
     
     await attendance.save();
     
-    res.json(attendance);
+    const attObj = attendance.toObject();
+    attObj.hoursPerDay = hoursPerDay;
+    attObj.targetWorkingMinutes = targetWorkingMinutes;
+    
+    res.json(attObj);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -245,16 +288,18 @@ exports.getAdminDashboard = async (req, res) => {
       date = getLocalDateString();
     }
     
-    if (date === getLocalDateString()) {
-      await autoMarkAbsentAndLate(date);
-    }
+    await autoMarkAbsentAndLate(date);
     
     const attendances = await Attendance.find({ date }).populate('employeeId', 'name');
     const employees = await User.find().select('name');
+    const salarySettings = await SalarySetting.find();
+    const holiday = await Holiday.findOne({ date });
     
     // Ensure every employee has an entry in response, even if missing in db for past dates
     const data = employees.map(emp => {
       const att = attendances.find(a => a.employeeId && a.employeeId._id.toString() === emp._id.toString());
+      const setting = salarySettings.find(s => s.employeeId.toString() === emp._id.toString());
+      const hoursPerDay = setting?.hoursPerDay || 8;
       
       let currentWorkingMinutes = 0;
       if (att && att.checkIn) {
@@ -285,6 +330,11 @@ exports.getAdminDashboard = async (req, res) => {
         }
       }
 
+      let defaultStatus = 'Not Checked In';
+      if (holiday && (!att || !att.checkIn)) {
+        defaultStatus = 'Holiday';
+      }
+
       return {
         _id: att ? att._id : null,
         employeeId: emp,
@@ -293,10 +343,13 @@ exports.getAdminDashboard = async (req, res) => {
         lunchEnd: att ? att.lunchEnd : null,
         lunchDuration: att ? (att.lunchDuration || 0) : 0,
         checkOut: att ? att.checkOut : null,
-        status: att ? att.status : 'Not Checked In',
+        status: att ? (holiday && !att.checkIn ? 'Holiday' : att.status) : defaultStatus,
         workingMinutes: currentWorkingMinutes,
         isLate: att ? att.isLate : false,
-        isEarlyExit: att ? att.isEarlyExit : false
+        isEarlyExit: att ? att.isEarlyExit : false,
+        hoursPerDay: hoursPerDay,
+        targetWorkingMinutes: hoursPerDay * 60,
+        holidayTitle: holiday ? holiday.title : null
       };
     });
     
@@ -323,7 +376,26 @@ exports.getMonthlyAttendance = async (req, res) => {
       date: { $regex: regexPattern }
     }).sort({ date: 1 }).populate('employeeId', 'name');
 
-    res.json(attendances);
+    const holidays = await Holiday.find({
+      date: { $regex: regexPattern }
+    });
+
+    const salarySetting = await SalarySetting.findOne({ employeeId });
+    const hoursPerDay = salarySetting?.hoursPerDay || 8;
+
+    const data = attendances.map(att => {
+      const attObj = att.toObject();
+      const hol = holidays.find(h => h.date === att.date);
+      if (hol && !attObj.checkIn) {
+        attObj.status = 'Holiday';
+        attObj.holidayTitle = hol.title;
+      }
+      attObj.hoursPerDay = hoursPerDay;
+      attObj.targetWorkingMinutes = hoursPerDay * 60;
+      return attObj;
+    });
+
+    res.json(data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -351,6 +423,10 @@ exports.getAllMonthlyAttendance = async (req, res) => {
       date: { $regex: regexPattern }
     });
 
+    const holidays = await Holiday.find({
+      date: { $regex: regexPattern }
+    });
+
     const result = employees.map(emp => {
       const empAttendances = allAttendances.filter(a => a.employeeId.toString() === emp._id.toString());
       
@@ -358,16 +434,22 @@ exports.getAllMonthlyAttendance = async (req, res) => {
       let daysPresent = 0;
       let daysAbsent = 0;
       let daysLate = 0;
+      let daysHoliday = 0;
 
       empAttendances.forEach(att => {
-        if (['Working', 'Working After Lunch', 'Completed', 'Late', 'Checked Out'].includes(att.status) || att.checkIn) {
-          daysPresent++;
-        }
-        if (att.status === 'Absent') {
-          daysAbsent++;
-        }
-        if (att.status === 'Late') {
-          daysLate++;
+        const isHol = holidays.some(h => h.date === att.date);
+        if (att.status === 'Holiday' || (isHol && !att.checkIn)) {
+          daysHoliday++;
+        } else {
+          if (['Working', 'Working After Lunch', 'Completed', 'Late', 'Early Exit', 'Checked Out'].includes(att.status) || att.checkIn) {
+            daysPresent++;
+          }
+          if (att.status === 'Absent') {
+            daysAbsent++;
+          }
+          if (att.status === 'Late') {
+            daysLate++;
+          }
         }
         if (att.workingMs) {
           totalWorkingMs += att.workingMs;
@@ -379,6 +461,7 @@ exports.getAllMonthlyAttendance = async (req, res) => {
         daysPresent,
         daysAbsent,
         daysLate,
+        daysHoliday,
         totalWorkingMs,
         attendancesCount: empAttendances.length
       };
@@ -441,7 +524,8 @@ exports.adminUpdateAttendance = async (req, res) => {
       }
     } else {
       attendance.workingMinutes = 0;
-      attendance.status = 'Absent';
+      const holiday = await Holiday.findOne({ date });
+      attendance.status = holiday ? 'Holiday' : 'Absent';
     }
 
     // Determine late check-in
@@ -452,15 +536,13 @@ exports.adminUpdateAttendance = async (req, res) => {
       attendance.isLate = false;
     }
 
+    const salarySetting = await SalarySetting.findOne({ employeeId });
+    const hoursPerDay = salarySetting?.hoursPerDay || 8;
+    const targetWorkingMinutes = hoursPerDay * 60;
+
     // Determine early checkout
     if (attendance.checkOut) {
-      const cutoff = new Date(`${date}T20:45:00`);
-      attendance.isEarlyExit = attendance.checkOut < cutoff;
-      
-      if (attendance.workingMinutes >= 540) {
-        attendance.isEarlyExit = false;
-      }
-      
+      attendance.isEarlyExit = attendance.workingMinutes < targetWorkingMinutes;
       if (attendance.isEarlyExit && attendance.status === 'Completed') {
         attendance.status = 'Early Exit';
       }
@@ -469,10 +551,96 @@ exports.adminUpdateAttendance = async (req, res) => {
     }
 
     await attendance.save();
-    res.json(attendance);
+    
+    const attObj = attendance.toObject();
+    attObj.hoursPerDay = hoursPerDay;
+    attObj.targetWorkingMinutes = targetWorkingMinutes;
+
+    res.json(attObj);
 
   } catch (error) {
     console.error('Error in adminUpdateAttendance:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getHolidays = async (req, res) => {
+  try {
+    const { month, year } = req.query;
+    let query = {};
+    if (month && year) {
+      const paddedMonth = month.toString().padStart(2, '0');
+      query.date = { $regex: new RegExp(`^${year}-${paddedMonth}`) };
+    } else if (year) {
+      query.date = { $regex: new RegExp(`^${year}-`) };
+    }
+    const holidays = await Holiday.find(query).sort({ date: 1 });
+    res.json(holidays);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.addHoliday = async (req, res) => {
+  try {
+    const { date, title, description } = req.body;
+    if (!date) {
+      return res.status(400).json({ message: 'Date is required for holiday' });
+    }
+
+    let holiday = await Holiday.findOne({ date });
+    if (holiday) {
+      holiday.title = title || holiday.title;
+      holiday.description = description || holiday.description;
+      await holiday.save();
+    } else {
+      holiday = await Holiday.create({
+        date,
+        title: title || 'Company Holiday',
+        description: description || ''
+      });
+    }
+
+    // Update all employees' attendance for that date to 'Holiday' if not already checked in
+    const employees = await User.find();
+    for (const emp of employees) {
+      let att = await Attendance.findOne({ employeeId: emp._id, date });
+      if (!att) {
+        await Attendance.create({
+          employeeId: emp._id,
+          date,
+          status: 'Holiday'
+        });
+      } else if (!att.checkIn || att.status === 'Absent' || att.status === 'Not Checked In') {
+        att.status = 'Holiday';
+        await att.save();
+      }
+    }
+
+    res.status(201).json(holiday);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.deleteHoliday = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const holiday = await Holiday.findById(id);
+    if (!holiday) {
+      return res.status(404).json({ message: 'Holiday not found' });
+    }
+    const holidayDate = holiday.date;
+    await Holiday.findByIdAndDelete(id);
+
+    // Reset holiday attendances for that date back to Not Checked In
+    await Attendance.updateMany(
+      { date: holidayDate, status: 'Holiday' },
+      { $set: { status: 'Not Checked In' } }
+    );
+
+    res.json({ message: 'Holiday deleted successfully' });
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };

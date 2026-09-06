@@ -66,6 +66,8 @@ const AttendanceCard = () => {
         return 'warning';
       case 'Paused':
         return 'info';
+      case 'Holiday':
+        return 'info';
       default:
         return 'secondary';
     }
@@ -120,9 +122,50 @@ const AttendanceCard = () => {
     return `${hrs} : ${mins} : ${secs}`;
   };
 
-  if (loading) return <div>Loading attendance...</div>;
+  const formatHourDiff = (minsCount) => {
+    const h = Math.floor(minsCount / 60);
+    const m = minsCount % 60;
+    if (h > 0 && m > 0) return `${h} hour ${m} min`;
+    if (h > 0) return `${h} hour${h > 1 ? 's' : ''}`;
+    return `${m} min${m > 1 ? 's' : ''}`;
+  };
 
-  const status = attendance?.status || 'Not Checked In';
+  const renderStatusBadge = () => {
+    if (!attendance || !attendance.status || attendance.status === 'Not Checked In') {
+      return <Badge bg="secondary" className="px-3 py-2 rounded-pill fs-6">Not Checked In</Badge>;
+    }
+
+    if (attendance.status === 'Holiday') {
+      return (
+        <Badge bg="info" className="px-3 py-2 rounded-pill fs-6">
+          Holiday {attendance.holidayTitle ? `(${attendance.holidayTitle})` : ''}
+        </Badge>
+      );
+    }
+
+    if (attendance.checkOut || ['Completed', 'Early Exit', 'Checked Out'].includes(attendance.status)) {
+      const targetMins = attendance.targetWorkingMinutes || ((attendance.hoursPerDay || 8) * 60);
+      const workingMins = attendance.workingMinutes || 0;
+      const diff = workingMins - targetMins;
+      const absDiff = Math.abs(diff);
+
+      if (diff > 0) {
+        return <Badge bg="success" className="px-3 py-2 rounded-pill fs-6">Worked {formatHourDiff(diff)} extra</Badge>;
+      } else if (diff < 0) {
+        return <Badge bg="danger" className="px-3 py-2 rounded-pill fs-6">{formatHourDiff(absDiff)} early exit</Badge>;
+      } else {
+        return <Badge bg="success" className="px-3 py-2 rounded-pill fs-6">Completed</Badge>;
+      }
+    }
+
+    return (
+      <Badge bg={getStatusColor(attendance.status)} className="px-3 py-2 rounded-pill fs-6">
+        {attendance.status}
+      </Badge>
+    );
+  };
+
+  if (loading) return <div>Loading attendance...</div>;
 
   return (
     <Card className="shadow-sm mb-4 border-0 rounded-4">
@@ -132,9 +175,7 @@ const AttendanceCard = () => {
             <Clock size={20} className="me-2 text-primary" />
             Today's Time Tracking
           </h5>
-          <Badge bg={getStatusColor(status)} className="px-3 py-2 rounded-pill fs-6">
-            {status}
-          </Badge>
+          {renderStatusBadge()}
         </div>
 
         <div className="bg-light p-3 rounded-4 mb-4 text-center">

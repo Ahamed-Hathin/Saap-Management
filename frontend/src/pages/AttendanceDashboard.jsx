@@ -25,6 +25,76 @@ const AttendanceDashboard = () => {
     checkOut: ''
   });
 
+  const [showHolidayModal, setShowHolidayModal] = useState(false);
+  const [holidayMonth, setHolidayMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [holidaysList, setHolidaysList] = useState([]);
+  const [holidayForm, setHolidayForm] = useState({
+    date: new Date().toISOString().split('T')[0],
+    title: ''
+  });
+  const [currentHoliday, setCurrentHoliday] = useState(null);
+
+  const fetchHolidays = async (mMonth = holidayMonth) => {
+    try {
+      const [y, m] = mMonth.split('-');
+      const res = await api.get(`/attendance/holidays?month=${m}&year=${y}`);
+      setHolidaysList(res.data);
+    } catch (err) {
+      console.error('Error fetching holidays:', err);
+    }
+  };
+
+  const handleAddHoliday = async (e) => {
+    e.preventDefault();
+    if (!holidayForm.date) {
+      Swal.fire('Error', 'Please select a date', 'error');
+      return;
+    }
+    try {
+      await api.post('/attendance/holidays', {
+        date: holidayForm.date,
+        title: holidayForm.title || 'Company Holiday'
+      });
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Holiday set successfully',
+        showConfirmButton: false,
+        timer: 1500
+      });
+      setHolidayForm({ date: holidayForm.date, title: '' });
+      fetchHolidays(holidayMonth);
+      fetchAttendances();
+    } catch (err) {
+      Swal.fire('Error', err.response?.data?.message || 'Failed to set holiday', 'error');
+    }
+  };
+
+  const handleDeleteHoliday = async (id) => {
+    try {
+      const result = await Swal.fire({
+        title: 'Delete Holiday?',
+        text: 'Are you sure you want to remove this company holiday?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, delete'
+      });
+      if (result.isConfirmed) {
+        await api.delete(`/attendance/holidays/${id}`);
+        fetchHolidays(holidayMonth);
+        fetchAttendances();
+      }
+    } catch (err) {
+      Swal.fire('Error', err.response?.data?.message || 'Failed to delete holiday', 'error');
+    }
+  };
+
   const handleEditClick = (att) => {
     setSelectedEmployee(att.employeeId);
     
@@ -69,10 +139,7 @@ const AttendanceDashboard = () => {
         timer: 1500
       });
       // reload attendance
-      setLoading(true);
-      const res = await api.get(`/attendance/admin?date=${dateFilter}`);
-      setAttendances(res.data);
-      setLoading(false);
+      fetchAttendances();
     } catch (error) {
       console.error('Error updating attendance:', error);
       Swal.fire({
@@ -83,35 +150,71 @@ const AttendanceDashboard = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchAttendances = async () => {
-      try {
-        setLoading(true);
-        const res = await api.get(`/attendance/admin?date=${dateFilter}`);
+  const fetchAttendances = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get(`/attendance/admin?date=${dateFilter}`);
+      if (Array.isArray(res.data)) {
         setAttendances(res.data);
-      } catch (error) {
-        console.error('Error fetching admin attendance:', error);
-      } finally {
-        setLoading(false);
+        setCurrentHoliday(null);
+      } else {
+        setAttendances(res.data.attendances || []);
+        setCurrentHoliday(res.data.holiday || null);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching admin attendance:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchAttendances();
   }, [dateFilter]);
 
-  const getStatusBadge = (status) => {
+  const formatHourDiff = (minsCount) => {
+    const h = Math.floor(minsCount / 60);
+    const m = minsCount % 60;
+    if (h > 0 && m > 0) return `${h} hour ${m} min`;
+    if (h > 0) return `${h} hour${h > 1 ? 's' : ''}`;
+    return `${m} min${m > 1 ? 's' : ''}`;
+  };
+
+  const getStatusBadge = (att) => {
+    if (!att) return <Badge bg="secondary">Not Checked In</Badge>;
+    const status = att.status;
+
+    if (status === 'Holiday') {
+      return <Badge bg="info">{att.holidayTitle ? `Holiday (${att.holidayTitle})` : 'Holiday'}</Badge>;
+    }
+
+    if (att.checkOut || ['Completed', 'Early Exit', 'Checked Out'].includes(status)) {
+      const targetMins = att.targetWorkingMinutes || ((att.hoursPerDay || 8) * 60);
+      const workingMins = att.workingMinutes || 0;
+      const diff = workingMins - targetMins;
+      const absDiff = Math.abs(diff);
+
+      if (diff > 0) {
+        return <Badge bg="success">Worked {formatHourDiff(diff)} extra</Badge>;
+      } else if (diff < 0) {
+        return <Badge bg="danger">{formatHourDiff(absDiff)} early exit</Badge>;
+      } else {
+        return <Badge bg="success">Completed</Badge>;
+      }
+    }
+
     switch (status) {
       case 'Working':
       case 'Working After Lunch':
         return <Badge bg="primary">{status}</Badge>;
-      case 'Completed':
-        return <Badge bg="success">{status}</Badge>;
       case 'Late':
-      case 'Early Exit':
         return <Badge bg="danger">{status}</Badge>;
       case 'Absent':
         return <Badge bg="dark">{status}</Badge>;
       case 'Lunch Break':
         return <Badge bg="warning" text="dark">{status}</Badge>;
+      case 'Paused':
+        return <Badge bg="info">{status}</Badge>;
       default:
         return <Badge bg="secondary">{status}</Badge>;
     }
@@ -142,89 +245,125 @@ const AttendanceDashboard = () => {
 
   return (
     <Layout>
-      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-        <div className="d-flex flex-column flex-md-row align-items-md-center align-items-start flex-grow-1 gap-3">
-          <div>
-            <h2 className="mb-1 fw-bold text-dark d-flex align-items-center">
-              <Users size={28} className="me-2 text-primary" />
-              Time Tracking Dashboard
-            </h2>
-            <p className="text-muted mb-0">Track employee attendance and working hours</p>
-          </div>
-          <ButtonGroup className="ms-md-5 shadow-sm rounded-pill">
-            <Button 
-              variant={location.pathname === '/admin/my-attendance' ? 'primary' : 'light'} 
-              className={`px-4 rounded-start-pill ${location.pathname === '/admin/my-attendance' ? '' : 'text-muted'}`}
-              onClick={() => navigate('/admin/my-attendance')}
-            >
-              My Time Tracking
-            </Button>
-            <Button 
-              variant={location.pathname === '/admin/attendance' ? 'primary' : 'light'} 
-              className={`px-4 rounded-end-pill ${location.pathname === '/admin/attendance' ? '' : 'text-muted'}`}
-              onClick={() => navigate('/admin/attendance')}
-            >
-              Manage Time Tracking
-            </Button>
-          </ButtonGroup>
+      {/* Top Header Row */}
+      <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center align-items-start mb-4 gap-3">
+        <div>
+          <h2 className="mb-1 fw-bold text-dark d-flex align-items-center">
+            <Users size={28} className="me-2 text-primary" />
+            Time Tracking Dashboard
+          </h2>
+          <p className="text-muted mb-0">Track employee attendance and working hours</p>
         </div>
-        <div className="d-flex align-items-center">
+        
+        <ButtonGroup className="shadow-sm rounded-pill bg-white p-1 border">
+          <Button 
+            variant={location.pathname === '/admin/my-attendance' ? 'primary' : 'light'} 
+            className={`px-3 py-2 rounded-pill border-0 fw-semibold ${location.pathname === '/admin/my-attendance' ? 'shadow-sm text-white' : 'text-muted bg-transparent'}`}
+            onClick={() => navigate('/admin/my-attendance')}
+          >
+            My Time Tracking
+          </Button>
+          <Button 
+            variant={location.pathname === '/admin/attendance' ? 'primary' : 'light'} 
+            className={`px-3 py-2 rounded-pill border-0 fw-semibold ${location.pathname === '/admin/attendance' ? 'shadow-sm text-white' : 'text-muted bg-transparent'}`}
+            onClick={() => navigate('/admin/attendance')}
+          >
+            Manage Time Tracking
+          </Button>
+          <Button 
+            variant={location.pathname === '/admin/salary-automate' ? 'primary' : 'light'} 
+            className={`px-3 py-2 rounded-pill border-0 fw-semibold ${location.pathname === '/admin/salary-automate' ? 'shadow-sm text-white' : 'text-muted bg-transparent'}`}
+            onClick={() => navigate('/admin/salary-automate')}
+          >
+            Salary Automate
+          </Button>
+        </ButtonGroup>
+      </div>
+
+      {/* Date & Actions Bar */}
+      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3 bg-white p-3 rounded-4 shadow-sm border">
+        <div className="d-flex align-items-center gap-2">
+          <span className="text-muted fw-semibold d-flex align-items-center small">
+            <Clock size={16} className="me-1 text-primary" /> Selected Date:
+          </span>
           <Form.Control 
             type="date" 
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
-            className="shadow-sm"
+            className="border rounded-pill px-3 py-1 shadow-none bg-light"
+            style={{ width: '170px' }}
           />
+        </div>
+
+        <div className="d-flex align-items-center gap-2">
+          <Button 
+            variant="outline-primary" 
+            className="rounded-pill px-3 py-2 d-flex align-items-center gap-2 border shadow-sm fw-medium bg-white"
+            onClick={() => { setShowHolidayModal(true); fetchHolidays(holidayMonth); }}
+          >
+            <Calendar size={18} />
+            Company Holidays
+          </Button>
         </div>
       </div>
 
-      <Row className="g-3 mb-4">
-        <Col md={2} xs={6}>
+      {currentHoliday && (
+        <div className="alert alert-info border-0 shadow-sm rounded-4 d-flex align-items-center mb-4 py-3 px-4 bg-info bg-opacity-10">
+          <span className="fs-3 me-3">🎉</span>
+          <div>
+            <h6 className="fw-bold mb-0 text-dark">Company Holiday: {currentHoliday.title}</h6>
+            <small className="text-muted">Today is marked as a company holiday. Employees not working are marked as Holiday.</small>
+          </div>
+        </div>
+      )}
+
+      {/* Stats Cards */}
+      <Row className="row-cols-2 row-cols-sm-3 row-cols-lg-5 g-3 mb-4">
+        <Col>
           <Card className="border-0 shadow-sm rounded-4 h-100 bg-white">
             <Card.Body className="text-center p-3">
               <UserCheck size={24} className="text-success mb-2" />
-              <h3 className="fw-black mb-0">{stats.present}</h3>
+              <h3 className="fw-black mb-0 text-dark">{stats.present}</h3>
               <small className="text-muted fw-medium">Present</small>
             </Card.Body>
           </Card>
         </Col>
-        <Col md={2} xs={6}>
+        <Col>
           <Card className="border-0 shadow-sm rounded-4 h-100 bg-white">
             <Card.Body className="text-center p-3">
               <Clock size={24} className="text-danger mb-2" />
-              <h3 className="fw-black mb-0">{stats.late}</h3>
+              <h3 className="fw-black mb-0 text-dark">{stats.late}</h3>
               <small className="text-muted fw-medium">Late Today</small>
             </Card.Body>
           </Card>
         </Col>
-        <Col md={2} xs={6}>
+        <Col>
           <Card className="border-0 shadow-sm rounded-4 h-100 bg-white">
             <Card.Body className="text-center p-3">
               <Users size={24} className="text-primary mb-2" />
-              <h3 className="fw-black mb-0">{stats.workingNow}</h3>
+              <h3 className="fw-black mb-0 text-dark">{stats.workingNow}</h3>
               <small className="text-muted fw-medium">Working Now</small>
             </Card.Body>
           </Card>
         </Col>
-        <Col md={2} xs={6}>
+        <Col>
           <Card className="border-0 shadow-sm rounded-4 h-100 bg-white">
             <Card.Body className="text-center p-3">
               <LogOut size={24} className="text-info mb-2" />
-              <h3 className="fw-black mb-0">{stats.checkedOut}</h3>
+              <h3 className="fw-black mb-0 text-dark">{stats.checkedOut}</h3>
               <small className="text-muted fw-medium">Checked Out</small>
             </Card.Body>
           </Card>
         </Col>
-        <Col md={2} xs={6}>
+        <Col>
           <Card className="border-0 shadow-sm rounded-4 h-100 bg-white">
             <Card.Body className="text-center p-3">
               <UserX size={24} className="text-dark mb-2" />
-              <h3 className="fw-black mb-0">{stats.absent}</h3>
+              <h3 className="fw-black mb-0 text-dark">{stats.absent}</h3>
               <small className="text-muted fw-medium">Absent</small>
             </Card.Body>
           </Card>
         </Col>
-
       </Row>
 
       <Card className="dashboard-card border-0 mb-4 shadow-sm rounded-4">
@@ -247,11 +386,11 @@ const AttendanceDashboard = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="text-center p-4 text-muted">Loading attendance data...</td>
+                  <td colSpan="10" className="text-center p-4 text-muted">Loading attendance data...</td>
                 </tr>
               ) : attendances.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="text-center p-4 text-muted">No attendance records found for this date.</td>
+                  <td colSpan="10" className="text-center p-4 text-muted">No attendance records found for this date.</td>
                 </tr>
               ) : (
                 attendances.map((att, index) => (
@@ -264,7 +403,7 @@ const AttendanceDashboard = () => {
                     <td>{formatTime(att.checkOut)}</td>
                     <td className="fw-medium">{formatDuration(att.workingMinutes)}</td>
                     <td className="fw-medium text-muted">{formatDuration(att.pauseDuration)}</td>
-                    <td>{getStatusBadge(att.status)}</td>
+                    <td>{getStatusBadge(att)}</td>
                     <td>
                       {att.employeeId && (
                         <div className="d-flex gap-2 justify-content-center">
@@ -294,6 +433,100 @@ const AttendanceDashboard = () => {
           </Table>
         </Card.Body>
       </Card>
+      
+      {/* Holiday Management Modal */}
+      <Modal show={showHolidayModal} onHide={() => setShowHolidayModal(false)} size="lg" centered>
+        <Modal.Header closeButton>
+          <Modal.Title className="fw-bold d-flex align-items-center">
+            <Calendar size={22} className="me-2 text-primary" />
+            Manage Company Holidays
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h6 className="fw-bold mb-0">Select Month to View / Add Holidays</h6>
+            <Form.Control 
+              type="month" 
+              value={holidayMonth} 
+              onChange={(e) => {
+                setHolidayMonth(e.target.value);
+                fetchHolidays(e.target.value);
+              }}
+              style={{ width: '180px' }}
+              className="shadow-sm"
+            />
+          </div>
+
+          <Card className="border p-3 rounded-4 mb-4 bg-light">
+            <h6 className="fw-bold mb-3 text-dark">Add New Company Holiday</h6>
+            <Form onSubmit={handleAddHoliday}>
+              <Row className="g-3">
+                <Col md={5}>
+                  <Form.Label className="small fw-medium text-muted">Holiday Date</Form.Label>
+                  <Form.Control 
+                    type="date" 
+                    required 
+                    value={holidayForm.date}
+                    onChange={(e) => setHolidayForm({ ...holidayForm, date: e.target.value })}
+                  />
+                </Col>
+                <Col md={5}>
+                  <Form.Label className="small fw-medium text-muted">Holiday Name / Reason</Form.Label>
+                  <Form.Control 
+                    type="text" 
+                    placeholder="e.g. Diwali, New Year, Pongal" 
+                    value={holidayForm.title}
+                    onChange={(e) => setHolidayForm({ ...holidayForm, title: e.target.value })}
+                  />
+                </Col>
+                <Col md={2} className="d-flex align-items-end">
+                  <Button type="submit" variant="primary" className="w-100 rounded-pill">
+                    Add
+                  </Button>
+                </Col>
+              </Row>
+            </Form>
+          </Card>
+
+          <h6 className="fw-bold mb-3">Holidays for {holidayMonth}</h6>
+          {holidaysList.length === 0 ? (
+            <p className="text-muted text-center py-4 bg-white border rounded-4">No company holidays scheduled for this month.</p>
+          ) : (
+            <div className="table-responsive">
+              <Table className="align-middle mb-0">
+                <thead className="bg-light text-muted">
+                  <tr>
+                    <th>Date</th>
+                    <th>Holiday Name</th>
+                    <th className="text-end">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {holidaysList.map(h => (
+                    <tr key={h._id}>
+                      <td className="fw-bold">{new Date(h.date).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                      <td>
+                        <Badge bg="info" className="fs-6 px-3 py-1 rounded-pill">{h.title}</Badge>
+                      </td>
+                      <td className="text-end">
+                        <Button variant="outline-danger" size="sm" className="rounded-pill" onClick={() => handleDeleteHoliday(h._id)}>
+                          Delete
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowHolidayModal(false)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
       <Modal show={showEditModal} onHide={() => setShowEditModal(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title>

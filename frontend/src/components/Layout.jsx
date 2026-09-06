@@ -68,11 +68,8 @@ const Layout = ({ children }) => {
           <NavLink to="/admin/stack" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
             <Package className="me-3" size={20} /> Manage Stock
           </NavLink>
-          <NavLink to="/admin/attendance" className={({ isActive }) => `nav-link ${(isActive || location.pathname === '/admin/my-attendance') ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+          <NavLink to="/admin/attendance" className={({ isActive }) => `nav-link ${(isActive || location.pathname === '/admin/my-attendance' || location.pathname === '/admin/salary-automate') ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
             <Clock className="me-3" size={20} /> Time Tracking
-          </NavLink>
-          <NavLink to="/admin/salary-automate" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
-            <Receipt className="me-3" size={20} /> Salary Automate
           </NavLink>
           <NavLink to="/admin/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
             <Settings className="me-3" size={20} /> Settings

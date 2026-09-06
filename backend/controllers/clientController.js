@@ -22,22 +22,30 @@ const createClient = async (req, res) => {
   }
 };
 
+const Order = require('../models/Order');
+
+const getClientOrderQuery = (client) => {
+  const rawMobile = client.mobileNumber ? client.mobileNumber.replace(/\D/g, '') : '';
+  const formattedMobile = rawMobile.length > 5 ? `${rawMobile.slice(0, 5)} ${rawMobile.slice(5)}` : rawMobile;
+  const nameRegex = client.clientName ? new RegExp(`^\\s*${client.clientName.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'i') : null;
+  const usernameRegex = client.username ? new RegExp(`^\\s*${client.username.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'i') : null;
+
+  const queryOr = [];
+  if (nameRegex) queryOr.push({ clientName: nameRegex });
+  if (usernameRegex) queryOr.push({ clientName: usernameRegex });
+  if (rawMobile) queryOr.push({ mobileNumber: rawMobile });
+  if (formattedMobile) queryOr.push({ mobileNumber: formattedMobile });
+  if (client.mobileNumber) queryOr.push({ mobileNumber: client.mobileNumber });
+
+  return queryOr.length > 0 ? { $or: queryOr } : {};
+};
+
 const getClients = async (req, res) => {
   try {
     const clients = await Client.find({}).sort({ createdAt: -1 }).lean();
     
     const clientsWithBalance = await Promise.all(clients.map(async (client) => {
-      const rawMobile = client.mobileNumber.replace(/\D/g, '');
-      const formattedMobile = rawMobile.length > 5 ? `${rawMobile.slice(0, 5)} ${rawMobile.slice(5)}` : rawMobile;
-
-      const orders = await Order.find({
-        clientName: { $regex: new RegExp(`^${client.clientName.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
-        $or: [
-          { mobileNumber: rawMobile },
-          { mobileNumber: formattedMobile },
-          { mobileNumber: client.mobileNumber }
-        ]
-      }).select('totalAmount advanceAmount balancePayments');
+      const orders = await Order.find(getClientOrderQuery(client)).select('totalAmount advanceAmount balancePayments');
 
       let totalBilled = 0;
       let totalPaid = 0;
@@ -120,8 +128,6 @@ const deleteClient = async (req, res) => {
   }
 };
 
-const Order = require('../models/Order');
-
 const getClientOrders = async (req, res) => {
   try {
     const client = await Client.findById(req.params.id);
@@ -129,18 +135,7 @@ const getClientOrders = async (req, res) => {
       return res.status(404).json({ message: 'Client not found' });
     }
 
-    const rawMobile = client.mobileNumber.replace(/\\D/g, '');
-    const formattedMobile = rawMobile.length > 5 ? `${rawMobile.slice(0, 5)} ${rawMobile.slice(5)}` : rawMobile;
-
-    const nameRegex = new RegExp(`^\\s*${client.clientName.trim().replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}\\s*$`, 'i');
-    const orders = await Order.find({
-      $or: [
-        { clientName: nameRegex },
-        { mobileNumber: rawMobile },
-        { mobileNumber: formattedMobile },
-        { mobileNumber: client.mobileNumber }
-      ]
-    }).sort({ createdAt: -1 });
+    const orders = await Order.find(getClientOrderQuery(client)).sort({ createdAt: -1 });
 
     let totalBilled = 0;
     let totalPaid = 0;
@@ -182,23 +177,9 @@ const payAllClientOrders = async (req, res) => {
 
     const { payments, paymentMethod } = req.body;
     
-    // If the legacy paymentMethod was passed, convert it to a split format that is basically "take whatever is pending"
-    // Wait, with the new UI, we always send `payments: [{amount: X, method: Y}]`
-    // If they just submitted the form, we loop through payments and distribute them.
     let remainingPayments = payments ? [...payments] : [{ amount: Number.MAX_SAFE_INTEGER, method: paymentMethod || 'Cash' }];
 
-    const rawMobile = client.mobileNumber.replace(/\D/g, '');
-    const formattedMobile = rawMobile.length > 5 ? `${rawMobile.slice(0, 5)} ${rawMobile.slice(5)}` : rawMobile;
-
-    const nameRegex = new RegExp(`^\\s*${client.clientName.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'i');
-    const orders = await Order.find({
-      $or: [
-        { clientName: nameRegex },
-        { mobileNumber: rawMobile },
-        { mobileNumber: formattedMobile },
-        { mobileNumber: client.mobileNumber }
-      ]
-    }).sort({ createdAt: 1 }); // Sort oldest first so they get paid first
+    const orders = await Order.find(getClientOrderQuery(client)).sort({ createdAt: 1 }); // Sort oldest first so they get paid first
 
     let totalPaidNow = 0;
 
