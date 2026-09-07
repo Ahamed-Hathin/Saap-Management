@@ -36,7 +36,7 @@ const createOrder = async (req, res) => {
 
     const numAdvanceAmount = (advanceAmount === '' || advanceAmount === null || advanceAmount === undefined || isNaN(Number(advanceAmount))) ? 0 : Number(advanceAmount);
     const numTotalAmount = (totalAmount === '' || totalAmount === null || totalAmount === undefined || isNaN(Number(totalAmount))) ? 0 : Number(totalAmount);
-    const calculatedBalance = numTotalAmount - numAdvanceAmount;
+    const numBalanceAmount = (req.body.balanceAmount === '' || req.body.balanceAmount === null || req.body.balanceAmount === undefined || isNaN(Number(req.body.balanceAmount))) ? 0 : Number(req.body.balanceAmount);
 
     const maxOrder = await Order.findOne({}, {}, { sort: { 'serialNumber' : -1 } });
     const nextSerialNumber = maxOrder && maxOrder.serialNumber ? maxOrder.serialNumber + 1 : 1;
@@ -48,7 +48,7 @@ const createOrder = async (req, res) => {
       cardType,
       advanceAmount: numAdvanceAmount,
       totalAmount: numTotalAmount,
-      balanceAmount: calculatedBalance,
+      balanceAmount: numBalanceAmount,
       assignedEmployee: assignedEmployeeId,
       advanceReceived: isAdvanceReceived,
       paymentMethod,
