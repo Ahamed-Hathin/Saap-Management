@@ -222,8 +222,46 @@ input[type=number] {
   -moz-appearance: textfield;
 }
 
-input:not([type="password"]):not([type="email"]), textarea {
+/* Capitalize 1st letter and letter after spaces (words) across whole CRM */
+table td,
+.table td,
+.modal-body,
+.modal-title,
+.card-body,
+.badge-custom,
+.badge,
+.list-group-item,
+.dropdown-item,
+input:not([type="password"]):not([type="email"]):not(.no-capitalize),
+textarea:not(.no-capitalize),
+select:not(.no-capitalize),
+.form-select:not(.no-capitalize),
+.form-control:not([type="password"]):not([type="email"]):not(.no-capitalize),
+.swal2-popup,
+.swal2-title,
+.swal2-html-container,
+.swal2-content,
+.text-capitalize {
   text-transform: capitalize;
+}
+
+/* Explicit exemptions where exact casing should be preserved */
+input[type="password"],
+input[type="email"],
+.text-lowercase,
+.font-monospace,
+.no-capitalize,
+a[href^="mailto:"],
+code,
+pre {
+  text-transform: none !important;
+}
+
+.text-uppercase,
+th.text-uppercase,
+.table thead th,
+thead th {
+  text-transform: uppercase !important;
 }
 
 /* Dashboard Premium Enhancements */

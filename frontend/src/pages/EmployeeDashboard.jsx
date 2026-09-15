@@ -48,6 +48,8 @@ const EmployeeDashboard = () => {
     advanceReceived: false,
     paymentMethod: 'GPay',
     printingCompany: settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite',
+    status: 'Pending',
+    remarks: '',
     items: [{ itemName: '', totalQty: '', price: '' }]
   });
 
@@ -85,7 +87,7 @@ const EmployeeDashboard = () => {
   const handleShow = () => {
     setFormData({
       clientName: '', mobileNumber: '', cardType: settings.jobTypes.length > 0 ? settings.jobTypes[0] : 'Visiting Card', advanceAmount: '', totalAmount: '',
-      advanceReceived: false, paymentMethod: 'GPay', printingCompany: settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite', items: [{ itemName: '', totalQty: '', price: '' }]
+      advanceReceived: false, paymentMethod: 'GPay', printingCompany: settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite', status: 'Pending', remarks: '', items: [{ itemName: '', totalQty: '', price: '' }]
     });
     setFile(null);
     setError('');
@@ -683,6 +685,19 @@ const EmployeeDashboard = () => {
                     <option key={pc} value={pc}>{pc}</option>
                   ))}
                 </Form.Select>
+              </div>
+              <Form.Group className="mb-3 col-md-12">
+                <Form.Label className="fw-semibold">Status</Form.Label>
+                <Form.Select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="bg-light">
+                  <option value="Pending">Pending</option>
+                  {statusOptions.filter(opt => opt !== 'Pending').map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+              <div className="col-12">
+                <Form.Label className="fw-semibold">Remarks (Notes - Admin/Staff Only)</Form.Label>
+                <Form.Control as="textarea" rows={2} placeholder="Internal notes not shown on invoice..." value={formData.remarks} onChange={(e) => setFormData({ ...formData, remarks: e.target.value })} className="bg-light" />
               </div>
               <div className="col-md-6 pt-4">
                 <Form.Check type="switch" id="advance-switch-emp" label="Advance Amount Received" checked={formData.advanceReceived} onChange={(e) => setFormData({ ...formData, advanceReceived: e.target.checked })} className="fw-medium" />
