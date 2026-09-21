@@ -208,8 +208,7 @@ const ClientOrders = () => {
     const formattedPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
 
     Swal.fire({
-      title: 'Preparing WhatsApp Invoice...',
-      text: 'Generating invoice image and redirecting to WhatsApp...',
+      title: 'Opening WhatsApp...',
       allowOutsideClick: false,
       didOpen: () => {
         Swal.showLoading();
@@ -222,86 +221,52 @@ const ClientOrders = () => {
       if (invoiceRef.current) {
         try {
           const canvas = await html2canvas(invoiceRef.current, {
-            scale: 3,
+            scale: 2,
             useCORS: true,
             logging: false
           });
 
-          const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+          const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 0.95));
           const filename = `Invoice_${order.serialNumber || 'Order'}_${(order.clientName || 'Client').replace(/\s+/g, '_')}.png`;
           const file = new File([blob], filename, { type: 'image/png' });
 
-          let invoiceUrl = order.invoiceImage || '';
-
-          // Upload invoice image to Cloudinary / backend if order has an ID
-          if (order._id) {
-            try {
-              const uploadData = new FormData();
-              uploadData.append('image', file);
-              const { data } = await api.post(`/orders/${order._id}/upload-invoice`, uploadData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-              });
-              if (data && (data.imageUrl || data.invoiceImage)) {
-                invoiceUrl = data.imageUrl || data.invoiceImage;
-              }
-            } catch (upErr) {
-              console.warn('Invoice image upload warning:', upErr);
-            }
-          }
-
-          // Desktop clipboard copy for convenient pasting
-          try {
-            if (navigator.clipboard && window.ClipboardItem) {
-              await navigator.clipboard.write([
-                new ClipboardItem({ 'image/png': blob })
-              ]);
-            }
-          } catch (clipErr) {
-            console.warn('Clipboard write fallback:', clipErr);
-          }
-
-          const itemsText = (order.items && order.items.length > 0)
-            ? order.items.map(it => `• ${it.itemName} (${it.totalQty} qty) - ₹${it.price}`).join('\n')
-            : (order.itemName ? `• ${order.itemName} (${order.totalQty || 1} qty) - ₹${order.pricePerQty || 0}` : '');
-
-          const balanceAmt = Math.max(0, (order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0));
-
-          const message = `*INVOICE - SAPP CREATION*\n` +
-            `━━━━━━━━━━━━━━━━━━━━\n` +
-            `*Invoice No:* #${order.serialNumber || ''}\n` +
-            `*Client Name:* ${order.clientName || ''}\n` +
-            (itemsText ? `\n*Order Items:*\n${itemsText}\n` : '') +
-            `\n*Total Amount:* ₹${(order.totalAmount || 0).toFixed(2)}\n` +
-            `*Advance Paid:* ₹${(order.advanceAmount || 0).toFixed(2)}\n` +
-            `*Balance Due:* ₹${balanceAmt.toFixed(2)}\n` +
-            `━━━━━━━━━━━━━━━━━━━━\n` +
-            (invoiceUrl ? `📄 *Invoice Image:*\n${invoiceUrl}\n\n` : '') +
-            `Thank you for your business! 🙏`;
-
-          const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
-
           Swal.close();
 
-          const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-          if (isMobile) {
-            window.location.href = whatsappUrl;
+          // If device supports Web Share API with files (Mobile devices / supported browsers)
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: `Invoice #${order.serialNumber || ''}`,
+              text: `Invoice from SAPP Creation for ${order.clientName || 'Customer'}`
+            });
           } else {
-            const win = window.open(whatsappUrl, '_blank');
-            if (!win) {
+            // Direct WhatsApp redirect to client number
+            const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}`;
+            const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (isMobile) {
               window.location.href = whatsappUrl;
+            } else {
+              const win = window.open(whatsappUrl, '_blank');
+              if (!win) {
+                window.location.href = whatsappUrl;
+              }
             }
           }
         } catch (error) {
           console.error("Error generating/sharing WhatsApp invoice image:", error);
-          Swal.fire('Error', 'Failed to generate invoice image', 'error');
+          Swal.close();
+          const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}`;
+          window.open(whatsappUrl, '_blank');
         } finally {
           setDownloadInvoice(null);
         }
       } else {
         setDownloadInvoice(null);
-        Swal.fire('Error', 'Could not render invoice template', 'error');
+        Swal.close();
+        const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}`;
+        window.open(whatsappUrl, '_blank');
       }
-    }, 600);
+    }, 150);
   };
 
   const handleSubmit = async (e) => {
