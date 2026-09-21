@@ -15,6 +15,20 @@ import logoImg from '../assets/Sapp Logo.jpg.jpeg';
 
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
+const WhatsAppIcon = ({ size = 16, color = "currentColor", className = "" }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill={color}
+    className={className}
+    style={{ display: 'inline-block', verticalAlign: 'middle' }}
+  >
+    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+  </svg>
+);
+
 const ClientOrders = () => {
   const [orders, setOrders] = useState([]);
   const [clients, setClients] = useState([]);
@@ -180,6 +194,63 @@ const ClientOrders = () => {
     }
   };
 
+  const sendWhatsAppInvoice = (order) => {
+    if (!order || !order.mobileNumber) {
+      Swal.fire('Warning', 'Client mobile number is missing for this order', 'warning');
+      return;
+    }
+
+    const rawPhone = (order.mobileNumber || '').replace(/\D/g, '');
+    if (!rawPhone) {
+      Swal.fire('Warning', 'Invalid mobile number', 'warning');
+      return;
+    }
+    const formattedPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
+
+    const dateStr = order.createdAt ? formatDate(order.createdAt).split(',')[0] : formatDate(new Date()).split(',')[0];
+    const totalAmount = Number(order.totalAmount || 0);
+    const advanceAmount = Number(order.advanceAmount || 0);
+    const balanceAmount = Number(order.balanceAmount || 0);
+    const pendingAmount = Math.max(0, totalAmount - advanceAmount - balanceAmount);
+
+    let itemsText = '';
+    if (order.items && order.items.length > 0) {
+      itemsText = order.items
+        .map((item, idx) => `${idx + 1}. *${item.itemName || 'Item'}* | Qty: ${item.totalQty || 1} | Price: Rs.${Number(item.price || 0).toFixed(2)}`)
+        .join('\n');
+    } else {
+      const name = order.itemName || order.cardType || 'Job Order';
+      itemsText = `1. *${name}* | Qty: ${order.totalQty || 1} | Price: Rs.${totalAmount.toFixed(2)}`;
+    }
+
+    const message = 
+`🧾 *INVOICE - SAPP CREATION*
+No.3/4, Shop No.03, 1st Floor, Alam Tower, Allimal St, Trichy - 8.
+Ph: 0431-4010547, Cell: 88833 72047
+━━━━━━━━━━━━━━━━━━━━
+*Order No:* #${order.serialNumber || 'N/A'}
+*Date:* ${dateStr}
+*Customer Name:* ${order.clientName || 'Client'}
+*Mobile:* ${order.mobileNumber}
+*Job:* ${order.cardType || '-'}
+━━━━━━━━━━━━━━━━━━━━
+*ITEMS:*
+${itemsText}
+━━━━━━━━━━━━━━━━━━━━
+*Total Amount:* Rs. ${totalAmount.toFixed(2)}
+*Advance Paid:* Rs. ${advanceAmount.toFixed(2)}${(order.paymentMethod && order.paymentMethod !== 'None') ? ` (${order.paymentMethod})` : ''}
+${balanceAmount > 0 ? `*Balance Paid:* Rs. ${balanceAmount.toFixed(2)}\n` : ''}*Balance Amount:* Rs. ${pendingAmount.toFixed(2)}
+━━━━━━━━━━━━━━━━━━━━
+*Terms & Conditions:*
+1. 50% Advance Payment should be paid at the time of Order Placement.
+2. Credit Facility not Available (Make the Full Payment at the time of delivery).
+
+*Thank you for your business!*`;
+
+    const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -209,6 +280,21 @@ const ClientOrders = () => {
 
       setShowModal(false);
       fetchData();
+
+      Swal.fire({
+        title: 'Order Created Successfully!',
+        text: `Would you like to send the invoice to ${newOrder.clientName || 'the client'} via WhatsApp?`,
+        icon: 'success',
+        showCancelButton: true,
+        confirmButtonColor: '#25D366',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'WhatsApp Invoice',
+        cancelButtonText: 'Done'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          sendWhatsAppInvoice(newOrder);
+        }
+      });
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong');
     } finally {
@@ -661,6 +747,16 @@ const ClientOrders = () => {
                           <Link to={`/orders/${order._id}`}>
                             <Button variant="outline-primary" size="sm" className="fw-medium">View / Edit</Button>
                           </Link>
+                          <Button 
+                            variant="outline-success" 
+                            size="sm" 
+                            onClick={() => sendWhatsAppInvoice(order)} 
+                            title="Send WhatsApp Invoice"
+                            style={{ borderColor: '#25D366', color: '#25D366' }}
+                            className="d-inline-flex align-items-center justify-content-center"
+                          >
+                            <WhatsAppIcon size={16} color="#25D366" />
+                          </Button>
                           <Button variant="outline-info" size="sm" onClick={() => handleDownloadPDF(order, index)} title="Download Image">
                             <Download size={16} />
                           </Button>
@@ -775,6 +871,16 @@ const ClientOrders = () => {
                       <Link to={`/orders/${order._id}`} className="flex-grow-1">
                         <Button variant="outline-primary" size="sm" className="w-100 fw-medium">View / Edit</Button>
                       </Link>
+                      <Button 
+                        variant="outline-success" 
+                        size="sm" 
+                        onClick={() => sendWhatsAppInvoice(order)} 
+                        title="Send WhatsApp Invoice"
+                        style={{ borderColor: '#25D366', color: '#25D366' }}
+                        className="d-inline-flex align-items-center justify-content-center"
+                      >
+                        <WhatsAppIcon size={16} color="#25D366" />
+                      </Button>
                       <Button variant="outline-info" size="sm" onClick={() => handleDownloadPDF(order, orders.indexOf(order))} title="Download Image">
                         <Download size={16} />
                       </Button>
