@@ -66,6 +66,10 @@ const orderSchema = mongoose.Schema(
       type: String,
       default: null,
     },
+    invoiceImage: {
+      type: String,
+      default: null,
+    },
     assignedEmployee: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,

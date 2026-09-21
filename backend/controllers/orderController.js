@@ -391,4 +391,25 @@ const deleteOrder = async (req, res) => {
   }
 };
 
-module.exports = { createOrder, getOrders, getOrderById, updateOrderStatus, uploadDesignImage, getDashboardStats, deleteOrder };
+const uploadInvoiceImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+    const order = await Order.findById(req.params.id);
+    if (order) {
+      order.invoiceImage = req.file.path;
+      await order.save();
+    }
+    res.json({
+      message: 'Invoice image uploaded successfully',
+      imageUrl: req.file.path,
+      invoiceImage: req.file.path,
+    });
+  } catch (error) {
+    console.error('Upload Invoice Error:', error);
+    res.status(500).json({ message: 'Server error during invoice upload' });
+  }
+};
+
+module.exports = { createOrder, getOrders, getOrderById, updateOrderStatus, uploadDesignImage, uploadInvoiceImage, getDashboardStats, deleteOrder };
