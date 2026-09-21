@@ -194,7 +194,7 @@ const ClientOrders = () => {
     }
   };
 
-  const sendWhatsAppInvoice = (order) => {
+  const sendWhatsAppInvoice = async (order) => {
     if (!order || !order.mobileNumber) {
       Swal.fire('Warning', 'Client mobile number is missing for this order', 'warning');
       return;
@@ -207,48 +207,83 @@ const ClientOrders = () => {
     }
     const formattedPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
 
-    const dateStr = order.createdAt ? formatDate(order.createdAt).split(',')[0] : formatDate(new Date()).split(',')[0];
-    const totalAmount = Number(order.totalAmount || 0);
-    const advanceAmount = Number(order.advanceAmount || 0);
-    const balanceAmount = Number(order.balanceAmount || 0);
-    const pendingAmount = Math.max(0, totalAmount - advanceAmount - balanceAmount);
+    Swal.fire({
+      title: 'Generating Invoice Image...',
+      text: 'Preparing invoice image for WhatsApp...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
 
-    let itemsText = '';
-    if (order.items && order.items.length > 0) {
-      itemsText = order.items
-        .map((item, idx) => `${idx + 1}. *${item.itemName || 'Item'}* | Qty: ${item.totalQty || 1} | Price: Rs.${Number(item.price || 0).toFixed(2)}`)
-        .join('\n');
-    } else {
-      const name = order.itemName || order.cardType || 'Job Order';
-      itemsText = `1. *${name}* | Qty: ${order.totalQty || 1} | Price: Rs.${totalAmount.toFixed(2)}`;
-    }
+    setDownloadInvoice(order);
 
-    const message = 
-`🧾 *INVOICE - SAPP CREATION*
-No.3/4, Shop No.03, 1st Floor, Alam Tower, Allimal St, Trichy - 8.
-Ph: 0431-4010547, Cell: 88833 72047
-━━━━━━━━━━━━━━━━━━━━
-*Order No:* #${order.serialNumber || 'N/A'}
-*Date:* ${dateStr}
-*Customer Name:* ${order.clientName || 'Client'}
-*Mobile:* ${order.mobileNumber}
-*Job:* ${order.cardType || '-'}
-━━━━━━━━━━━━━━━━━━━━
-*ITEMS:*
-${itemsText}
-━━━━━━━━━━━━━━━━━━━━
-*Total Amount:* Rs. ${totalAmount.toFixed(2)}
-*Advance Paid:* Rs. ${advanceAmount.toFixed(2)}${(order.paymentMethod && order.paymentMethod !== 'None') ? ` (${order.paymentMethod})` : ''}
-${balanceAmount > 0 ? `*Balance Paid:* Rs. ${balanceAmount.toFixed(2)}\n` : ''}*Balance Amount:* Rs. ${pendingAmount.toFixed(2)}
-━━━━━━━━━━━━━━━━━━━━
-*Terms & Conditions:*
-1. 50% Advance Payment should be paid at the time of Order Placement.
-2. Credit Facility not Available (Make the Full Payment at the time of delivery).
+    setTimeout(async () => {
+      if (invoiceRef.current) {
+        try {
+          const canvas = await html2canvas(invoiceRef.current, {
+            scale: 3,
+            useCORS: true,
+            logging: false
+          });
 
-*Thank you for your business!*`;
+          const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+          const filename = `Invoice_${order.serialNumber || 'Order'}_${(order.clientName || 'Client').replace(/\s+/g, '_')}.png`;
+          const file = new File([blob], filename, { type: 'image/png' });
 
-    const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+          // If device supports Web Share API with files (Mobile devices)
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            Swal.close();
+            await navigator.share({
+              files: [file],
+              title: `Invoice #${order.serialNumber || ''}`,
+              text: `Invoice from SAPP Creation for ${order.clientName || 'Customer'}`
+            });
+          } else {
+            // Desktop fallback: Copy image to clipboard and trigger download + open WhatsApp Web
+            let clipboardSuccess = false;
+            try {
+              if (navigator.clipboard && window.ClipboardItem) {
+                await navigator.clipboard.write([
+                  new ClipboardItem({ 'image/png': blob })
+                ]);
+                clipboardSuccess = true;
+              }
+            } catch (clipErr) {
+              console.warn('Clipboard write failed:', clipErr);
+            }
+
+            const imageUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = imageUrl;
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(imageUrl), 10000);
+
+            const whatsappUrl = `https://wa.me/${formattedPhone}`;
+            window.open(whatsappUrl, '_blank');
+
+            Swal.fire({
+              icon: 'success',
+              title: 'Invoice Image Ready!',
+              html: clipboardSuccess
+                ? `Invoice image copied to clipboard and downloaded.<br/><br/>Opening WhatsApp chat... Simply press <b>Ctrl + V (Paste)</b> in the chat to send the invoice image!`
+                : `Invoice image downloaded.<br/><br/>Opening WhatsApp chat... Attach the downloaded image to send!`,
+              confirmButtonColor: '#25D366',
+              confirmButtonText: 'Got it!'
+            });
+          }
+        } catch (error) {
+          console.error("Error generating/sharing WhatsApp invoice image:", error);
+          Swal.fire('Error', 'Failed to generate invoice image', 'error');
+        } finally {
+          setDownloadInvoice(null);
+        }
+      } else {
+        setDownloadInvoice(null);
+        Swal.fire('Error', 'Could not render invoice template', 'error');
+      }
+    }, 600);
   };
 
   const handleSubmit = async (e) => {
@@ -283,12 +318,12 @@ ${balanceAmount > 0 ? `*Balance Paid:* Rs. ${balanceAmount.toFixed(2)}\n` : ''}*
 
       Swal.fire({
         title: 'Order Created Successfully!',
-        text: `Would you like to send the invoice to ${newOrder.clientName || 'the client'} via WhatsApp?`,
+        text: `Would you like to send the invoice image to ${newOrder.clientName || 'the client'} via WhatsApp?`,
         icon: 'success',
         showCancelButton: true,
         confirmButtonColor: '#25D366',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: 'WhatsApp Invoice',
+        confirmButtonText: 'WhatsApp Invoice Image',
         cancelButtonText: 'Done'
       }).then((result) => {
         if (result.isConfirmed) {
