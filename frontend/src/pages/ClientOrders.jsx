@@ -275,7 +275,7 @@ const ClientOrders = () => {
     }
   };
 
-  const buildWhatsAppMessage = (order, invoiceUrl) => {
+  const buildWhatsAppMessage = (order) => {
     const itemsText = (order.items && order.items.length > 0)
       ? order.items.map(it => `• ${it.itemName} (${it.totalQty} qty) - ₹${it.price}`).join('\n')
       : (order.itemName ? `• ${order.itemName} (${order.totalQty || 1} qty) - ₹${order.pricePerQty || 0}` : '');
@@ -291,7 +291,6 @@ const ClientOrders = () => {
       `*Advance Paid:* ₹${(order.advanceAmount || 0).toFixed(2)}\n` +
       `*Balance Due:* ₹${balanceAmt.toFixed(2)}\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      (invoiceUrl ? `📄 *Invoice Image:*\n${invoiceUrl}\n\n` : '') +
       `Thank you for your business! 🙏`;
   };
 
@@ -308,6 +307,49 @@ const ClientOrders = () => {
     }
   };
 
+  const getInvoiceBlob = async (order) => {
+    // 1. If order already has invoiceImage, attempt to fetch it as blob
+    if (order.invoiceImage && order.invoiceImage.startsWith('http')) {
+      try {
+        const res = await fetch(order.invoiceImage);
+        if (res.ok) {
+          const blob = await res.blob();
+          if (blob && blob.size > 0) return blob;
+        }
+      } catch (err) {
+        console.warn('Could not fetch existing invoiceImage blob, generating via canvas:', err);
+      }
+    }
+
+    // 2. Render invoice preview element with html2canvas
+    return new Promise((resolve) => {
+      setDownloadInvoice(order);
+      setTimeout(async () => {
+        try {
+          if (invoiceRef.current) {
+            const canvas = await html2canvas(invoiceRef.current, {
+              scale: 2,
+              useCORS: true,
+              logging: false,
+              backgroundColor: '#ffffff'
+            });
+            canvas.toBlob((blob) => {
+              setDownloadInvoice(null);
+              resolve(blob);
+            }, 'image/png', 0.95);
+          } else {
+            setDownloadInvoice(null);
+            resolve(null);
+          }
+        } catch (err) {
+          console.error('Error generating canvas blob:', err);
+          setDownloadInvoice(null);
+          resolve(null);
+        }
+      }, 100);
+    });
+  };
+
   const sendWhatsAppInvoice = async (order) => {
     if (!order || !order.mobileNumber) {
       Swal.fire('Warning', 'Client mobile number is missing for this order', 'warning');
@@ -321,67 +363,108 @@ const ClientOrders = () => {
     }
     const formattedPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
 
-    // If order already has a generated invoice image URL, open immediately
-    if (order.invoiceImage) {
-      const message = buildWhatsAppMessage(order, order.invoiceImage);
-      openWhatsAppChat(formattedPhone, message);
-      return;
-    }
-
     Swal.fire({
-      title: 'Opening WhatsApp...',
-      text: 'Preparing invoice...',
+      title: 'Preparing Invoice Photo...',
+      text: 'Loading invoice image for WhatsApp...',
       allowOutsideClick: false,
       didOpen: () => {
         Swal.showLoading();
       }
     });
 
-    setDownloadInvoice(order);
+    try {
+      const blob = await getInvoiceBlob(order);
+      const filename = `Invoice_${order.serialNumber || 'Order'}_${(order.clientName || 'Client').replace(/\s+/g, '_')}.png`;
+      const messageText = buildWhatsAppMessage(order);
 
-    setTimeout(async () => {
-      let uploadedUrl = '';
-      if (invoiceRef.current) {
-        try {
-          const canvas = await html2canvas(invoiceRef.current, {
-            scale: 2,
-            useCORS: true,
-            logging: false
-          });
+      if (blob) {
+        const file = new File([blob], filename, { type: 'image/png' });
 
-          const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 0.95));
-          const filename = `Invoice_${order.serialNumber || 'Order'}_${(order.clientName || 'Client').replace(/\s+/g, '_')}.png`;
-          const file = new File([blob], filename, { type: 'image/png' });
-
-          if (order._id) {
-            try {
-              const uploadData = new FormData();
-              uploadData.append('image', file);
-              const { data } = await api.post(`/orders/${order._id}/upload-invoice`, uploadData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-              });
-              if (data && (data.imageUrl || data.invoiceImage)) {
-                uploadedUrl = data.imageUrl || data.invoiceImage;
-                order.invoiceImage = uploadedUrl;
+        // If not already uploaded, upload in background
+        if (order._id && !order.invoiceImage) {
+          try {
+            const uploadData = new FormData();
+            uploadData.append('image', file);
+            api.post(`/orders/${order._id}/upload-invoice`, uploadData, {
+              headers: { 'Content-Type': 'multipart/form-data' }
+            }).then(res => {
+              if (res.data && (res.data.imageUrl || res.data.invoiceImage)) {
+                order.invoiceImage = res.data.imageUrl || res.data.invoiceImage;
               }
-            } catch (upErr) {
-              console.warn('Invoice image upload error:', upErr);
-            }
-          }
-        } catch (error) {
-          console.error("Error generating invoice image:", error);
-        } finally {
-          setDownloadInvoice(null);
-          Swal.close();
+            }).catch(e => console.warn('Background invoice upload error:', e));
+          } catch (e) {}
         }
-      } else {
-        setDownloadInvoice(null);
+
+        // 1. Try Native Web Share API (Attaches actual photo into WhatsApp on mobile & supported browsers)
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          Swal.close();
+          try {
+            await navigator.share({
+              files: [file],
+              title: `Invoice #${order.serialNumber || ''}`,
+              text: messageText,
+            });
+            return;
+          } catch (shareErr) {
+            if (shareErr.name === 'AbortError') {
+              return; // User cancelled share dialog
+            }
+            console.warn('Navigator share error, falling back to clipboard:', shareErr);
+          }
+        }
+
+        // 2. Desktop Fallback: Copy image to Clipboard and open WhatsApp Web/App
+        let copiedToClipboard = false;
+        if (navigator.clipboard && window.ClipboardItem) {
+          try {
+            await navigator.clipboard.write([
+              new ClipboardItem({ 'image/png': blob })
+            ]);
+            copiedToClipboard = true;
+          } catch (clipErr) {
+            console.warn('Clipboard image copy not supported/allowed:', clipErr);
+          }
+        }
+
+        // If clipboard copy was not possible, trigger image download so user can drag/attach it
+        if (!copiedToClipboard) {
+          try {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+          } catch (dlErr) {
+            console.warn('Direct download error:', dlErr);
+          }
+        }
+
         Swal.close();
+        openWhatsAppChat(formattedPhone, messageText);
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Opening WhatsApp...',
+          html: copiedToClipboard 
+            ? '<p class="mb-2"><b>📸 Invoice image copied to clipboard!</b></p><p class="text-muted small mb-0">Press <b>Ctrl + V</b> (Paste) inside WhatsApp to send the photo directly to the client.</p>'
+            : '<p class="mb-2"><b>📄 Invoice image downloaded!</b></p><p class="text-muted small mb-0">You can attach the downloaded invoice photo directly into the chat.</p>',
+          confirmButtonColor: '#25D366',
+          confirmButtonText: 'OK',
+          timer: 5000
+        });
+        return;
       }
 
-      const message = buildWhatsAppMessage(order, uploadedUrl);
-      openWhatsAppChat(formattedPhone, message);
-    }, 150);
+      // Fallback if blob creation failed
+      Swal.close();
+      openWhatsAppChat(formattedPhone, messageText);
+    } catch (err) {
+      console.error('Error in sendWhatsAppInvoice:', err);
+      Swal.close();
+      const messageText = buildWhatsAppMessage(order);
+      openWhatsAppChat(formattedPhone, messageText);
+    }
   };
 
   const handleSubmit = async (e) => {

@@ -8,6 +8,20 @@ import Swal from 'sweetalert2';
 import html2canvas from 'html2canvas';
 import { formatDate } from '../utils/formatDate';
 import logoImg from '../assets/Sapp Logo.jpg.jpeg';
+
+const WhatsAppIcon = ({ size = 16, color = "currentColor", className = "" }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill={color}
+    className={className}
+    style={{ display: 'inline-block', verticalAlign: 'middle' }}
+  >
+    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+  </svg>
+);
+
 const ManageOrders = () => {
   const [orders, setOrders] = useState([]);
   const [clients, setClients] = useState([]);
@@ -299,6 +313,198 @@ const ManageOrders = () => {
     return !permanentClientPhones.has(orderPhoneRaw);
   });
 
+  const buildWhatsAppMessage = (order) => {
+    const itemsText = (order.items && order.items.length > 0)
+      ? order.items.map(it => `• ${it.itemName} (${it.totalQty} qty) - ₹${it.price}`).join('\n')
+      : (order.itemName ? `• ${order.itemName} (${order.totalQty || 1} qty) - ₹${order.pricePerQty || 0}` : '');
+
+    const balanceAmt = Math.max(0, (order.totalAmount || 0) - (order.advanceAmount || 0) - (order.balanceAmount || 0));
+
+    return `*INVOICE - SAPP CREATION*\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `*Invoice No:* #${order.serialNumber || ''}\n` +
+      `*Client Name:* ${order.clientName || ''}\n` +
+      (itemsText ? `\n*Order Items:*\n${itemsText}\n` : '') +
+      `\n*Total Amount:* ₹${(order.totalAmount || 0).toFixed(2)}\n` +
+      `*Advance Paid:* ₹${(order.advanceAmount || 0).toFixed(2)}\n` +
+      `*Balance Due:* ₹${balanceAmt.toFixed(2)}\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `Thank you for your business! 🙏`;
+  };
+
+  const openWhatsAppChat = (formattedPhone, message) => {
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
+    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+      window.location.href = whatsappUrl;
+    } else {
+      const win = window.open(whatsappUrl, '_blank');
+      if (!win) {
+        window.location.href = whatsappUrl;
+      }
+    }
+  };
+
+  const getInvoiceBlob = async (order) => {
+    // 1. If order already has invoiceImage, attempt to fetch it as blob
+    if (order.invoiceImage && order.invoiceImage.startsWith('http')) {
+      try {
+        const res = await fetch(order.invoiceImage);
+        if (res.ok) {
+          const blob = await res.blob();
+          if (blob && blob.size > 0) return blob;
+        }
+      } catch (err) {
+        console.warn('Could not fetch existing invoiceImage blob, generating via canvas:', err);
+      }
+    }
+
+    // 2. Render invoice preview element with html2canvas
+    return new Promise((resolve) => {
+      setDownloadInvoice(order);
+      setTimeout(async () => {
+        try {
+          if (invoiceRef.current) {
+            const canvas = await html2canvas(invoiceRef.current, {
+              scale: 2,
+              useCORS: true,
+              logging: false,
+              backgroundColor: '#ffffff'
+            });
+            canvas.toBlob((blob) => {
+              setDownloadInvoice(null);
+              resolve(blob);
+            }, 'image/png', 0.95);
+          } else {
+            setDownloadInvoice(null);
+            resolve(null);
+          }
+        } catch (err) {
+          console.error('Error generating canvas blob:', err);
+          setDownloadInvoice(null);
+          resolve(null);
+        }
+      }, 100);
+    });
+  };
+
+  const sendWhatsAppInvoice = async (order) => {
+    if (!order || !order.mobileNumber) {
+      Swal.fire('Warning', 'Client mobile number is missing for this order', 'warning');
+      return;
+    }
+
+    const rawPhone = (order.mobileNumber || '').replace(/\D/g, '');
+    if (!rawPhone) {
+      Swal.fire('Warning', 'Invalid mobile number', 'warning');
+      return;
+    }
+    const formattedPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
+
+    Swal.fire({
+      title: 'Preparing Invoice Photo...',
+      text: 'Loading invoice image for WhatsApp...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    try {
+      const blob = await getInvoiceBlob(order);
+      const filename = `Invoice_${order.serialNumber || 'Order'}_${(order.clientName || 'Client').replace(/\s+/g, '_')}.png`;
+      const messageText = buildWhatsAppMessage(order);
+
+      if (blob) {
+        const file = new File([blob], filename, { type: 'image/png' });
+
+        // If not already uploaded, upload in background
+        if (order._id && !order.invoiceImage) {
+          try {
+            const uploadData = new FormData();
+            uploadData.append('image', file);
+            api.post(`/orders/${order._id}/upload-invoice`, uploadData, {
+              headers: { 'Content-Type': 'multipart/form-data' }
+            }).then(res => {
+              if (res.data && (res.data.imageUrl || res.data.invoiceImage)) {
+                order.invoiceImage = res.data.imageUrl || res.data.invoiceImage;
+              }
+            }).catch(e => console.warn('Background invoice upload error:', e));
+          } catch (e) {}
+        }
+
+        // 1. Try Native Web Share API (Attaches actual photo into WhatsApp on mobile & supported browsers)
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          Swal.close();
+          try {
+            await navigator.share({
+              files: [file],
+              title: `Invoice #${order.serialNumber || ''}`,
+              text: messageText,
+            });
+            return;
+          } catch (shareErr) {
+            if (shareErr.name === 'AbortError') {
+              return; // User cancelled share dialog
+            }
+            console.warn('Navigator share error, falling back to clipboard:', shareErr);
+          }
+        }
+
+        // 2. Desktop Fallback: Copy image to Clipboard and open WhatsApp Web/App
+        let copiedToClipboard = false;
+        if (navigator.clipboard && window.ClipboardItem) {
+          try {
+            await navigator.clipboard.write([
+              new ClipboardItem({ 'image/png': blob })
+            ]);
+            copiedToClipboard = true;
+          } catch (clipErr) {
+            console.warn('Clipboard image copy not supported/allowed:', clipErr);
+          }
+        }
+
+        // If clipboard copy was not possible, trigger image download so user can drag/attach it
+        if (!copiedToClipboard) {
+          try {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+          } catch (dlErr) {
+            console.warn('Direct download error:', dlErr);
+          }
+        }
+
+        Swal.close();
+        openWhatsAppChat(formattedPhone, messageText);
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Opening WhatsApp...',
+          html: copiedToClipboard 
+            ? '<p class="mb-2"><b>📸 Invoice image copied to clipboard!</b></p><p class="text-muted small mb-0">Press <b>Ctrl + V</b> (Paste) inside WhatsApp to send the photo directly to the client.</p>'
+            : '<p class="mb-2"><b>📄 Invoice image downloaded!</b></p><p class="text-muted small mb-0">You can attach the downloaded invoice photo directly into the chat.</p>',
+          confirmButtonColor: '#25D366',
+          confirmButtonText: 'OK',
+          timer: 5000
+        });
+        return;
+      }
+
+      // Fallback if blob creation failed
+      Swal.close();
+      openWhatsAppChat(formattedPhone, messageText);
+    } catch (err) {
+      console.error('Error in sendWhatsAppInvoice:', err);
+      Swal.close();
+      const messageText = buildWhatsAppMessage(order);
+      openWhatsAppChat(formattedPhone, messageText);
+    }
+  };
+
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     if (currentStep < 3) {
@@ -332,6 +538,21 @@ const ManageOrders = () => {
 
       setShowModal(false);
       fetchData();
+
+      Swal.fire({
+        title: 'Order Created Successfully!',
+        text: `Would you like to send the invoice image to ${newOrder.clientName || 'the client'} via WhatsApp?`,
+        icon: 'success',
+        showCancelButton: true,
+        confirmButtonColor: '#25D366',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'WhatsApp Invoice Image',
+        cancelButtonText: 'Done'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          sendWhatsAppInvoice(newOrder);
+        }
+      });
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong');
     } finally {
@@ -746,6 +967,16 @@ const ManageOrders = () => {
                           <Button variant="outline-info" size="sm" onClick={() => handleDownloadPDF(order, index)} title="Download Image">
                             <Download size={16} />
                           </Button>
+                          <Button 
+                            variant="outline-success" 
+                            size="sm" 
+                            onClick={() => sendWhatsAppInvoice(order)} 
+                            title="Send WhatsApp Invoice"
+                            style={{ borderColor: '#25D366', color: '#25D366' }}
+                            className="d-inline-flex align-items-center justify-content-center"
+                          >
+                            <WhatsAppIcon size={16} color="#25D366" />
+                          </Button>
                           <Button variant="outline-danger" size="sm" onClick={() => handleDelete(order._id)}>
                             <Trash2 size={16} />
                           </Button>
@@ -855,6 +1086,16 @@ const ManageOrders = () => {
                       </Button>
                       <Button variant="outline-info" size="sm" onClick={() => handleDownloadPDF(order, orders.indexOf(order))} title="Download Image">
                         <Download size={16} />
+                      </Button>
+                      <Button 
+                        variant="outline-success" 
+                        size="sm" 
+                        onClick={() => sendWhatsAppInvoice(order)} 
+                        title="Send WhatsApp Invoice"
+                        style={{ borderColor: '#25D366', color: '#25D366' }}
+                        className="d-inline-flex align-items-center justify-content-center"
+                      >
+                        <WhatsAppIcon size={16} color="#25D366" />
                       </Button>
                       <Button variant="outline-danger" size="sm" onClick={() => handleDelete(order._id)}>
                         <Trash2 size={16} />
