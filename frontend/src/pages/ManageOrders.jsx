@@ -896,6 +896,7 @@ const ManageOrders = () => {
                 className="d-flex flex-column align-items-center position-relative" 
                 style={{ zIndex: 3, cursor: currentStep > 1 ? 'pointer' : 'default' }}
                 onClick={() => currentStep > 1 && setCurrentStep(1)}
+                title={currentStep > 1 ? "Move to Step 1: Customer & Job" : "Step 1"}
               >
                 <div 
                   className={`rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm transition-all ${
@@ -917,8 +918,9 @@ const ManageOrders = () => {
               {/* Step 2 Node */}
               <div 
                 className="d-flex flex-column align-items-center position-relative" 
-                style={{ zIndex: 3, cursor: currentStep > 2 ? 'pointer' : 'default' }}
-                onClick={() => currentStep > 2 && setCurrentStep(2)}
+                style={{ zIndex: 3, cursor: currentStep === 3 ? 'pointer' : 'default' }}
+                onClick={() => currentStep === 3 && setCurrentStep(2)}
+                title={currentStep === 3 ? "Move to Step 2: Items & Design" : "Step 2"}
               >
                 <div 
                   className={`rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm transition-all ${
@@ -1293,22 +1295,38 @@ const ManageOrders = () => {
             )}
           </Modal.Body>
           <Modal.Footer className="border-0 px-4 pb-4 d-flex justify-content-between">
-            {currentStep === 1 ? (
-              <Button variant="light" onClick={() => setShowModal(false)} className="fw-medium">
+            <div className="d-flex align-items-center gap-2">
+              <Button variant="light" onClick={() => setShowModal(false)} className="fw-medium text-secondary">
                 Cancel
               </Button>
-            ) : (
-              <Button variant="outline-secondary" type="button" onClick={handlePrevStep} className="fw-medium d-flex align-items-center gap-1">
-                <ArrowLeft size={16} /> Back
-              </Button>
-            )}
+              {currentStep > 1 && (
+                <Button 
+                  variant="outline-secondary" 
+                  type="button" 
+                  onClick={handlePrevStep} 
+                  className="fw-medium d-flex align-items-center gap-1 shadow-sm"
+                >
+                  <ArrowLeft size={16} /> Previous Step
+                </Button>
+              )}
+            </div>
 
             {currentStep < 3 ? (
-              <Button variant="primary" type="button" onClick={handleNextStep} className="fw-medium px-4 d-flex align-items-center gap-1">
+              <Button 
+                variant="primary" 
+                type="button" 
+                onClick={handleNextStep} 
+                className="fw-medium px-4 d-flex align-items-center gap-1 shadow-sm"
+              >
                 Next Step <ArrowRight size={16} />
               </Button>
             ) : (
-              <Button variant="success" type="submit" className="fw-semibold px-4 d-flex align-items-center gap-1" disabled={isLoading}>
+              <Button 
+                variant="success" 
+                type="submit" 
+                className="fw-semibold px-4 d-flex align-items-center gap-1 shadow-sm" 
+                disabled={isLoading}
+              >
                 {isLoading ? 'Creating...' : 'Create Order'}
               </Button>
             )}
