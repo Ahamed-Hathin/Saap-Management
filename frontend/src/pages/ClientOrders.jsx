@@ -3,7 +3,7 @@ import Layout from '../components/Layout';
 import { Card, Table, Button, Modal, Form, Alert, Badge, Dropdown } from 'react-bootstrap';
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
-import { Plus, Trash2, Download } from 'lucide-react';
+import { Plus, Trash2, Download, Check, ArrowRight, ArrowLeft } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Swal from 'sweetalert2';
@@ -35,6 +35,8 @@ const ClientOrders = () => {
   const [employees, setEmployees] = useState([]);
   const [settings, setSettings] = useState({ jobTypes: ['Visiting Card', 'Invitation', 'Offset', 'Screen', 'Digital', 'Lamination'], printingCompanies: ['Elite', 'Impression', 'Zig Zag', 'Vignesh', 'Amutham Flex', 'Chandru Screen', 'Amirtham Binding', 'Saravana Offset', 'Others'] });
   const [showModal, setShowModal] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [stepErrors, setStepErrors] = useState({});
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -100,11 +102,90 @@ const ClientOrders = () => {
   const handleShow = () => {
     setFormData({
       clientName: '', mobileNumber: '', cardType: '', advanceAmount: '', totalAmount: '',
-      assignedEmployee: '', advanceReceived: false, paymentMethod: '', printingCompany: '', status: 'Pending', remarks: '', items: [{ itemName: '', totalQty: '', price: '' }]
+      assignedEmployee: '', advanceReceived: false, paymentMethod: '', printingCompany: '', status: 'Pending', isClientOrder: true, remarks: '', items: [{ itemName: '', totalQty: '', price: '' }]
     });
     setFile(null);
     setError('');
+    setCurrentStep(1);
+    setStepErrors({});
     setShowModal(true);
+  };
+
+  const handleCreateForCustomer = (order) => {
+    setFormData({
+      clientName: order.clientName || '',
+      mobileNumber: order.mobileNumber || '',
+      cardType: '',
+      advanceAmount: '',
+      totalAmount: '',
+      assignedEmployee: '',
+      advanceReceived: false,
+      paymentMethod: '',
+      printingCompany: '',
+      status: 'Pending',
+      isClientOrder: true,
+      remarks: '',
+      items: [{ itemName: '', totalQty: '', price: '' }]
+    });
+    setFile(null);
+    setError('');
+    setCurrentStep(1);
+    setStepErrors({});
+    setShowModal(true);
+  };
+
+  const validateStep1 = () => {
+    const errs = {};
+    if (!formData.clientName?.trim()) errs.clientName = 'Client Name is required';
+    const rawPhone = (formData.mobileNumber || '').replace(/\D/g, '');
+    if (!rawPhone || rawPhone.length !== 10) errs.mobileNumber = '10-digit mobile number required (e.g. 98765 43210)';
+    if (!formData.cardType) errs.cardType = 'Please select a job type';
+    if (!formData.assignedEmployee) errs.assignedEmployee = 'Please assign an employee';
+    setStepErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const validateStep2 = () => {
+    const errs = {};
+    if (!formData.items || formData.items.length === 0) {
+      errs.items = 'At least one item is required';
+    } else {
+      formData.items.forEach((item, idx) => {
+        if (!item.itemName?.trim()) errs[`item-${idx}-itemName`] = 'Item name is required';
+        if (!item.totalQty || Number(item.totalQty) <= 0) errs[`item-${idx}-totalQty`] = 'Qty is required';
+      });
+    }
+    setStepErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const handleNextStep = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (currentStep === 1) {
+      if (validateStep1()) {
+        setCurrentStep(2);
+      }
+    } else if (currentStep === 2) {
+      if (validateStep2()) {
+        const calculatedTotal = formData.items.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
+        if (!formData.totalAmount || Number(formData.totalAmount) === 0) {
+          setFormData(prev => ({ ...prev, totalAmount: calculatedTotal.toString() }));
+        }
+        setCurrentStep(3);
+      }
+    }
+  };
+
+  const handlePrevStep = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setStepErrors({});
+    setCurrentStep(prev => Math.max(1, prev - 1));
   };
 
   const handleDelete = async (id) => {
@@ -304,7 +385,11 @@ const ClientOrders = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
+    if (currentStep < 3) {
+      handleNextStep(e);
+      return;
+    }
     setIsLoading(true);
     try {
       const payload = {
@@ -473,38 +558,37 @@ const ClientOrders = () => {
 
   const handleDownloadPDF = async (order, index) => {
     setDownloadInvoice(order);
-    Swal.fire({
-      toast: true,
-      position: 'top-end',
-      showConfirmButton: false,
-      timer: 3000,
-      icon: 'info',
-      title: 'Invoice generation started...'
-    });
 
     setTimeout(async () => {
       if (invoiceRef.current) {
         try {
           const canvas = await html2canvas(invoiceRef.current, {
-            scale: 3,
+            scale: 2,
             useCORS: true,
-            logging: false
+            allowTaint: true,
+            logging: false,
+            backgroundColor: '#ffffff'
           });
-          const image = canvas.toDataURL('image/png', 1.0);
-          const link = document.createElement('a');
-          link.download = `Invoice_${order.serialNumber}_${(order.clientName || 'Client').replace(/\s+/g, '_')}.png`;
-          link.href = image;
-          link.click();
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.download = `Invoice_${order.serialNumber || 'Order'}_${(order.clientName || 'Client').replace(/\s+/g, '_')}.png`;
+              link.href = url;
+              link.click();
+              setTimeout(() => URL.revokeObjectURL(url), 1000);
+            }
+            setDownloadInvoice(null);
+          }, 'image/png');
         } catch (error) {
           console.error("Error generating image:", error);
           Swal.fire('Error', 'Failed to generate invoice image', 'error');
-        } finally {
           setDownloadInvoice(null);
         }
       } else {
         setDownloadInvoice(null);
       }
-    }, 500);
+    }, 50);
   };
 
   const handleExportMonthlyReport = () => {
@@ -799,6 +883,9 @@ const ClientOrders = () => {
                           <Link to={`/orders/${order._id}`}>
                             <Button variant="outline-primary" size="sm" className="fw-medium">View / Edit</Button>
                           </Link>
+                          <Button variant="outline-success" size="sm" onClick={() => handleCreateForCustomer(order)} title="Create New Order for this Customer">
+                            <Plus size={16} />
+                          </Button>
                           <Button 
                             variant="outline-success" 
                             size="sm" 
@@ -923,6 +1010,9 @@ const ClientOrders = () => {
                       <Link to={`/orders/${order._id}`} className="flex-grow-1">
                         <Button variant="outline-primary" size="sm" className="w-100 fw-medium">View / Edit</Button>
                       </Link>
+                      <Button variant="outline-success" size="sm" onClick={() => handleCreateForCustomer(order)} title="Create New Order for this Customer">
+                        <Plus size={16} />
+                      </Button>
                       <Button 
                         variant="outline-success" 
                         size="sm" 
@@ -941,7 +1031,7 @@ const ClientOrders = () => {
                       </Button>
                     </div>
                   </div>
-                )})}
+                );})}
               </div>
             </>
           )}
@@ -952,20 +1042,111 @@ const ClientOrders = () => {
         <Modal.Header closeButton className="border-0 pb-0 mt-3 mx-2">
           <Modal.Title className="fw-bold">Create New Order</Modal.Title>
         </Modal.Header>
-        <Form onSubmit={handleSubmit}>
-          <Modal.Body className="px-4 pt-4">
+        <Form onSubmit={(e) => { e.preventDefault(); if (currentStep < 3) handleNextStep(e); else handleSubmit(e); }}>
+          {/* Stepper Progress Bar */}
+          <div className="px-4 pt-3 pb-2">
+            <div className="position-relative d-flex justify-content-between align-items-center mb-3 px-4">
+              <div 
+                className="position-absolute top-50 start-0 translate-middle-y w-100" 
+                style={{ height: '3px', backgroundColor: '#e2e8f0', zIndex: 1 }}
+              />
+              <div 
+                className="position-absolute top-50 start-0 translate-middle-y" 
+                style={{ 
+                  height: '3px', 
+                  backgroundColor: '#198754', 
+                  width: currentStep === 1 ? '0%' : currentStep === 2 ? '50%' : '100%',
+                  zIndex: 2,
+                  transition: 'width 0.3s ease'
+                }}
+              />
+              
+              {/* Step 1 Node */}
+              <div 
+                className="d-flex flex-column align-items-center position-relative" 
+                style={{ zIndex: 3, cursor: currentStep > 1 ? 'pointer' : 'default' }}
+                onClick={() => currentStep > 1 && setCurrentStep(1)}
+              >
+                <div 
+                  className={`rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm transition-all ${
+                    currentStep > 1 
+                      ? 'bg-success text-white' 
+                      : currentStep === 1 
+                        ? 'bg-primary text-white' 
+                        : 'bg-white text-muted border'
+                  }`}
+                  style={{ width: '36px', height: '36px', fontSize: '14px', border: currentStep === 1 ? '3px solid #bfdbfe' : 'none' }}
+                >
+                  {currentStep > 1 ? <Check size={18} /> : '1'}
+                </div>
+                <span className={`small mt-1 fw-semibold ${currentStep === 1 ? 'text-primary' : currentStep > 1 ? 'text-success' : 'text-muted'}`}>
+                  Customer & Job
+                </span>
+              </div>
+
+              {/* Step 2 Node */}
+              <div 
+                className="d-flex flex-column align-items-center position-relative" 
+                style={{ zIndex: 3, cursor: currentStep > 2 ? 'pointer' : 'default' }}
+                onClick={() => currentStep > 2 && setCurrentStep(2)}
+              >
+                <div 
+                  className={`rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm transition-all ${
+                    currentStep > 2 
+                      ? 'bg-success text-white' 
+                      : currentStep === 2 
+                        ? 'bg-primary text-white' 
+                        : 'bg-white text-muted border'
+                  }`}
+                  style={{ width: '36px', height: '36px', fontSize: '14px', border: currentStep === 2 ? '3px solid #bfdbfe' : 'none' }}
+                >
+                  {currentStep > 2 ? <Check size={18} /> : '2'}
+                </div>
+                <span className={`small mt-1 fw-semibold ${currentStep === 2 ? 'text-primary' : currentStep > 2 ? 'text-success' : 'text-muted'}`}>
+                  Items & Design
+                </span>
+              </div>
+
+              {/* Step 3 Node */}
+              <div 
+                className="d-flex flex-column align-items-center position-relative" 
+                style={{ zIndex: 3 }}
+              >
+                <div 
+                  className={`rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm transition-all ${
+                    currentStep === 3 
+                      ? 'bg-primary text-white' 
+                      : 'bg-white text-muted border'
+                  }`}
+                  style={{ width: '36px', height: '36px', fontSize: '14px', border: currentStep === 3 ? '3px solid #bfdbfe' : 'none' }}
+                >
+                  3
+                </div>
+                <span className={`small mt-1 fw-semibold ${currentStep === 3 ? 'text-primary' : 'text-muted'}`}>
+                  Payment & Summary
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <Modal.Body className="px-4 pt-2">
             {error && <Alert variant="danger" className="border-0 bg-danger bg-opacity-10 text-danger">{error}</Alert>}
-            <div className="row g-3">
-              <div className="col-md-6 position-relative">
-                <Form.Label>Client Name</Form.Label>
-                <div className="d-flex align-items-center mb-1">
+
+            {/* STEP 1: Customer & Job */}
+            {currentStep === 1 && (
+              <div className="row g-3">
+                <div className="col-md-6 position-relative">
+                  <Form.Label className="fw-semibold">Client Name <span className="text-danger">*</span></Form.Label>
                   <Form.Control 
                     type="text" 
                     required 
+                    placeholder="e.g. John Doe"
                     value={formData.clientName} 
+                    isInvalid={!!stepErrors.clientName}
                     onChange={async (e) => { 
                       const val = e.target.value;
-                      setFormData({ ...formData, clientName: val ? val.replace(/(^\w|\s\w)/g, m => m.toUpperCase()) : '' });
+                      setFormData({ ...formData, clientName: val ? val.replace(/(^\w|\s\w)/g, m => m.toUpperCase()) : '', isClientOrder: true });
+                      if (stepErrors.clientName) setStepErrors(prev => ({ ...prev, clientName: null }));
                       if (val.trim().length > 0) {
                         try {
                           const res = await api.get(`/clients/search?q=${val}`);
@@ -980,158 +1161,327 @@ const ClientOrders = () => {
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                     className="bg-light" 
                   />
+                  <Form.Control.Feedback type="invalid">{stepErrors.clientName}</Form.Control.Feedback>
+
+                  {showSuggestions && (
+                    <ul className="list-group position-absolute w-100 shadow-sm" style={{ zIndex: 1000, marginTop: '2px' }}>
+                      {clientSuggestions.map(client => (
+                        <li 
+                          key={client._id} 
+                          className="list-group-item list-group-item-action cursor-pointer py-2"
+                          style={{ cursor: 'pointer' }}
+                          onMouseDown={() => {
+                            setFormData({ ...formData, clientName: client.clientName, mobileNumber: client.mobileNumber, isClientOrder: true });
+                            setShowSuggestions(false);
+                          }}
+                        >
+                          <div className="fw-bold">{client.username}</div>
+                          <small className="text-muted">{client.clientName} - {client.mobileNumber}</small>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
-                {showSuggestions && (
-                  <ul className="list-group position-absolute w-100 shadow-sm" style={{ zIndex: 1000 }}>
-                    {clientSuggestions.map(client => (
-                      <li 
-                        key={client._id} 
-                        className="list-group-item list-group-item-action cursor-pointer py-2"
-                        style={{ cursor: 'pointer' }}
-                        onMouseDown={() => {
-                          setFormData({ ...formData, clientName: client.clientName, mobileNumber: client.mobileNumber });
-                          setShowSuggestions(false);
-                        }}
-                      >
-                        <div className="fw-bold">{client.username}</div>
-                        <small className="text-muted">{client.clientName} - {client.mobileNumber}</small>
-                      </li>
+
+                <div className="col-md-6">
+                  <Form.Label className="fw-semibold">Mobile Number <span className="text-danger">*</span></Form.Label>
+                  <Form.Control 
+                    type="text" 
+                    required 
+                    placeholder="98765 43210"
+                    value={formData.mobileNumber} 
+                    isInvalid={!!stepErrors.mobileNumber}
+                    onChange={(e) => { 
+                      const rawValue = e.target.value.replace(/\D/g, '').slice(0, 10); 
+                      const formattedValue = rawValue.length > 5 ? `${rawValue.slice(0, 5)} ${rawValue.slice(5)}` : rawValue; 
+                      setFormData({ ...formData, mobileNumber: formattedValue }); 
+                      if (stepErrors.mobileNumber) setStepErrors(prev => ({ ...prev, mobileNumber: null }));
+                    }} 
+                    className="bg-light" 
+                  />
+                  <Form.Control.Feedback type="invalid">{stepErrors.mobileNumber}</Form.Control.Feedback>
+                </div>
+
+                <div className="col-md-6">
+                  <Form.Label className="fw-semibold">Job Type <span className="text-danger">*</span></Form.Label>
+                  <Form.Select 
+                    required 
+                    value={formData.cardType} 
+                    isInvalid={!!stepErrors.cardType}
+                    onChange={(e) => {
+                      setFormData({ ...formData, cardType: e.target.value });
+                      if (stepErrors.cardType) setStepErrors(prev => ({ ...prev, cardType: null }));
+                    }} 
+                    className="bg-light"
+                  >
+                    <option value="">Select Job Type</option>
+                    {settings.jobTypes.map(job => (
+                      <option key={job} value={job}>{job}</option>
                     ))}
-                  </ul>
-                )}
-              </div>
-              <div className="col-md-6">
-                <Form.Label>Mobile Number</Form.Label>
-                <Form.Control type="text" required minLength={11} maxLength={11} pattern="\d{5} \d{5}" title="Mobile number must be exactly 10 digits with a space after the first 5" value={formData.mobileNumber} onChange={(e) => { const rawValue = e.target.value.replace(/\D/g, '').slice(0, 10); const formattedValue = rawValue.length > 5 ? `${rawValue.slice(0, 5)} ${rawValue.slice(5)}` : rawValue; setFormData({ ...formData, mobileNumber: formattedValue }); }} className="bg-light" />
-              </div>
-              <div className="col-12">
-                <Form.Label>Job</Form.Label>
-                <Form.Select required value={formData.cardType} onChange={(e) => setFormData({ ...formData, cardType: e.target.value })} className="bg-light">
-                  <option value="">Select Job</option>
-                  {settings.jobTypes.map(job => (
-                    <option key={job} value={job}>{job}</option>
-                  ))}
-                </Form.Select>
-              </div>
-              
-              <div className="col-12 mt-4">
-                <div className="mb-2">
-                  <h6 className="fw-bold mb-0">Order Items</h6>
+                  </Form.Select>
+                  <Form.Control.Feedback type="invalid">{stepErrors.cardType}</Form.Control.Feedback>
                 </div>
-                {formData.items.map((item, index) => (
-                  <div key={index} className="border rounded p-3 mb-3 bg-white position-relative">
-                    {formData.items.length > 1 && (
-                      <Button variant="link" className="position-absolute text-danger p-0" style={{ top: '10px', right: '10px' }} onClick={() => {
-                        const newItems = formData.items.filter((_, i) => i !== index);
-                        const newTotal = newItems.reduce((sum, it) => sum + Number(it.price), 0);
-                        setFormData({ ...formData, items: newItems, totalAmount: newTotal.toString() });
-                      }}>
-                        <Trash2 size={18} />
-                      </Button>
-                    )}
-                    <div className="row g-3">
-                      <div className="col-12">
-                        <Form.Label>Item Name</Form.Label>
-                        <Form.Control type="text" required value={item.itemName} onChange={(e) => {
-                          const newItems = [...formData.items];
-                          newItems[index].itemName = e.target.value;
-                          setFormData({ ...formData, items: newItems });
-                        }} className="bg-light" />
-                      </div>
-                      <div className="col-md-6">
-                        <Form.Label>Qty</Form.Label>
-                        <Form.Control type="number" placeholder="0" required value={item.totalQty} onChange={(e) => {
-                          const newItems = [...formData.items];
-                          newItems[index].totalQty = e.target.value;
-                          setFormData({ ...formData, items: newItems });
-                        }} className="bg-light" />
-                      </div>
-                      <div className="col-md-6">
-                        <Form.Label>Price</Form.Label>
-                        <Form.Control type="number" placeholder="0" required value={item.price} onChange={(e) => {
-                          const newItems = [...formData.items];
-                          newItems[index].price = e.target.value;
-                          const newTotal = newItems.reduce((sum, it) => sum + Number(it.price), 0);
-                          setFormData({ ...formData, items: newItems, totalAmount: newTotal.toString() });
-                        }} className="bg-light" />
+
+                <div className="col-md-6">
+                  <Form.Label className="fw-semibold">Assign Employee <span className="text-danger">*</span></Form.Label>
+                  <Form.Select 
+                    required 
+                    value={formData.assignedEmployee} 
+                    isInvalid={!!stepErrors.assignedEmployee}
+                    onChange={(e) => {
+                      setFormData({ ...formData, assignedEmployee: e.target.value });
+                      if (stepErrors.assignedEmployee) setStepErrors(prev => ({ ...prev, assignedEmployee: null }));
+                    }} 
+                    className="bg-light"
+                  >
+                    <option value="">Select Employee</option>
+                    {employees.map(emp => (
+                      <option key={emp._id} value={emp._id}>{emp.name}</option>
+                    ))}
+                  </Form.Select>
+                  <Form.Control.Feedback type="invalid">{stepErrors.assignedEmployee}</Form.Control.Feedback>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2: Items & Design */}
+            {currentStep === 2 && (
+              <div className="row g-3">
+                <div className="col-12">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <h6 className="fw-bold mb-0">Order Items (Line Items) <span className="text-danger">*</span></h6>
+                    <Button 
+                      variant="outline-primary" 
+                      size="sm" 
+                      onClick={() => setFormData({ ...formData, items: [...formData.items, { itemName: '', totalQty: '', price: '' }] })}
+                    >
+                      <Plus size={16} className="me-1" /> Add Item
+                    </Button>
+                  </div>
+
+                  {stepErrors.items && (
+                    <Alert variant="danger" className="py-2 small border-0 bg-danger bg-opacity-10 text-danger">{stepErrors.items}</Alert>
+                  )}
+
+                  {formData.items.map((item, index) => (
+                    <div key={index} className="border rounded-3 p-3 mb-3 bg-white position-relative shadow-sm">
+                      {formData.items.length > 1 && (
+                        <Button 
+                          variant="link" 
+                          className="position-absolute text-danger p-0" 
+                          style={{ top: '10px', right: '10px' }} 
+                          onClick={() => {
+                            const newItems = formData.items.filter((_, i) => i !== index);
+                            const newTotal = newItems.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
+                            setFormData({ ...formData, items: newItems, totalAmount: newTotal.toString() });
+                          }}
+                        >
+                          <Trash2 size={18} />
+                        </Button>
+                      )}
+                      <div className="row g-2">
+                        <div className="col-12">
+                          <Form.Label className="small fw-semibold mb-1">Item Name</Form.Label>
+                          <Form.Control 
+                            type="text" 
+                            required 
+                            placeholder="e.g. Visiting Cards with Matte Finish"
+                            value={item.itemName} 
+                            isInvalid={!!stepErrors[`item-${index}-itemName`]}
+                            onChange={(e) => {
+                              const newItems = [...formData.items];
+                              newItems[index].itemName = e.target.value;
+                              setFormData({ ...formData, items: newItems });
+                            }} 
+                            className="bg-light form-control-sm" 
+                          />
+                        </div>
+                        <div className="col-md-6">
+                          <Form.Label className="small fw-semibold mb-1">Quantity</Form.Label>
+                          <Form.Control 
+                            type="number" 
+                            placeholder="1" 
+                            required 
+                            min="1"
+                            value={item.totalQty} 
+                            isInvalid={!!stepErrors[`item-${index}-totalQty`]}
+                            onChange={(e) => {
+                              const newItems = [...formData.items];
+                              newItems[index].totalQty = e.target.value;
+                              setFormData({ ...formData, items: newItems });
+                            }} 
+                            className="bg-light form-control-sm" 
+                          />
+                        </div>
+                        <div className="col-md-6">
+                          <Form.Label className="small fw-semibold mb-1">Price (₹)</Form.Label>
+                          <Form.Control 
+                            type="number" 
+                            placeholder="0" 
+                            required 
+                            min="0"
+                            value={item.price} 
+                            onChange={(e) => {
+                              const newItems = [...formData.items];
+                              newItems[index].price = e.target.value;
+                              const newTotal = newItems.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
+                              setFormData({ ...formData, items: newItems, totalAmount: newTotal.toString() });
+                            }} 
+                            className="bg-light form-control-sm" 
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-                <Button variant="outline-primary" size="sm" className="mb-2" onClick={() => setFormData({ ...formData, items: [...formData.items, { itemName: '', totalQty: '', price: '' }] })}>
-                  <Plus size={16} className="me-1" /> Add Item
-                </Button>
-              </div>
-              <div className="col-12">
-                <Form.Label>Design Image (Optional)</Form.Label>
-                <Form.Control type="file" onChange={(e) => setFile(e.target.files[0])} accept="image/*" className="bg-white" />
-              </div>
-              <div className="col-md-6">
-                <Form.Label>Total Amount</Form.Label>
-                <Form.Control type="number" placeholder="0" required value={formData.totalAmount} onChange={(e) => setFormData({ ...formData, totalAmount: e.target.value })} className="bg-light" />
-              </div>
-              <div className="col-md-6 pt-4">
-                <Form.Check type="switch" id="advance-switch" label="Advance Amount Received" checked={formData.advanceReceived} onChange={(e) => setFormData({ ...formData, advanceReceived: e.target.checked })} className="fw-medium" />
-              </div>
-              <div className="col-md-6">
-                <Form.Label>Assign Employee</Form.Label>
-                <Form.Select required value={formData.assignedEmployee} onChange={(e) => setFormData({ ...formData, assignedEmployee: e.target.value })} className="bg-light">
-                  <option value="">Select Employee</option>
-                  {employees.map(emp => (
-                    <option key={emp._id} value={emp._id}>{emp.name}</option>
                   ))}
-                </Form.Select>
+                </div>
+
+                <div className="col-md-4">
+                  <Form.Label className="fw-semibold">Total Amount (₹) <span className="text-danger">*</span></Form.Label>
+                  <Form.Control 
+                    type="number" 
+                    placeholder="0" 
+                    required 
+                    min="0"
+                    value={formData.totalAmount} 
+                    onChange={(e) => setFormData({ ...formData, totalAmount: e.target.value })} 
+                    className="bg-light fw-bold text-success fs-5" 
+                  />
+                </div>
+
+                <div className="col-md-4">
+                  <Form.Label className="fw-semibold">Printing Method / Vendor</Form.Label>
+                  <Form.Select 
+                    value={formData.printingCompany} 
+                    onChange={(e) => setFormData({ ...formData, printingCompany: e.target.value })} 
+                    className="bg-light"
+                  >
+                    <option value="">Select Printing Method</option>
+                    {settings.printingCompanies.map(pc => (
+                      <option key={pc} value={pc}>{pc}</option>
+                    ))}
+                  </Form.Select>
+                </div>
+
+                <div className="col-md-4">
+                  <Form.Label className="fw-semibold">Design Image (Optional)</Form.Label>
+                  <Form.Control 
+                    type="file" 
+                    onChange={(e) => setFile(e.target.files[0])} 
+                    accept="image/*" 
+                    className="bg-white" 
+                  />
+                </div>
               </div>
-              <div className="col-md-6">
-                <Form.Label>Printing Method</Form.Label>
-                <Form.Select required value={formData.printingCompany} onChange={(e) => setFormData({ ...formData, printingCompany: e.target.value })} className="bg-light">
-                  <option value="">Select Printing Method</option>
-                  {settings.printingCompanies.map(pc => (
-                    <option key={pc} value={pc}>{pc}</option>
-                  ))}
-                </Form.Select>
+            )}
+
+            {/* STEP 3: Payment & Summary */}
+            {currentStep === 3 && (
+              <div className="row g-3">
+                <div className="col-md-6">
+                  <Form.Label className="fw-semibold">Total Amount (₹) <span className="text-danger">*</span></Form.Label>
+                  <Form.Control 
+                    type="number" 
+                    placeholder="0" 
+                    required 
+                    value={formData.totalAmount} 
+                    onChange={(e) => setFormData({ ...formData, totalAmount: e.target.value })} 
+                    className="bg-light fw-bold text-success fs-5" 
+                  />
+                </div>
+
+                <div className="col-md-6 pt-md-4">
+                  <Form.Check 
+                    type="switch" 
+                    id="advance-switch-client" 
+                    label="Advance Amount Received" 
+                    checked={formData.advanceReceived} 
+                    onChange={(e) => setFormData({ ...formData, advanceReceived: e.target.checked })} 
+                    className="fw-semibold pt-2" 
+                  />
+                </div>
+
+                {formData.advanceReceived && (
+                  <>
+                    <div className="col-md-6">
+                      <Form.Label className="fw-semibold">Advance Amount (₹) <span className="text-danger">*</span></Form.Label>
+                      <Form.Control 
+                        type="number" 
+                        placeholder="0" 
+                        required 
+                        value={formData.advanceAmount} 
+                        onChange={(e) => setFormData({ ...formData, advanceAmount: e.target.value })} 
+                        className="bg-light" 
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <Form.Label className="fw-semibold">Payment Method <span className="text-danger">*</span></Form.Label>
+                      <Form.Select 
+                        required
+                        value={formData.paymentMethod} 
+                        onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })} 
+                        className="bg-light"
+                      >
+                        <option value="">Select Payment Method</option>
+                        <option value="GPay">GPay</option>
+                        <option value="B-Gpay">B-Gpay</option>
+                        <option value="NEFT">NEFT</option>
+                        <option value="KVB">KVB</option>
+                        <option value="Dtdc Wallet">Dtdc Wallet</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Discount Amount">Discount Amount</option>
+                      </Form.Select>
+                    </div>
+                  </>
+                )}
+
+                <div className="col-md-6">
+                  <Form.Label className="fw-semibold">Order Status</Form.Label>
+                  <Form.Select 
+                    value={formData.status} 
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })} 
+                    className="bg-light"
+                  >
+                    <option value="Pending">Pending</option>
+                    {statusOptions.filter(opt => opt !== 'Pending').map(opt => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </Form.Select>
+                </div>
+
+                <div className="col-12">
+                  <Form.Label className="fw-semibold">Remarks (Notes - Staff Only)</Form.Label>
+                  <Form.Control 
+                    as="textarea" 
+                    rows={2} 
+                    placeholder="Internal notes not shown on invoice..." 
+                    value={formData.remarks} 
+                    onChange={(e) => setFormData({ ...formData, remarks: e.target.value })} 
+                    className="bg-light" 
+                  />
+                </div>
               </div>
-              <Form.Group className="mb-3 col-md-12">
-                <Form.Label className="fw-semibold">Status</Form.Label>
-                <Form.Select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className="bg-light">
-                  <option value="Pending">Pending</option>
-                  {statusOptions.filter(opt => opt !== 'Pending').map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </Form.Select>
-              </Form.Group>
-              <div className="col-12">
-                <Form.Label className="fw-semibold">Remarks (Notes - Admin/Staff Only)</Form.Label>
-                <Form.Control as="textarea" rows={2} placeholder="Internal notes not shown on invoice..." value={formData.remarks} onChange={(e) => setFormData({ ...formData, remarks: e.target.value })} className="bg-light" />
-              </div>
-              {formData.advanceReceived && (
-                <>
-                  <div className="col-md-6">
-                    <Form.Label>Advance Amount</Form.Label>
-                    <Form.Control type="number" placeholder="0" required value={formData.advanceAmount} onChange={(e) => setFormData({ ...formData, advanceAmount: e.target.value })} className="bg-light" />
-                  </div>
-                  <div className="col-md-6">
-                    <Form.Label>Payment Method</Form.Label>
-                    <Form.Select value={formData.paymentMethod} onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })} className="bg-light">
-                      <option value="">Select Payment Method</option>
-                      <option value="GPay">GPay</option>
-                      <option value="B-Gpay">B-Gpay</option>
-<option value="NEFT">NEFT</option>
-                      <option value="KVB">KVB</option>
-                      <option value="Dtdc Wallet">Dtdc Wallet</option>
-                      <option value="Cash">Cash</option>
-                      <option value="Discount Amount">Discount Amount</option>
-                    </Form.Select>
-                  </div>
-                </>
-              )}
-            </div>
+            )}
           </Modal.Body>
-          <Modal.Footer className="border-0 px-4 pb-4">
-            <Button variant="light" onClick={() => setShowModal(false)} className="fw-medium" disabled={isLoading}>Cancel</Button>
-            <Button variant="primary" type="submit" className="fw-medium px-4" disabled={isLoading}>
-              {isLoading ? 'Creating...' : 'Create Order'}
-            </Button>
+          <Modal.Footer className="border-0 px-4 pb-4 d-flex justify-content-between">
+            {currentStep === 1 ? (
+              <Button variant="light" onClick={() => setShowModal(false)} className="fw-medium">
+                Cancel
+              </Button>
+            ) : (
+              <Button variant="outline-secondary" type="button" onClick={handlePrevStep} className="fw-medium d-flex align-items-center gap-1">
+                <ArrowLeft size={16} /> Back
+              </Button>
+            )}
+
+            {currentStep < 3 ? (
+              <Button variant="primary" type="button" onClick={handleNextStep} className="fw-medium px-4 d-flex align-items-center gap-1">
+                Next Step <ArrowRight size={16} />
+              </Button>
+            ) : (
+              <Button variant="success" type="submit" className="fw-medium px-4" disabled={isLoading}>
+                {isLoading ? 'Creating Order...' : 'Create Order'}
+              </Button>
+            )}
           </Modal.Footer>
         </Form>
       </Modal>

@@ -45,19 +45,21 @@ const getClients = async (req, res) => {
     const clients = await Client.find({}).sort({ createdAt: -1 }).lean();
     
     const clientsWithBalance = await Promise.all(clients.map(async (client) => {
-      const orders = await Order.find(getClientOrderQuery(client)).select('totalAmount advanceAmount balancePayments');
+      const orders = await Order.find(getClientOrderQuery(client)).select('totalAmount advanceAmount balanceAmount balancePayments');
 
       let totalBilled = 0;
       let totalPaid = 0;
 
       orders.forEach(order => {
         totalBilled += (order.totalAmount || 0);
-        let orderPaid = order.advanceAmount || 0;
+        let bpTotal = 0;
         if (order.balancePayments && Array.isArray(order.balancePayments)) {
           order.balancePayments.forEach(bp => {
-            orderPaid += (bp.amount || 0);
+            bpTotal += (Number(bp.amount) || 0);
           });
         }
+        let balancePaid = Math.max(Number(order.balanceAmount) || 0, bpTotal);
+        let orderPaid = (Number(order.advanceAmount) || 0) + balancePaid;
         totalPaid += orderPaid;
       });
 
@@ -142,12 +144,14 @@ const getClientOrders = async (req, res) => {
 
     orders.forEach(order => {
       totalBilled += (order.totalAmount || 0);
-      let orderPaid = order.advanceAmount || 0;
+      let bpTotal = 0;
       if (order.balancePayments && Array.isArray(order.balancePayments)) {
         order.balancePayments.forEach(bp => {
-          orderPaid += (bp.amount || 0);
+          bpTotal += (Number(bp.amount) || 0);
         });
       }
+      let balancePaid = Math.max(Number(order.balanceAmount) || 0, bpTotal);
+      let orderPaid = (Number(order.advanceAmount) || 0) + balancePaid;
       totalPaid += orderPaid;
     });
 
@@ -184,14 +188,16 @@ const payAllClientOrders = async (req, res) => {
     let totalPaidNow = 0;
 
     for (const order of orders) {
-      let orderPaid = order.advanceAmount || 0;
+      let bpTotal = 0;
       if (order.balancePayments && Array.isArray(order.balancePayments)) {
         order.balancePayments.forEach(bp => {
-          orderPaid += (bp.amount || 0);
+          bpTotal += (Number(bp.amount) || 0);
         });
       }
+      let balancePaid = Math.max(Number(order.balanceAmount) || 0, bpTotal);
+      let orderPaid = (Number(order.advanceAmount) || 0) + balancePaid;
       
-      let pendingAmount = (order.totalAmount || 0) - orderPaid;
+      let pendingAmount = Math.max(0, (Number(order.totalAmount) || 0) - orderPaid);
 
       if (pendingAmount > 0) {
         if (!order.balancePayments) order.balancePayments = [];
@@ -204,8 +210,9 @@ const payAllClientOrders = async (req, res) => {
             order.balancePayments.push({
               amount: paymentAmount,
               date: new Date(),
-              paymentMethod: currentPayment.method
+              method: currentPayment.method || 'Cash'
             });
+            order.balanceAmount = (order.balanceAmount || 0) + paymentAmount;
             pendingAmount -= paymentAmount;
             currentPayment.amount -= paymentAmount;
             totalPaidNow += paymentAmount;

@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import Layout from '../components/Layout';
-import { Form, Button, Row, Col, Table, Modal, Alert } from 'react-bootstrap';
-import { Plus, Trash2, FileText, Download, Edit, Trash, CheckCircle } from 'lucide-react';
+import { Form, Button, Row, Col, Table, Modal, Alert, Badge } from 'react-bootstrap';
+import { Plus, Trash2, FileText, Download, Edit, Trash, CheckCircle, ReceiptText, ArrowRight, Check } from 'lucide-react';
+import Swal from 'sweetalert2';
 import api from '../services/api';
 import html2canvas from 'html2canvas';
 import sappLogo from '../assets/Sapp Logo.jpg.jpeg';
@@ -34,7 +36,14 @@ const BANK_DETAILS = [
 
 const Quotation = () => {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [quotations, setQuotations] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [settings, setSettings] = useState({
+    jobTypes: ['Visiting Card', 'Invitation', 'Offset', 'Screen', 'Digital', 'Lamination'],
+    printingCompanies: ['Elite', 'Impression', 'Zig Zag', 'Vignesh', 'Amutham Flex', 'Chandru Screen', 'Amirtham Binding', 'Saravana Offset', 'Others'],
+    orderStatuses: ['Printing', 'Cutting', 'Ready To Dispatch', 'Delivered']
+  });
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
@@ -58,12 +67,51 @@ const Quotation = () => {
     ]
   });
 
+  // Convert to Order (Bill) State
+  const [showConvertModal, setShowConvertModal] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
+  const [convertErrors, setConvertErrors] = useState({});
+  const [clientSuggestions, setClientSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [convertData, setConvertData] = useState({
+    quotationId: '',
+    quotationTitle: '',
+    clientName: '',
+    mobileNumber: '',
+    cardType: '',
+    items: [{ itemName: '', totalQty: 1, price: 0 }],
+    totalAmount: 0,
+    advanceReceived: false,
+    advanceAmount: '',
+    paymentMethod: 'None',
+    assignedEmployee: '',
+    printingCompany: 'None',
+    status: 'Pending',
+    remarks: '',
+    isClientOrder: false,
+    markAsSelected: true
+  });
+
   // Reference for the hidden print area
   const previewRef = useRef(null);
 
   useEffect(() => {
     fetchQuotations();
+    fetchInitialData();
   }, []);
+
+  const fetchInitialData = async () => {
+    try {
+      const [empRes, setRes] = await Promise.all([
+        api.get('/users').catch(() => ({ data: [] })),
+        api.get('/settings').catch(() => ({ data: null }))
+      ]);
+      if (empRes.data) setEmployees(empRes.data);
+      if (setRes.data) setSettings(setRes.data);
+    } catch (err) {
+      console.error('Failed to fetch initial data:', err);
+    }
+  };
 
   const fetchQuotations = async () => {
     try {
@@ -194,13 +242,30 @@ const Quotation = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this quotation?')) {
+    const result = await Swal.fire({
+      title: 'Delete Quotation?',
+      text: 'Are you sure you want to delete this quotation?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Yes, delete it!'
+    });
+
+    if (result.isConfirmed) {
       try {
         await api.delete(`/quotations/${id}`);
         fetchQuotations();
+        Swal.fire({
+          icon: 'success',
+          title: 'Deleted!',
+          text: 'Quotation has been removed.',
+          timer: 1500,
+          showConfirmButton: false
+        });
       } catch (err) {
         console.error('Error deleting quotation:', err);
-        alert('Failed to delete quotation');
+        Swal.fire('Error', 'Failed to delete quotation', 'error');
       }
     }
   };
@@ -214,32 +279,232 @@ const Quotation = () => {
     }
   };
 
+  // Convert to Order Modal Handlers
+  const handleOpenConvertModal = (q) => {
+    // Extract recipient name from toAddress (first non-empty line)
+    const addressLines = (q.toAddress || '').split('\n').map(l => l.trim()).filter(Boolean);
+    const guessedClientName = addressLines.length > 0 ? addressLines[0] : (q.title || '');
+    
+    // Try to find a 10 digit phone number in toAddress
+    const phoneMatch = (q.toAddress || '').match(/(?:\+91|0)?\s*([6-9]\d{9})/);
+    let guessedPhone = '';
+    if (phoneMatch && phoneMatch[1]) {
+      const raw = phoneMatch[1];
+      guessedPhone = `${raw.slice(0, 5)} ${raw.slice(5)}`;
+    }
+
+    // Pre-fill items from quotation items
+    const mappedItems = (q.items && q.items.length > 0)
+      ? q.items.map(item => ({
+          itemName: item.description || '',
+          totalQty: Number(item.qtyPerItem) || 1,
+          price: Number(item.price) || (Number(item.qtyPerItem || 1) * Number(item.totalQuantity || 0))
+        }))
+      : [{ itemName: q.title || 'Custom Job Item', totalQty: 1, price: q.totalAmount || 0 }];
+
+    // Find job type matching title or default
+    const defaultJobType = settings.jobTypes && settings.jobTypes.length > 0
+      ? (settings.jobTypes.find(j => (q.title || '').toLowerCase().includes(j.toLowerCase())) || settings.jobTypes[0])
+      : 'Visiting Card';
+
+    // Default employee: logged-in user if employee or first available employee
+    const defaultEmp = (user && user.role === 'Employee') 
+      ? user._id 
+      : (employees[0]?._id || (user?._id || ''));
+
+    const itemsTotal = mappedItems.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
+    const calculatedTotal = q.totalAmount || itemsTotal;
+
+    setConvertData({
+      quotationId: q._id,
+      quotationTitle: q.title || '',
+      clientName: guessedClientName,
+      mobileNumber: guessedPhone,
+      cardType: defaultJobType,
+      items: mappedItems,
+      totalAmount: calculatedTotal,
+      advanceReceived: false,
+      advanceAmount: '',
+      paymentMethod: 'None',
+      assignedEmployee: defaultEmp,
+      printingCompany: (settings.printingCompanies && settings.printingCompanies[0]) || 'None',
+      status: 'Pending',
+      remarks: `Converted from Quotation "${q.title || 'Untitled'}"${q.adminNotes ? ` | Note: ${q.adminNotes}` : ''}`,
+      isClientOrder: false,
+      markAsSelected: true
+    });
+    setConvertErrors({});
+    setShowConvertModal(true);
+  };
+
+  const handleConvertItemChange = (index, field, value) => {
+    const newItems = [...convertData.items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    
+    // Auto-update total amount from sum of item prices
+    const newTotal = newItems.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
+    
+    setConvertData(prev => ({
+      ...prev,
+      items: newItems,
+      totalAmount: newTotal
+    }));
+
+    if (convertErrors[`item-${index}-${field}`]) {
+      setConvertErrors(prev => ({ ...prev, [`item-${index}-${field}`]: null }));
+    }
+  };
+
+  const addConvertItem = () => {
+    setConvertData(prev => ({
+      ...prev,
+      items: [...prev.items, { itemName: '', totalQty: 1, price: 0 }]
+    }));
+  };
+
+  const removeConvertItem = (index) => {
+    const newItems = convertData.items.filter((_, i) => i !== index);
+    const newTotal = newItems.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
+    setConvertData(prev => ({
+      ...prev,
+      items: newItems,
+      totalAmount: newTotal
+    }));
+  };
+
+  const handleConvertSubmit = async (e) => {
+    e.preventDefault();
+    const errors = {};
+
+    if (!convertData.clientName?.trim()) {
+      errors.clientName = 'Client Name is required';
+    }
+
+    const rawPhone = (convertData.mobileNumber || '').replace(/\D/g, '');
+    if (!rawPhone || rawPhone.length !== 10) {
+      errors.mobileNumber = 'Valid 10-digit mobile number is required (e.g. 98765 43210)';
+    }
+
+    if (!convertData.cardType) {
+      errors.cardType = 'Job Type is required';
+    }
+
+    if (!convertData.assignedEmployee) {
+      errors.assignedEmployee = 'Please assign an employee';
+    }
+
+    if (!convertData.items || convertData.items.length === 0) {
+      errors.items = 'At least one item is required';
+    } else {
+      convertData.items.forEach((it, idx) => {
+        if (!it.itemName?.trim()) errors[`item-${idx}-itemName`] = 'Item name is required';
+        if (!it.totalQty || Number(it.totalQty) <= 0) errors[`item-${idx}-totalQty`] = 'Qty is required';
+      });
+    }
+
+    if (convertData.advanceReceived) {
+      if (!convertData.advanceAmount || Number(convertData.advanceAmount) <= 0) {
+        errors.advanceAmount = 'Please specify advance amount';
+      }
+      if (!convertData.paymentMethod || convertData.paymentMethod === 'None') {
+        errors.paymentMethod = 'Please select a payment method';
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setConvertErrors(errors);
+      return;
+    }
+
+    setIsConverting(true);
+    try {
+      const formattedPhone = `${rawPhone.slice(0, 5)} ${rawPhone.slice(5)}`;
+      const payload = {
+        clientName: convertData.clientName.trim(),
+        mobileNumber: formattedPhone,
+        cardType: convertData.cardType,
+        items: convertData.items.map(it => ({
+          itemName: it.itemName.trim(),
+          totalQty: Number(it.totalQty) || 1,
+          price: Number(it.price) || 0
+        })),
+        totalAmount: Number(convertData.totalAmount) || 0,
+        advanceAmount: convertData.advanceReceived ? (Number(convertData.advanceAmount) || 0) : 0,
+        balanceAmount: 0,
+        advanceReceived: convertData.advanceReceived,
+        paymentMethod: convertData.advanceReceived ? (convertData.paymentMethod || 'None') : 'None',
+        assignedEmployee: convertData.assignedEmployee,
+        printingCompany: convertData.printingCompany || 'None',
+        status: convertData.status || 'Pending',
+        remarks: convertData.remarks || '',
+        isClientOrder: convertData.isClientOrder || false
+      };
+
+      const res = await api.post('/orders', payload);
+
+      if (convertData.markAsSelected && convertData.quotationId) {
+        await api.put(`/quotations/${convertData.quotationId}`, { isDone: true });
+      }
+
+      setShowConvertModal(false);
+      fetchQuotations();
+
+      Swal.fire({
+        title: 'Bill (Order) Created!',
+        html: `<b>Order #${res.data.serialNumber}</b> has been successfully created for <b>${convertData.clientName}</b>.`,
+        icon: 'success',
+        showCancelButton: true,
+        confirmButtonText: 'View Order Details',
+        cancelButtonText: 'Stay on Quotations',
+        confirmButtonColor: '#0d6efd',
+        cancelButtonColor: '#6c757d'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          navigate(`/orders/${res.data._id}`);
+        }
+      });
+
+    } catch (err) {
+      console.error('Error converting quotation to order:', err);
+      Swal.fire('Error', err.response?.data?.message || 'Failed to convert quotation to order', 'error');
+    } finally {
+      setIsConverting(false);
+    }
+  };
+
   const executeDownload = async (q) => {
-    // Temporarily set the download quotation state to render it in the hidden ref
     setDownloadQuotation(q);
     
-    // Give it a brief moment to render the DOM
     setTimeout(async () => {
       if (previewRef.current) {
         try {
           const canvas = await html2canvas(previewRef.current, {
             scale: 2,
             useCORS: true,
-            logging: false
+            allowTaint: true,
+            logging: false,
+            backgroundColor: '#ffffff'
           });
-          const image = canvas.toDataURL('image/png', 1.0);
-          const link = document.createElement('a');
-          link.download = `Quotation_${q.title || 'Draft'}.png`;
-          link.href = image;
-          link.click();
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.download = `Quotation_${q.title || 'Draft'}.png`;
+              link.href = url;
+              link.click();
+              setTimeout(() => URL.revokeObjectURL(url), 1000);
+            }
+            setDownloadQuotation(null);
+          }, 'image/png');
         } catch (error) {
           console.error("Error generating image:", error);
           alert("Failed to generate quotation image.");
-        } finally {
           setDownloadQuotation(null);
         }
+      } else {
+        setDownloadQuotation(null);
       }
-    }, 100);
+    }, 50);
   };
 
   const filteredQuotations = quotations.filter(q => {
@@ -296,7 +561,7 @@ const Quotation = () => {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2 className="mb-0 fw-bold">Quotations</h2>
-          <p className="text-muted mb-0">Manage and download your quotations</p>
+          <p className="text-muted mb-0">Manage, convert to bills (orders), and download your quotations</p>
         </div>
         <div className="d-flex flex-wrap align-items-center justify-content-md-end gap-2">
           <Form.Control
@@ -377,16 +642,23 @@ const Quotation = () => {
         <Row className="g-4">
           {filteredQuotations.map(q => (
             <Col key={q._id} xs={12} md={6} lg={4}>
-              <div className="bg-white rounded shadow-sm border p-4 h-100 d-flex flex-column">
+              <div className="bg-white rounded shadow-sm border p-4 h-100 d-flex flex-column position-relative">
                 <div className="d-flex justify-content-between align-items-start mb-3">
                   <h5 className="fw-bold text-truncate mb-0" style={{ maxWidth: '70%' }} title={q.title}>{q.title || 'Untitled'}</h5>
-                  <span className="badge bg-light text-dark border">
-                    {new Date(q.date).toLocaleDateString()}
-                  </span>
+                  <div className="d-flex flex-column align-items-end gap-1">
+                    <span className="badge bg-light text-dark border">
+                      {new Date(q.date).toLocaleDateString()}
+                    </span>
+                    {q.isDone && (
+                      <span className="badge bg-success bg-opacity-10 text-success border border-success-subtle">
+                        <Check size={12} className="me-1" /> Selected
+                      </span>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="mb-3 flex-grow-1">
-                  <small className="text-muted d-block mb-1">To</small>
+                  <small className="text-muted d-block mb-1 fw-semibold">To (Customer)</small>
                   <p className="text-truncate mb-0" title={q.toAddress}>{q.toAddress || 'N/A'}</p>
                 </div>
 
@@ -397,31 +669,48 @@ const Quotation = () => {
                   </div>
                 )}
                 
-                <div className="mb-4">
-                  <small className="text-muted d-block mb-1">Total Amount</small>
-                  <h4 className="text-success fw-bold mb-0">₹{q.totalAmount?.toLocaleString() || 0}</h4>
+                <div className="mb-4 d-flex justify-content-between align-items-end">
+                  <div>
+                    <small className="text-muted d-block mb-1">Total Amount</small>
+                    <h4 className="text-success fw-bold mb-0">₹{q.totalAmount?.toLocaleString() || 0}</h4>
+                  </div>
+                  {q.deliveryTime && (
+                    <small className="text-muted">
+                      Delivery: <strong>{q.deliveryTime} Days</strong>
+                    </small>
+                  )}
                 </div>
                 
-                <div className="d-flex justify-content-between border-top pt-3">
-                  <div>
+                <div className="d-flex justify-content-between align-items-center border-top pt-3 mt-auto">
+                  <div className="d-flex align-items-center gap-2">
                     <Button 
                       variant={q.isDone ? "success" : "outline-success"} 
                       size="sm" 
                       onClick={() => handleToggleDone(q)} 
-                      title={q.isDone ? "Mark as Pending" : "Mark as Done"}
+                      title={q.isDone ? "Mark as Pending" : "Mark as Selected"}
                     >
                       <CheckCircle size={16} />
                     </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      className="d-flex align-items-center gap-1 shadow-sm fw-medium px-2 py-1"
+                      onClick={() => handleOpenConvertModal(q)}
+                      title="Convert this Quotation to a Bill / Order"
+                    >
+                      <ReceiptText size={15} />
+                      <span>Convert to Bill</span>
+                    </Button>
                   </div>
-                  <div className="d-flex gap-2">
-                    <Button variant="outline-primary" size="sm" onClick={() => executeDownload(q)} title="Download">
-                      <Download size={16} />
+                  <div className="d-flex gap-1">
+                    <Button variant="outline-primary" size="sm" onClick={() => executeDownload(q)} title="Download Quotation PNG">
+                      <Download size={15} />
                     </Button>
-                    <Button variant="outline-secondary" size="sm" onClick={() => handleEdit(q)} title="Edit">
-                      <Edit size={16} />
+                    <Button variant="outline-secondary" size="sm" onClick={() => handleEdit(q)} title="Edit Quotation">
+                      <Edit size={15} />
                     </Button>
-                    <Button variant="outline-danger" size="sm" onClick={() => handleDelete(q._id)} title="Delete">
-                      <Trash size={16} />
+                    <Button variant="outline-danger" size="sm" onClick={() => handleDelete(q._id)} title="Delete Quotation">
+                      <Trash size={15} />
                     </Button>
                   </div>
                 </div>
@@ -430,6 +719,337 @@ const Quotation = () => {
           ))}
         </Row>
       )}
+
+      {/* Convert to Bill (Order) Modal */}
+      <Modal backdrop="static" show={showConvertModal} onHide={() => setShowConvertModal(false)} centered size="lg" contentClassName="border-0 rounded-4 shadow-lg">
+        <Modal.Header closeButton className="border-0 pb-0 mt-3 mx-2">
+          <Modal.Title className="fw-bold d-flex align-items-center gap-2">
+            <div className="p-2 bg-primary bg-opacity-10 text-primary rounded-3">
+              <ReceiptText size={22} />
+            </div>
+            <span>Convert Quotation to Bill (Order)</span>
+          </Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleConvertSubmit}>
+          <Modal.Body className="px-4 pt-3">
+            <div className="alert alert-info border-0 bg-info bg-opacity-10 d-flex justify-content-between align-items-center mb-4 py-2 px-3">
+              <div>
+                <small className="text-muted d-block">Source Quotation</small>
+                <strong className="text-dark">{convertData.quotationTitle || 'Quotation'}</strong>
+              </div>
+              <Badge bg="primary" className="px-3 py-2 fs-6">
+                Total: ₹{Number(convertData.totalAmount || 0).toLocaleString()}
+              </Badge>
+            </div>
+
+            <Row className="g-3">
+              {/* Client Name with Suggestions */}
+              <Col md={6} className="position-relative">
+                <Form.Label className="fw-semibold">Customer / Client Name <span className="text-danger">*</span></Form.Label>
+                <Form.Control
+                  type="text"
+                  required
+                  placeholder="e.g. John Doe"
+                  value={convertData.clientName}
+                  isInvalid={!!convertErrors.clientName}
+                  onChange={async (e) => {
+                    const val = e.target.value;
+                    setConvertData(prev => ({
+                      ...prev,
+                      clientName: val ? val.replace(/(^\w|\s\w)/g, m => m.toUpperCase()) : '',
+                      isClientOrder: false
+                    }));
+                    if (val.trim().length > 0) {
+                      try {
+                        const res = await api.get(`/clients/search?q=${val}`);
+                        setClientSuggestions(res.data);
+                        setShowSuggestions(res.data.length > 0);
+                      } catch (err) {
+                        console.error(err);
+                      }
+                    } else {
+                      setShowSuggestions(false);
+                    }
+                  }}
+                  onFocus={() => { if (clientSuggestions.length > 0) setShowSuggestions(true); }}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  className="bg-light"
+                />
+                <Form.Control.Feedback type="invalid">{convertErrors.clientName}</Form.Control.Feedback>
+
+                {showSuggestions && (
+                  <ul className="list-group position-absolute w-100 shadow-sm" style={{ zIndex: 1000, marginTop: '2px' }}>
+                    {clientSuggestions.map(client => (
+                      <li
+                        key={client._id}
+                        className="list-group-item list-group-item-action py-2"
+                        style={{ cursor: 'pointer' }}
+                        onMouseDown={() => {
+                          setConvertData(prev => ({
+                            ...prev,
+                            clientName: client.clientName,
+                            mobileNumber: client.mobileNumber,
+                            isClientOrder: true
+                          }));
+                          setShowSuggestions(false);
+                        }}
+                      >
+                        <div className="fw-bold">{client.username}</div>
+                        <small className="text-muted">{client.clientName} - {client.mobileNumber}</small>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Col>
+
+              {/* Mobile Number */}
+              <Col md={6}>
+                <Form.Label className="fw-semibold">Mobile Number <span className="text-danger">*</span></Form.Label>
+                <Form.Control
+                  type="text"
+                  required
+                  placeholder="98765 43210"
+                  value={convertData.mobileNumber}
+                  isInvalid={!!convertErrors.mobileNumber}
+                  onChange={(e) => {
+                    const rawValue = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    const formattedValue = rawValue.length > 5 ? `${rawValue.slice(0, 5)} ${rawValue.slice(5)}` : rawValue;
+                    setConvertData(prev => ({ ...prev, mobileNumber: formattedValue }));
+                    if (convertErrors.mobileNumber) setConvertErrors(prev => ({ ...prev, mobileNumber: null }));
+                  }}
+                  className="bg-light"
+                />
+                <Form.Control.Feedback type="invalid">{convertErrors.mobileNumber}</Form.Control.Feedback>
+              </Col>
+
+              {/* Job Type */}
+              <Col md={6}>
+                <Form.Label className="fw-semibold">Job Type <span className="text-danger">*</span></Form.Label>
+                <Form.Select
+                  required
+                  value={convertData.cardType}
+                  onChange={(e) => setConvertData(prev => ({ ...prev, cardType: e.target.value }))}
+                  className="bg-light"
+                >
+                  <option value="">Select Job Type</option>
+                  {(settings.jobTypes || ['Visiting Card', 'Invitation', 'Offset', 'Screen', 'Digital', 'Lamination']).map(job => (
+                    <option key={job} value={job}>{job}</option>
+                  ))}
+                </Form.Select>
+              </Col>
+
+              {/* Assign Employee */}
+              <Col md={6}>
+                <Form.Label className="fw-semibold">Assign Employee <span className="text-danger">*</span></Form.Label>
+                <Form.Select
+                  required
+                  value={convertData.assignedEmployee}
+                  onChange={(e) => setConvertData(prev => ({ ...prev, assignedEmployee: e.target.value }))}
+                  className="bg-light"
+                >
+                  <option value="">Select Employee</option>
+                  {employees.map(emp => (
+                    <option key={emp._id} value={emp._id}>{emp.name}</option>
+                  ))}
+                </Form.Select>
+              </Col>
+
+              {/* Printing Method */}
+              <Col md={6}>
+                <Form.Label className="fw-semibold">Printing Method / Company</Form.Label>
+                <Form.Select
+                  value={convertData.printingCompany}
+                  onChange={(e) => setConvertData(prev => ({ ...prev, printingCompany: e.target.value }))}
+                  className="bg-light"
+                >
+                  <option value="None">None / Direct</option>
+                  {(settings.printingCompanies || ['Elite', 'Impression', 'Zig Zag', 'Vignesh', 'Amutham Flex', 'Chandru Screen', 'Amirtham Binding', 'Saravana Offset', 'Others']).map(pc => (
+                    <option key={pc} value={pc}>{pc}</option>
+                  ))}
+                </Form.Select>
+              </Col>
+
+              {/* Initial Status */}
+              <Col md={6}>
+                <Form.Label className="fw-semibold">Initial Order Status</Form.Label>
+                <Form.Select
+                  value={convertData.status}
+                  onChange={(e) => setConvertData(prev => ({ ...prev, status: e.target.value }))}
+                  className="bg-light"
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="Printing">Printing</option>
+                  <option value="Cutting">Cutting</option>
+                  <option value="Ready To Dispatch">Ready To Dispatch</option>
+                  <option value="Delivered">Delivered</option>
+                </Form.Select>
+              </Col>
+
+              {/* Items Section */}
+              <Col xs={12} className="mt-4">
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <h6 className="fw-bold mb-0">Order Items (Bill Lines)</h6>
+                  <Button variant="outline-primary" size="sm" onClick={addConvertItem}>
+                    <Plus size={15} className="me-1" /> Add Item
+                  </Button>
+                </div>
+
+                {convertData.items.map((item, index) => (
+                  <div key={index} className="border rounded-3 p-3 mb-2 bg-white position-relative shadow-sm">
+                    {convertData.items.length > 1 && (
+                      <Button
+                        variant="link"
+                        className="position-absolute text-danger p-0"
+                        style={{ top: '10px', right: '10px' }}
+                        onClick={() => removeConvertItem(index)}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    )}
+                    <Row className="g-2">
+                      <Col md={6}>
+                        <Form.Label className="small fw-semibold mb-1">Item Description / Name</Form.Label>
+                        <Form.Control
+                          type="text"
+                          required
+                          placeholder="e.g. Visiting Cards with Velvet Matte"
+                          value={item.itemName}
+                          isInvalid={!!convertErrors[`item-${index}-itemName`]}
+                          onChange={(e) => handleConvertItemChange(index, 'itemName', e.target.value)}
+                          className="bg-light form-control-sm"
+                        />
+                      </Col>
+                      <Col md={3}>
+                        <Form.Label className="small fw-semibold mb-1">Quantity</Form.Label>
+                        <Form.Control
+                          type="number"
+                          required
+                          min="1"
+                          placeholder="1"
+                          value={item.totalQty}
+                          isInvalid={!!convertErrors[`item-${index}-totalQty`]}
+                          onChange={(e) => handleConvertItemChange(index, 'totalQty', e.target.value)}
+                          className="bg-light form-control-sm"
+                        />
+                      </Col>
+                      <Col md={3}>
+                        <Form.Label className="small fw-semibold mb-1">Total Price (₹)</Form.Label>
+                        <Form.Control
+                          type="number"
+                          required
+                          min="0"
+                          placeholder="0"
+                          value={item.price}
+                          onChange={(e) => handleConvertItemChange(index, 'price', e.target.value)}
+                          className="bg-light form-control-sm"
+                        />
+                      </Col>
+                    </Row>
+                  </div>
+                ))}
+              </Col>
+
+              {/* Total Amount */}
+              <Col md={6} className="mt-3">
+                <Form.Label className="fw-semibold">Total Order Amount (₹) <span className="text-danger">*</span></Form.Label>
+                <Form.Control
+                  type="number"
+                  required
+                  min="0"
+                  value={convertData.totalAmount}
+                  onChange={(e) => setConvertData(prev => ({ ...prev, totalAmount: e.target.value }))}
+                  className="bg-light fw-bold text-success fs-5"
+                />
+              </Col>
+
+              {/* Advance Amount Toggle */}
+              <Col md={6} className="mt-3 pt-md-4">
+                <Form.Check
+                  type="switch"
+                  id="convert-advance-switch"
+                  label="Advance Payment Received"
+                  checked={convertData.advanceReceived}
+                  onChange={(e) => setConvertData(prev => ({ ...prev, advanceReceived: e.target.checked }))}
+                  className="fw-semibold pt-2"
+                />
+              </Col>
+
+              {/* Advance Payment Details */}
+              {convertData.advanceReceived && (
+                <>
+                  <Col md={6}>
+                    <Form.Label className="fw-semibold">Advance Amount (₹) <span className="text-danger">*</span></Form.Label>
+                    <Form.Control
+                      type="number"
+                      placeholder="0"
+                      required
+                      value={convertData.advanceAmount}
+                      isInvalid={!!convertErrors.advanceAmount}
+                      onChange={(e) => setConvertData(prev => ({ ...prev, advanceAmount: e.target.value }))}
+                      className="bg-light"
+                    />
+                    <Form.Control.Feedback type="invalid">{convertErrors.advanceAmount}</Form.Control.Feedback>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Label className="fw-semibold">Payment Method <span className="text-danger">*</span></Form.Label>
+                    <Form.Select
+                      required
+                      value={convertData.paymentMethod}
+                      isInvalid={!!convertErrors.paymentMethod}
+                      onChange={(e) => setConvertData(prev => ({ ...prev, paymentMethod: e.target.value }))}
+                      className="bg-light"
+                    >
+                      <option value="">Select Method</option>
+                      <option value="GPay">GPay</option>
+                      <option value="B-Gpay">B-Gpay</option>
+                      <option value="NEFT">NEFT</option>
+                      <option value="KVB">KVB</option>
+                      <option value="Dtdc Wallet">Dtdc Wallet</option>
+                      <option value="Cash">Cash</option>
+                      <option value="Discount Amount">Discount Amount</option>
+                    </Form.Select>
+                    <Form.Control.Feedback type="invalid">{convertErrors.paymentMethod}</Form.Control.Feedback>
+                  </Col>
+                </>
+              )}
+
+              {/* Remarks */}
+              <Col xs={12}>
+                <Form.Label className="fw-semibold">Order Remarks / Notes (Staff Only)</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={2}
+                  placeholder="Internal notes for this order..."
+                  value={convertData.remarks}
+                  onChange={(e) => setConvertData(prev => ({ ...prev, remarks: e.target.value }))}
+                  className="bg-light"
+                />
+              </Col>
+
+              {/* Checkbox: Mark Quotation as Done */}
+              <Col xs={12}>
+                <Form.Check
+                  type="checkbox"
+                  id="mark-quotation-done"
+                  label="Mark Quotation as Selected (Done)"
+                  checked={convertData.markAsSelected}
+                  onChange={(e) => setConvertData(prev => ({ ...prev, markAsSelected: e.target.checked }))}
+                  className="text-muted small"
+                />
+              </Col>
+            </Row>
+          </Modal.Body>
+          <Modal.Footer className="border-0 px-4 pb-4">
+            <Button variant="light" onClick={() => setShowConvertModal(false)} disabled={isConverting} className="fw-medium">
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" disabled={isConverting} className="fw-semibold px-4 d-flex align-items-center gap-2">
+              <ReceiptText size={18} />
+              {isConverting ? 'Creating Bill (Order)...' : 'Create Bill (Order)'}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
 
       {/* Creation/Edit Modal */}
       <Modal show={showModal} onHide={handleClose} size="lg" backdrop="static">

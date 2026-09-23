@@ -245,13 +245,15 @@ const ClientDetails = () => {
           </thead>
           <tbody>
             {orders.map((order) => {
-              let orderPaid = order.advanceAmount || 0;
+              let bpTotal = 0;
               if (order.balancePayments && Array.isArray(order.balancePayments)) {
                 order.balancePayments.forEach(bp => {
-                  orderPaid += (bp.amount || 0);
+                  bpTotal += (Number(bp.amount) || 0);
                 });
               }
-              const orderPending = Math.max(0, (order.totalAmount || 0) - orderPaid);
+              let balancePaid = Math.max(Number(order.balanceAmount) || 0, bpTotal);
+              let orderPaid = (Number(order.advanceAmount) || 0) + balancePaid;
+              const orderPending = Math.max(0, (Number(order.totalAmount) || 0) - orderPaid);
               const dateObj = new Date(order.createdAt);
               const formattedDate = formatDate(dateObj);
               

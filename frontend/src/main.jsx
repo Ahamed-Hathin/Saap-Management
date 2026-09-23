@@ -16,6 +16,13 @@ const updateSW = registerSW({
   },
 })
 
+// Prevent mouse scroll from changing number input values globally
+document.addEventListener('wheel', () => {
+  if (document.activeElement && document.activeElement.type === 'number') {
+    document.activeElement.blur();
+  }
+});
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <AuthProvider>
@@ -23,3 +30,4 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </AuthProvider>
   </React.StrictMode>,
 )
+
