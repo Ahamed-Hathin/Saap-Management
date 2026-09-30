@@ -83,7 +83,10 @@ const searchClients = async (req, res) => {
       return res.json([]);
     }
     const clients = await Client.find({
-      username: { $regex: q, $options: 'i' },
+      $or: [
+        { username: { $regex: q, $options: 'i' } },
+        { clientName: { $regex: q, $options: 'i' } }
+      ]
     }).limit(10);
     res.json(clients);
   } catch (error) {

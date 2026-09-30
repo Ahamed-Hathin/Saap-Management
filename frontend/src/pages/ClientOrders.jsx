@@ -244,7 +244,8 @@ const ClientOrders = () => {
     setSelectedOrderForPayment(order);
     setPaymentFormData({
       advanceAmount: order.advanceAmount || '',
-      paymentMethod: order.paymentMethod || ''
+      paymentMethod: order.paymentMethod || '',
+      deliveryStatus: order.status || 'Pending'
     });
     setBalancePayments([{ amount: '', method: '' }]);
     setShowPaymentModal(true);
@@ -258,7 +259,8 @@ const ClientOrders = () => {
       const payload = {
         paymentReceived: true,
         advanceAmount: Number(paymentFormData.advanceAmount),
-        paymentMethod: paymentFormData.paymentMethod || 'None'
+        paymentMethod: paymentFormData.paymentMethod || 'None',
+        status: paymentFormData.deliveryStatus || selectedOrderForPayment.status
       };
       if (validPayments.length > 0) {
         payload.newBalancePayments = validPayments;
@@ -1669,6 +1671,21 @@ const ClientOrders = () => {
             <Button variant="outline-primary" size="sm" onClick={() => setBalancePayments([...balancePayments, { amount: '', method: '' }])}>
               <Plus size={16} className="me-1" /> Add Payment Split
             </Button>
+
+            <Form.Group className="mb-3 mt-4">
+              <Form.Label className="fw-bold">Delivery Status</Form.Label>
+              <Form.Select
+                value={paymentFormData.deliveryStatus || ''}
+                onChange={(e) => setPaymentFormData({ ...paymentFormData, deliveryStatus: e.target.value })}
+                className="bg-light"
+              >
+                <option value="Pending">Pending</option>
+                <option value="Printing">Printing</option>
+                <option value="Cutting">Cutting</option>
+                <option value="Ready To Dispatch">Ready To Dispatch</option>
+                <option value="Delivered">Delivered</option>
+              </Form.Select>
+            </Form.Group>
           </Modal.Body>
           <Modal.Footer className="border-0 px-4 pb-4">
             <Button variant="light" onClick={() => setShowPaymentModal(false)} className="fw-medium" disabled={isPaymentLoading}>Cancel</Button>
