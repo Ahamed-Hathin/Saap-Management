@@ -30,7 +30,7 @@ const EmployeeDashboard = () => {
   const [error, setError] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState(null);
-  const [paymentFormData, setPaymentFormData] = useState({ advanceAmount: '', paymentMethod: '' });
+  const [paymentFormData, setPaymentFormData] = useState({ advanceAmount: '', paymentMethod: '', deliveryStatus: 'Pending' });
   const [balancePayments, setBalancePayments] = useState([{ amount: '', method: '' }]);
   const [previewImage, setPreviewImage] = useState(null);
   const [selectedItemDetailsOrder, setSelectedItemDetailsOrder] = useState(null);
@@ -90,6 +90,27 @@ const EmployeeDashboard = () => {
     setFormData({
       clientName: '', mobileNumber: '', cardType: settings.jobTypes.length > 0 ? settings.jobTypes[0] : 'Visiting Card', advanceAmount: '', totalAmount: '',
       advanceReceived: false, paymentMethod: 'GPay', printingCompany: settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite', status: 'Pending', remarks: '', items: [{ itemName: '', totalQty: '', price: '' }]
+    });
+    setFile(null);
+    setError('');
+    setCurrentStep(1);
+    setStepErrors({});
+    setShowModal(true);
+  };
+
+  const handleCreateForCustomer = (order) => {
+    setFormData({
+      clientName: order.clientName || '',
+      mobileNumber: order.mobileNumber || '',
+      cardType: order.cardType || (settings.jobTypes.length > 0 ? settings.jobTypes[0] : 'Visiting Card'),
+      advanceAmount: '',
+      totalAmount: '',
+      advanceReceived: false,
+      paymentMethod: 'GPay',
+      printingCompany: settings.printingCompanies.length > 0 ? settings.printingCompanies[0] : 'Elite',
+      status: 'Pending',
+      remarks: '',
+      items: [{ itemName: '', totalQty: '', price: '' }]
     });
     setFile(null);
     setError('');
@@ -497,6 +518,9 @@ const EmployeeDashboard = () => {
                               <option key={opt} value={opt} className="text-dark">{opt}</option>
                             ))}
                           </Form.Select>
+                          <Button variant="outline-success" size="sm" onClick={() => handleCreateForCustomer(order)} title="Create New Order for this Customer">
+                            <Plus size={16} />
+                          </Button>
                           <Button variant="outline-info" size="sm" onClick={() => handleDownloadPDF(order, index)} title="Download Image">
                             <Download size={16} />
                           </Button>
@@ -604,6 +628,9 @@ const EmployeeDashboard = () => {
                           <option key={opt} value={opt} className="text-dark">{opt}</option>
                         ))}
                       </Form.Select>
+                      <Button variant="outline-success" size="sm" onClick={() => handleCreateForCustomer(order)} title="Create New Order for this Customer">
+                        <Plus size={16} />
+                      </Button>
                       <Button variant="outline-info" size="sm" onClick={() => handleDownloadPDF(order, index)} title="Download Image">
                         <Download size={16} />
                       </Button>
@@ -813,15 +840,8 @@ const EmployeeDashboard = () => {
             {currentStep === 2 && (
               <div className="row g-3">
                 <div className="col-12">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
+                  <div className="mb-2">
                     <h6 className="fw-bold mb-0">Order Items (Line Items) <span className="text-danger">*</span></h6>
-                    <Button 
-                      variant="outline-primary" 
-                      size="sm" 
-                      onClick={() => setFormData({ ...formData, items: [...formData.items, { itemName: '', totalQty: '', price: '' }] })}
-                    >
-                      <Plus size={16} className="me-1" /> Add Item
-                    </Button>
                   </div>
 
                   {stepErrors.items && (
@@ -898,6 +918,16 @@ const EmployeeDashboard = () => {
                       </div>
                     </div>
                   ))}
+
+                  <div className="d-flex justify-content-end mb-2">
+                    <Button 
+                      variant="outline-primary" 
+                      size="sm" 
+                      onClick={() => setFormData({ ...formData, items: [...formData.items, { itemName: '', totalQty: '', price: '' }] })}
+                    >
+                      <Plus size={16} className="me-1" /> Add Item
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="col-md-4">

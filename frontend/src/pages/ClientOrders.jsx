@@ -1335,15 +1335,8 @@ const ClientOrders = () => {
             {currentStep === 2 && (
               <div className="row g-3">
                 <div className="col-12">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
+                  <div className="mb-2">
                     <h6 className="fw-bold mb-0">Order Items (Line Items) <span className="text-danger">*</span></h6>
-                    <Button 
-                      variant="outline-primary" 
-                      size="sm" 
-                      onClick={() => setFormData({ ...formData, items: [...formData.items, { itemName: '', totalQty: '', price: '' }] })}
-                    >
-                      <Plus size={16} className="me-1" /> Add Item
-                    </Button>
                   </div>
 
                   {stepErrors.items && (
@@ -1420,6 +1413,16 @@ const ClientOrders = () => {
                       </div>
                     </div>
                   ))}
+
+                  <div className="d-flex justify-content-end mb-2">
+                    <Button 
+                      variant="outline-primary" 
+                      size="sm" 
+                      onClick={() => setFormData({ ...formData, items: [...formData.items, { itemName: '', totalQty: '', price: '' }] })}
+                    >
+                      <Plus size={16} className="me-1" /> Add Item
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="col-md-4">
