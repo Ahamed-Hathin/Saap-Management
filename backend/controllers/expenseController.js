@@ -6,7 +6,7 @@ const Expense = require('../models/Expense');
 exports.getExpenses = async (req, res) => {
   try {
     const filter = req.query.name ? { name: req.query.name } : {};
-    const expenses = await Expense.find(filter).sort({ date: -1 });
+    const expenses = await Expense.find(filter).sort({ date: -1 }).lean();
     res.json(expenses);
   } catch (error) {
     res.status(500).json({ message: 'Server error fetching expenses', error: error.message });

@@ -23,5 +23,8 @@ const clientSchema = mongoose.Schema(
   }
 );
 
+clientSchema.index({ clientName: 1 });
+clientSchema.index({ mobileNumber: 1 });
+
 const Client = mongoose.model('Client', clientSchema);
 module.exports = Client;

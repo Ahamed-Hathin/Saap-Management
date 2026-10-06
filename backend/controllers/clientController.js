@@ -42,33 +42,57 @@ const getClientOrderQuery = (client) => {
 
 const getClients = async (req, res) => {
   try {
-    const clients = await Client.find({}).sort({ createdAt: -1 }).lean();
-    
-    const clientsWithBalance = await Promise.all(clients.map(async (client) => {
-      const orders = await Order.find(getClientOrderQuery(client)).select('totalAmount advanceAmount balanceAmount balancePayments');
+    const [clients, orders] = await Promise.all([
+      Client.find({}).sort({ createdAt: -1 }).lean(),
+      Order.find({}).select('clientName mobileNumber totalAmount advanceAmount balanceAmount balancePayments').lean()
+    ]);
 
+    // Pre-compile regex and match helpers for each client preserving exact rules
+    const clientMatchHelpers = clients.map(client => {
+      const rawMobile = client.mobileNumber ? client.mobileNumber.replace(/\D/g, '') : '';
+      const formattedMobile = rawMobile.length > 5 ? `${rawMobile.slice(0, 5)} ${rawMobile.slice(5)}` : rawMobile;
+      const nameRegex = client.clientName ? new RegExp(`^\\s*${client.clientName.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'i') : null;
+      const usernameRegex = client.username ? new RegExp(`^\\s*${client.username.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'i') : null;
+
+      return {
+        client,
+        matches: (order) => {
+          if (nameRegex && order.clientName && nameRegex.test(order.clientName)) return true;
+          if (usernameRegex && order.clientName && usernameRegex.test(order.clientName)) return true;
+          if (rawMobile && order.mobileNumber === rawMobile) return true;
+          if (formattedMobile && order.mobileNumber === formattedMobile) return true;
+          if (client.mobileNumber && order.mobileNumber === client.mobileNumber) return true;
+          return false;
+        }
+      };
+    });
+
+    const clientsWithBalance = clientMatchHelpers.map(({ client, matches }) => {
       let totalBilled = 0;
       let totalPaid = 0;
 
-      orders.forEach(order => {
-        totalBilled += (order.totalAmount || 0);
-        let bpTotal = 0;
-        if (order.balancePayments && Array.isArray(order.balancePayments)) {
-          order.balancePayments.forEach(bp => {
-            bpTotal += (Number(bp.amount) || 0);
-          });
+      for (let i = 0; i < orders.length; i++) {
+        const order = orders[i];
+        if (matches(order)) {
+          totalBilled += (order.totalAmount || 0);
+          let bpTotal = 0;
+          if (order.balancePayments && Array.isArray(order.balancePayments)) {
+            for (let j = 0; j < order.balancePayments.length; j++) {
+              bpTotal += (Number(order.balancePayments[j].amount) || 0);
+            }
+          }
+          let balancePaid = Math.max(Number(order.balanceAmount) || 0, bpTotal);
+          let orderPaid = (Number(order.advanceAmount) || 0) + balancePaid;
+          totalPaid += orderPaid;
         }
-        let balancePaid = Math.max(Number(order.balanceAmount) || 0, bpTotal);
-        let orderPaid = (Number(order.advanceAmount) || 0) + balancePaid;
-        totalPaid += orderPaid;
-      });
+      }
 
       const pendingBalance = totalBilled - totalPaid;
       return {
         ...client,
         pendingBalance: pendingBalance > 0 ? pendingBalance : 0
       };
-    }));
+    });
 
     res.json(clientsWithBalance);
   } catch (error) {
@@ -87,7 +111,7 @@ const searchClients = async (req, res) => {
         { username: { $regex: q, $options: 'i' } },
         { clientName: { $regex: q, $options: 'i' } }
       ]
-    }).limit(10);
+    }).limit(10).lean();
     res.json(clients);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });

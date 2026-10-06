@@ -104,5 +104,11 @@ const orderSchema = mongoose.Schema(
   }
 );
 
+orderSchema.index({ createdAt: -1 });
+orderSchema.index({ assignedEmployee: 1, createdAt: -1 });
+orderSchema.index({ status: 1 });
+orderSchema.index({ updatedAt: -1 });
+orderSchema.index({ isClientOrder: 1 });
+
 const Order = mongoose.model('Order', orderSchema);
 module.exports = Order;

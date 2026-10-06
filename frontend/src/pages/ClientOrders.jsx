@@ -681,28 +681,16 @@ const ClientOrders = () => {
     const csvRows = [];
 
     const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
 
+    // Get all permanent client orders from CRM started date to till date
     const clientOrdersList = orders.filter(order => {
       const orderPhoneRaw = (order.mobileNumber || '').replace(/\D/g, '');
       return permanentClientPhones.has(orderPhoneRaw);
     });
 
-    const completedOrders = clientOrdersList.filter(o => {
-      const orderDate = new Date(o.createdAt);
-      const pendingAmount = (o.totalAmount || 0) - (o.advanceAmount || 0) - (o.balanceAmount || 0);
-      return orderDate <= now && o.status === 'Delivered' && pendingAmount <= 0;
-    });
-
-    const pendingOrders = clientOrdersList.filter(o => {
-      const orderDate = new Date(o.createdAt);
-      const pendingAmount = (o.totalAmount || 0) - (o.advanceAmount || 0) - (o.balanceAmount || 0);
-      const isCompleted = o.status === 'Delivered' && pendingAmount <= 0;
-      
-      const isCurrentMonth = orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear;
-      return !isCompleted && isCurrentMonth;
-    });
+    // Split orders by pending orders and delivered orders from CRM started date to till date
+    const pendingOrders = clientOrdersList.filter(o => (o.status || '').trim().toLowerCase() !== 'delivered');
+    const deliveredOrders = clientOrdersList.filter(o => (o.status || '').trim().toLowerCase() === 'delivered');
 
     const formatOrderToCsvRow = (order, index) => {
       const sNo = index + 1;
@@ -734,16 +722,16 @@ const ClientOrders = () => {
       return [sNo, date, customerName, number, description, paymentStatusStr, totalStr, paidStr, pendingStr, status].join(',');
     };
 
-    csvRows.push('COMPLETED');
+    csvRows.push('PENDING ORDERS');
     csvRows.push(headers.join(','));
-    completedOrders.forEach((order, index) => {
+    pendingOrders.forEach((order, index) => {
       csvRows.push(formatOrderToCsvRow(order, index));
     });
 
     csvRows.push('');
-    csvRows.push('PENDING');
+    csvRows.push('DELIVERED ORDERS');
     csvRows.push(headers.join(','));
-    pendingOrders.forEach((order, index) => {
+    deliveredOrders.forEach((order, index) => {
       csvRows.push(formatOrderToCsvRow(order, index));
     });
 
@@ -753,7 +741,7 @@ const ClientOrders = () => {
     if (link.download !== undefined) {
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      link.setAttribute('download', `monthly_report_${now.getMonth()+1}_${now.getFullYear()}.csv`);
+      link.setAttribute('download', `client_orders_report_${now.toISOString().split('T')[0]}.csv`);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();

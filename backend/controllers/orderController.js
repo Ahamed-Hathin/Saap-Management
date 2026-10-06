@@ -71,20 +71,20 @@ const createOrder = async (req, res) => {
 
 const getOrders = async (req, res) => {
   if (req.user.role === 'Admin') {
-    const orders = await Order.find({}).sort({ createdAt: -1 }).populate('assignedEmployee', 'name username');
+    const orders = await Order.find({}).sort({ createdAt: -1 }).populate('assignedEmployee', 'name username').lean();
     res.json(orders);
   } else {
     if (req.query.employeeId) {
-      const orders = await Order.find({ assignedEmployee: req.query.employeeId }).sort({ createdAt: -1 }).populate('assignedEmployee', 'name username');
+      const orders = await Order.find({ assignedEmployee: req.query.employeeId }).sort({ createdAt: -1 }).populate('assignedEmployee', 'name username').lean();
       return res.json(orders);
     }
-    const orders = await Order.find({ assignedEmployee: req.user._id }).sort({ createdAt: -1 }).populate('assignedEmployee', 'name username');
+    const orders = await Order.find({ assignedEmployee: req.user._id }).sort({ createdAt: -1 }).populate('assignedEmployee', 'name username').lean();
     res.json(orders);
   }
 };
 
 const getOrderById = async (req, res) => {
-  const order = await Order.findById(req.params.id).populate('assignedEmployee', 'name username');
+  const order = await Order.findById(req.params.id).populate('assignedEmployee', 'name username').lean();
 
   if (order) {
     if (req.user.role === 'Admin' || req.user.role === 'Employee') {
@@ -198,128 +198,51 @@ const getDashboardStats = async (req, res) => {
      baseQuery.assignedEmployee = req.user._id;
    }
 
-   const totalOrders = await Order.countDocuments(baseQuery);
-   const pendingOrders = await Order.countDocuments({ ...baseQuery, status: { $nin: ['Delivered', 'Ready To Dispatch'] } });
-   const readyToDispatch = await Order.countDocuments({ ...baseQuery, status: 'Ready To Dispatch' });
-   const pendingPayments = await Order.countDocuments({ 
-     ...baseQuery, 
-     totalAmount: { $gt: 0 },
-     $expr: { 
-       $lt: [
-         { $add: [ { $ifNull: ["$advanceAmount", 0] }, { $ifNull: ["$balanceAmount", 0] } ] }, 
-         { $ifNull: ["$totalAmount", 0] }
-       ] 
-     }
-   });
-   const deliveredOrders = await Order.countDocuments({ ...baseQuery, status: 'Delivered' });
-
-   const ordersForRevenue = await Order.find(baseQuery, 'totalAmount advanceAmount paymentMethod balancePayments createdAt');
-
-   let filterStart = null;
-   let filterEnd = null;
-   if (dateFilter.updatedAt) {
-     if (dateFilter.updatedAt.$gte) filterStart = new Date(dateFilter.updatedAt.$gte).getTime();
-     if (dateFilter.updatedAt.$lte) filterEnd = new Date(dateFilter.updatedAt.$lte).getTime();
-   }
-
-   const isDateInRange = (dateToCheck) => {
-     if (!filterStart && !filterEnd) return true;
-     const d = new Date(dateToCheck).getTime();
-     if (filterStart && d < filterStart) return false;
-     if (filterEnd && d > filterEnd) return false;
-     return true;
-   };
-
-   let totalRevenue = 0;
-   let collectedRevenue = 0;
-   let pendingRevenue = 0;
-   let paymentBreakdown = {
-     'GPay': 0,
-     'B-Gpay': 0,
-     'NEFT': 0,
-     'KVB': 0,
-     'Dtdc Wallet': 0,
-     'Cash': 0,
-     'Discount Amount': 0
-   };
-
-   ordersForRevenue.forEach(order => {
-     totalRevenue += (order.totalAmount || 0);
-     
-     let collectedInRange = 0;
-     let collectedTotal = 0;
-     let discountTotal = 0;
-     
-     const adv = order.advanceAmount || 0;
-     if (adv > 0) {
-       if (order.paymentMethod === 'Discount Amount') {
-         discountTotal += adv;
-         if (isDateInRange(order.createdAt)) {
-           paymentBreakdown['Discount Amount'] = (paymentBreakdown['Discount Amount'] || 0) + adv;
-         }
-       } else {
-         collectedTotal += adv;
-         if (isDateInRange(order.createdAt)) {
-           collectedInRange += adv;
-           const method = (order.paymentMethod && order.paymentMethod !== 'None') ? order.paymentMethod : 'Cash';
-           paymentBreakdown[method] = (paymentBreakdown[method] || 0) + adv;
-         }
+   // Execute independent queries in parallel with lean()
+   const [
+     totalOrders,
+     pendingOrders,
+     readyToDispatch,
+     pendingPayments,
+     deliveredOrders,
+     ordersForRevenue,
+     chartDataRaw,
+     recentOrders,
+     expenses
+   ] = await Promise.all([
+     Order.countDocuments(baseQuery),
+     Order.countDocuments({ ...baseQuery, status: { $nin: ['Delivered', 'Ready To Dispatch'] } }),
+     Order.countDocuments({ ...baseQuery, status: 'Ready To Dispatch' }),
+     Order.countDocuments({ 
+       ...baseQuery, 
+       totalAmount: { $gt: 0 },
+       $expr: { 
+         $lt: [
+           { $add: [ { $ifNull: ["$advanceAmount", 0] }, { $ifNull: ["$balanceAmount", 0] } ] }, 
+           { $ifNull: ["$totalAmount", 0] }
+         ] 
        }
-     }
-
-     if (order.balancePayments && Array.isArray(order.balancePayments)) {
-       order.balancePayments.forEach(bp => {
-         const bpAmt = Number(bp.amount) || 0;
-         if (bpAmt > 0) {
-           if (bp.method === 'Discount Amount') {
-             discountTotal += bpAmt;
-             if (isDateInRange(bp.date)) {
-               paymentBreakdown['Discount Amount'] = (paymentBreakdown['Discount Amount'] || 0) + bpAmt;
-             }
-           } else {
-             collectedTotal += bpAmt;
-             if (isDateInRange(bp.date)) {
-               collectedInRange += bpAmt;
-               const method = (bp.method && bp.method !== 'None') ? bp.method : 'Cash';
-               paymentBreakdown[method] = (paymentBreakdown[method] || 0) + bpAmt;
-             }
-           }
+     }),
+     Order.countDocuments({ ...baseQuery, status: 'Delivered' }),
+     Order.find(baseQuery, 'totalAmount advanceAmount paymentMethod balancePayments createdAt').lean(),
+     Order.aggregate([
+       { $match: baseQuery },
+       {
+         $group: {
+           _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+           orders: { $sum: 1 },
+           revenue: { $sum: "$totalAmount" }
          }
-       });
-     }
-
-     collectedRevenue += collectedInRange;
-     
-     // Pending amount for this order (cannot be negative)
-     const orderPending = Math.max(0, (order.totalAmount || 0) - collectedTotal - discountTotal);
-     pendingRevenue += orderPending;
-   });
-
-   // Chart Data Generation
-   const chartDataRaw = await Order.aggregate([
-     { $match: baseQuery },
-     {
-       $group: {
-         _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-         orders: { $sum: 1 },
-         revenue: { $sum: "$totalAmount" }
-       }
-     },
-     { $sort: { _id: 1 } }
+       },
+       { $sort: { _id: 1 } }
+     ]),
+     Order.find(baseQuery)
+       .sort({ createdAt: -1 })
+       .limit(5)
+       .populate('assignedEmployee', 'name')
+       .lean(),
+     Expense.find(expenseFilter).lean()
    ]);
-
-   const chartData = chartDataRaw.map(item => ({
-     date: item._id,
-     orders: item.orders,
-     revenue: item.revenue
-   }));
-
-   const recentOrders = await Order.find(baseQuery)
-     .sort({ createdAt: -1 })
-     .limit(5)
-     .populate('assignedEmployee', 'name');
-
-   const expenses = await Expense.find(expenseFilter);
    let totalExpense = 0;
    let expenseBreakdown = {};
    

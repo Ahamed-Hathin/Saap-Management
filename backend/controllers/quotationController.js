@@ -3,7 +3,7 @@ const Quotation = require('../models/Quotation');
 // Get all quotations
 exports.getQuotations = async (req, res) => {
   try {
-    const quotations = await Quotation.find().sort({ createdAt: -1 });
+    const quotations = await Quotation.find().sort({ createdAt: -1 }).lean();
     res.json(quotations);
   } catch (err) {
     res.status(500).json({ message: err.message });
