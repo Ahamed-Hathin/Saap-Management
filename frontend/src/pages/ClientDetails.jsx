@@ -17,6 +17,7 @@ const ClientDetails = () => {
   const [showPayOrderModal, setShowPayOrderModal] = useState(false);
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState(null);
   const [payOrderPayments, setPayOrderPayments] = useState([{ amount: '', method: '' }]);
+  const [showPaidHistoryModal, setShowPaidHistoryModal] = useState(false);
 
   useEffect(() => {
     fetchClientOrders();
@@ -138,6 +139,63 @@ const ClientDetails = () => {
 
   const { client, summary, orders } = data;
 
+  const getPaidHistory = () => {
+    if (!orders || orders.length === 0) return [];
+    const history = [];
+
+    orders.forEach((order) => {
+      const adv = Number(order.advanceAmount) || 0;
+      if (adv > 0) {
+        history.push({
+          id: `adv-${order._id}`,
+          orderId: order._id,
+          orderNo: order.serialNumber || '-',
+          date: order.createdAt,
+          amount: adv,
+          method: (order.paymentMethod && order.paymentMethod !== 'None') ? order.paymentMethod : 'Cash',
+          type: 'Advance',
+          remarks: order.remarks || ''
+        });
+      }
+
+      let bpSum = 0;
+      if (order.balancePayments && Array.isArray(order.balancePayments)) {
+        order.balancePayments.forEach((bp, idx) => {
+          const bpAmt = Number(bp.amount) || 0;
+          if (bpAmt > 0) {
+            bpSum += bpAmt;
+            history.push({
+              id: `bp-${order._id}-${bp._id || idx}`,
+              orderId: order._id,
+              orderNo: order.serialNumber || '-',
+              date: bp.date || order.updatedAt || order.createdAt,
+              amount: bpAmt,
+              method: (bp.method && bp.method !== 'None') ? bp.method : (order.paymentMethod || 'Cash'),
+              type: 'Balance',
+              remarks: bp.remarks || bp.remark || order.remarks || ''
+            });
+          }
+        });
+      }
+
+      const balAmt = Number(order.balanceAmount) || 0;
+      if (balAmt > bpSum) {
+        history.push({
+          id: `bal-diff-${order._id}`,
+          orderId: order._id,
+          orderNo: order.serialNumber || '-',
+          date: order.updatedAt || order.createdAt,
+          amount: balAmt - bpSum,
+          method: (order.paymentMethod && order.paymentMethod !== 'None') ? order.paymentMethod : 'Cash',
+          type: 'Balance',
+          remarks: order.remarks || ''
+        });
+      }
+    });
+
+    return history.sort((a, b) => new Date(b.date) - new Date(a.date));
+  };
+
   return (
     <Layout>
       <div className="mb-4 d-flex align-items-center">
@@ -193,7 +251,13 @@ const ClientDetails = () => {
         </Col>
 
         <Col md={3} lg={2}>
-          <Card className="border-0 shadow-sm rounded-4 h-100 text-center">
+          <Card 
+            className="border-0 shadow-sm rounded-4 h-100 text-center"
+            role="button"
+            style={{ cursor: 'pointer', transition: 'transform 0.15s ease-in-out' }}
+            onClick={() => setShowPaidHistoryModal(true)}
+            title="Click to view payment history"
+          >
             <Card.Body className="p-4">
               <div className="bg-success bg-opacity-10 text-success p-2 rounded-circle d-inline-block mb-3">
                 <IndianRupee size={20} />
@@ -469,6 +533,114 @@ const ClientDetails = () => {
             <Button variant="primary" type="submit" className="fw-medium px-4">Submit Payment</Button>
           </Modal.Footer>
         </Form>
+      </Modal>
+
+      {/* Paid History Modal */}
+      <Modal 
+        show={showPaidHistoryModal} 
+        onHide={() => setShowPaidHistoryModal(false)} 
+        size="lg" 
+        centered 
+        contentClassName="border-0 rounded-4 shadow-lg overflow-hidden"
+      >
+        <Modal.Header closeButton className="border-0 pb-0 pt-4 px-4">
+          <div>
+            <Modal.Title className="fw-bold fs-4">Paid History</Modal.Title>
+            <p className="text-muted mb-0 small mt-1">
+              {client.clientName} &bull; Total Paid: <strong className="text-success">₹{summary.totalPaid.toLocaleString()}</strong>
+            </p>
+          </div>
+        </Modal.Header>
+        <Modal.Body className="px-4 py-3">
+          {(() => {
+            const history = getPaidHistory();
+            if (history.length === 0) {
+              return (
+                <div className="text-center py-5 text-muted">
+                  <p className="mb-0">No payment history found for this client.</p>
+                </div>
+              );
+            }
+            return (
+              <div className="table-responsive rounded-3 border">
+                <Table hover className="mb-0 align-middle">
+                  <thead className="bg-light">
+                    <tr>
+                      <th className="py-3 px-3 text-muted text-uppercase" style={{ fontSize: '0.75rem', fontWeight: 600 }}>Date</th>
+                      <th className="py-3 px-3 text-muted text-uppercase" style={{ fontSize: '0.75rem', fontWeight: 600 }}>Order No</th>
+                      <th className="py-3 px-3 text-muted text-uppercase" style={{ fontSize: '0.75rem', fontWeight: 600 }}>Type</th>
+                      <th className="py-3 px-3 text-muted text-uppercase" style={{ fontSize: '0.75rem', fontWeight: 600 }}>Payment Method</th>
+                      <th className="py-3 px-3 text-muted text-uppercase text-end" style={{ fontSize: '0.75rem', fontWeight: 600 }}>Amount</th>
+                      <th className="py-3 px-3 text-muted text-uppercase" style={{ fontSize: '0.75rem', fontWeight: 600 }}>Remark</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.map((item) => (
+                      <tr key={item.id}>
+                        <td className="py-3 px-3 font-monospace text-nowrap" style={{ fontSize: '0.85rem' }}>
+                          {formatDate(item.date)}
+                        </td>
+                        <td className="py-3 px-3 text-nowrap">
+                          {item.orderId ? (
+                            <Link 
+                              to={`/orders/${item.orderId}`} 
+                              className="text-decoration-none fw-bold"
+                              onClick={() => setShowPaidHistoryModal(false)}
+                            >
+                              #{item.orderNo}
+                            </Link>
+                          ) : (
+                            <span>#{item.orderNo}</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-nowrap">
+                          <Badge 
+                            bg={item.type === 'Advance' ? 'info' : 'primary'} 
+                            className="bg-opacity-10 text-dark fw-semibold"
+                            style={{ fontSize: '0.75rem' }}
+                          >
+                            {item.type}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-3 text-nowrap">
+                          <span className="badge bg-light text-secondary border">
+                            {item.method}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-end fw-bold text-success text-nowrap">
+                          ₹{item.amount.toLocaleString()}
+                        </td>
+                        <td className="py-3 px-3" style={{ maxWidth: '240px', wordBreak: 'break-word', fontSize: '0.85rem' }}>
+                          {item.remarks ? (
+                            <span className="text-dark">{item.remarks}</span>
+                          ) : (
+                            <span className="text-muted">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="bg-light fw-bold">
+                    <tr>
+                      <td colSpan={4} className="py-3 px-3 text-end text-muted text-uppercase" style={{ fontSize: '0.8rem' }}>
+                        Total Paid:
+                      </td>
+                      <td className="py-3 px-3 text-end text-success fs-6">
+                        ₹{history.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}
+                      </td>
+                      <td className="py-3 px-3"></td>
+                    </tr>
+                  </tfoot>
+                </Table>
+              </div>
+            );
+          })()}
+        </Modal.Body>
+        <Modal.Footer className="border-0 px-4 pb-4">
+          <Button variant="secondary" onClick={() => setShowPaidHistoryModal(false)} className="px-4 rounded-pill">
+            Close
+          </Button>
+        </Modal.Footer>
       </Modal>
 
     </Layout>
