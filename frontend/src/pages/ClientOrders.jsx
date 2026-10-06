@@ -682,22 +682,28 @@ const ClientOrders = () => {
 
     const now = new Date();
 
+    const validPermanentPhones = new Set(
+      clients.map(c => (c.mobileNumber || '').replace(/\D/g, '')).filter(p => p.length > 0)
+    );
+
     // Get all permanent client orders from CRM started date to till date
     const clientOrdersList = orders.filter(order => {
       const orderPhoneRaw = (order.mobileNumber || '').replace(/\D/g, '');
-      return permanentClientPhones.has(orderPhoneRaw);
+      return validPermanentPhones.has(orderPhoneRaw);
     });
 
-    // Split orders by pending orders and delivered orders from CRM started date to till date
-    const pendingOrders = clientOrdersList.filter(o => (o.status || '').trim().toLowerCase() !== 'delivered');
+    // Delivered orders and Pending orders from CRM started date to till date
     const deliveredOrders = clientOrdersList.filter(o => (o.status || '').trim().toLowerCase() === 'delivered');
+    const pendingOrders = clientOrdersList.filter(o => (o.status || '').trim().toLowerCase() !== 'delivered');
 
-    const formatOrderToCsvRow = (order, index) => {
-      const sNo = index + 1;
+    let currentSNo = 1;
+
+    const formatOrderToCsvRow = (order) => {
+      const sNo = currentSNo++;
       
       const escapeCsv = (str, forceString = false) => {
         if (str === null || str === undefined) return '""';
-        const stringified = String(str);
+        const stringified = String(str).replace(/[\r\n]+/g, ' ');
         const escaped = `"${stringified.replace(/"/g, '""')}"`;
         return forceString ? `=${escaped}` : escaped;
       };
@@ -722,18 +728,27 @@ const ClientOrders = () => {
       return [sNo, date, customerName, number, description, paymentStatusStr, totalStr, paidStr, pendingStr, status].join(',');
     };
 
-    csvRows.push('PENDING ORDERS');
+    // Summary Header Banner
+    csvRows.push(`"CLIENT ORDERS REPORT - TOTAL ORDERS: ${clientOrdersList.length} (DELIVERED: ${deliveredOrders.length} | PENDING: ${pendingOrders.length})"`);
+    csvRows.push('');
+
+    // Delivered Orders Section
+    csvRows.push(`"--- DELIVERED ORDERS (${deliveredOrders.length} ORDERS) ---"`);
     csvRows.push(headers.join(','));
-    pendingOrders.forEach((order, index) => {
-      csvRows.push(formatOrderToCsvRow(order, index));
+    deliveredOrders.forEach((order) => {
+      csvRows.push(formatOrderToCsvRow(order));
     });
 
     csvRows.push('');
-    csvRows.push('DELIVERED ORDERS');
+    // Pending Orders Section
+    csvRows.push(`"--- PENDING ORDERS (${pendingOrders.length} ORDERS) ---"`);
     csvRows.push(headers.join(','));
-    deliveredOrders.forEach((order, index) => {
-      csvRows.push(formatOrderToCsvRow(order, index));
+    pendingOrders.forEach((order) => {
+      csvRows.push(formatOrderToCsvRow(order));
     });
+
+    csvRows.push('');
+    csvRows.push(`"TOTAL CLIENT ORDERS: ${clientOrdersList.length} (DELIVERED: ${deliveredOrders.length} | PENDING: ${pendingOrders.length})"`);
 
     const csvString = csvRows.join('\n');
     const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
