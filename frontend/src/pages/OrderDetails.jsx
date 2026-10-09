@@ -332,7 +332,7 @@ const OrderDetails = () => {
                       {order.balancePayments && order.balancePayments.length > 0 && (
                         <div className="small text-muted mt-1">
                           {order.balancePayments.map((bp, i) => (
-                            <div key={i}>{formatDate(bp.date)} - ₹{bp.amount} ({bp.method})</div>
+                            <div key={i}>{formatDate(bp.date)} - ₹{bp.amount} ({bp.method}){bp.remarks ? ` - ${bp.remarks}` : ''}</div>
                           ))}
                         </div>
                       )}

@@ -14,6 +14,7 @@ const ClientDetails = () => {
   const [loading, setLoading] = useState(true);
   const [showPayAllModal, setShowPayAllModal] = useState(false);
   const [payAllPayments, setPayAllPayments] = useState([{ amount: '', method: '' }]);
+  const [payAllRemark, setPayAllRemark] = useState('');
   const [showPayOrderModal, setShowPayOrderModal] = useState(false);
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState(null);
   const [payOrderPayments, setPayOrderPayments] = useState([{ amount: '', method: '' }]);
@@ -39,6 +40,7 @@ const ClientDetails = () => {
   const handlePayAllClick = () => {
     if (!data || !data.summary.pendingBalance) return;
     setPayAllPayments([{ amount: data.summary.pendingBalance, method: '' }]);
+    setPayAllRemark('');
     setShowPayAllModal(true);
   };
 
@@ -56,8 +58,12 @@ const ClientDetails = () => {
         return;
       }
 
+      const paymentRemark = payAllRemark.trim() || 'Pay All';
       setLoading(true);
-      await api.post(`/clients/${id}/pay-all`, { payments: validPayments });
+      await api.post(`/clients/${id}/pay-all`, { 
+        payments: validPayments,
+        remarks: paymentRemark 
+      });
       setShowPayAllModal(false);
       await fetchClientOrders();
       Swal.fire('Success', 'Payments applied successfully', 'success');
@@ -140,60 +146,47 @@ const ClientDetails = () => {
   const { client, summary, orders } = data;
 
   const getPaidHistory = () => {
-    if (!orders || orders.length === 0) return [];
-    const history = [];
+    if (client?.paymentHistory && client.paymentHistory.length > 0) {
+      return [...client.paymentHistory]
+        .map((item, idx) => ({
+          id: item._id || `ph-${idx}`,
+          date: item.date,
+          amount: Number(item.amount) || 0,
+          method: item.method || 'Cash',
+          remarks: item.remarks || ''
+        }))
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
 
-    orders.forEach((order) => {
-      const adv = Number(order.advanceAmount) || 0;
-      if (adv > 0) {
-        history.push({
-          id: `adv-${order._id}`,
-          orderId: order._id,
-          orderNo: order.serialNumber || '-',
-          date: order.createdAt,
-          amount: adv,
-          method: (order.paymentMethod && order.paymentMethod !== 'None') ? order.paymentMethod : 'Cash',
-          type: 'Advance',
-          remarks: order.remarks || ''
-        });
-      }
-
-      let bpSum = 0;
+    // Fallback for legacy balance payments (grouped so they are not split order-wise)
+    const groupedPayments = new Map();
+    (orders || []).forEach((order) => {
       if (order.balancePayments && Array.isArray(order.balancePayments)) {
         order.balancePayments.forEach((bp, idx) => {
           const bpAmt = Number(bp.amount) || 0;
           if (bpAmt > 0) {
-            bpSum += bpAmt;
-            history.push({
-              id: `bp-${order._id}-${bp._id || idx}`,
-              orderId: order._id,
-              orderNo: order.serialNumber || '-',
-              date: bp.date || order.updatedAt || order.createdAt,
-              amount: bpAmt,
-              method: (bp.method && bp.method !== 'None') ? bp.method : (order.paymentMethod || 'Cash'),
-              type: 'Balance',
-              remarks: bp.remarks || bp.remark || order.remarks || ''
-            });
+            const d = new Date(bp.date || order.updatedAt || order.createdAt);
+            const timeKey = Math.floor(d.getTime() / 10000);
+            const methodKey = (bp.method && bp.method !== 'None') ? bp.method : (order.paymentMethod || 'Cash');
+            const remarkKey = bp.remarks || bp.remark || order.remarks || 'Pay All';
+            const key = `${timeKey}_${methodKey}`;
+            if (groupedPayments.has(key)) {
+              groupedPayments.get(key).amount += bpAmt;
+            } else {
+              groupedPayments.set(key, {
+                id: `bp-group-${key}-${idx}`,
+                date: d,
+                amount: bpAmt,
+                method: methodKey,
+                remarks: remarkKey
+              });
+            }
           }
-        });
-      }
-
-      const balAmt = Number(order.balanceAmount) || 0;
-      if (balAmt > bpSum) {
-        history.push({
-          id: `bal-diff-${order._id}`,
-          orderId: order._id,
-          orderNo: order.serialNumber || '-',
-          date: order.updatedAt || order.createdAt,
-          amount: balAmt - bpSum,
-          method: (order.paymentMethod && order.paymentMethod !== 'None') ? order.paymentMethod : 'Cash',
-          type: 'Balance',
-          remarks: order.remarks || ''
         });
       }
     });
 
-    return history.sort((a, b) => new Date(b.date) - new Date(a.date));
+    return Array.from(groupedPayments.values()).sort((a, b) => new Date(b.date) - new Date(a.date));
   };
 
   return (
@@ -463,6 +456,17 @@ const ClientDetails = () => {
             <div className="mt-3 text-muted small fw-medium">
               Total split entered: ₹{payAllPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0)} / ₹{data.summary.pendingBalance}
             </div>
+
+            <Form.Group className="mt-3">
+              <Form.Label className="small fw-semibold text-muted">Remark</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Enter remark (e.g. Pay All)"
+                value={payAllRemark}
+                onChange={(e) => setPayAllRemark(e.target.value)}
+                className="bg-light"
+              />
+            </Form.Group>
           </Modal.Body>
           <Modal.Footer className="border-0 px-4 pb-4">
             <Button variant="light" onClick={() => setShowPayAllModal(false)} className="fw-medium">Cancel</Button>
@@ -567,8 +571,6 @@ const ClientDetails = () => {
                   <thead className="bg-light">
                     <tr>
                       <th className="py-3 px-3 text-muted text-uppercase" style={{ fontSize: '0.75rem', fontWeight: 600 }}>Date</th>
-                      <th className="py-3 px-3 text-muted text-uppercase" style={{ fontSize: '0.75rem', fontWeight: 600 }}>Order No</th>
-                      <th className="py-3 px-3 text-muted text-uppercase" style={{ fontSize: '0.75rem', fontWeight: 600 }}>Type</th>
                       <th className="py-3 px-3 text-muted text-uppercase" style={{ fontSize: '0.75rem', fontWeight: 600 }}>Payment Method</th>
                       <th className="py-3 px-3 text-muted text-uppercase text-end" style={{ fontSize: '0.75rem', fontWeight: 600 }}>Amount</th>
                       <th className="py-3 px-3 text-muted text-uppercase" style={{ fontSize: '0.75rem', fontWeight: 600 }}>Remark</th>
@@ -579,28 +581,6 @@ const ClientDetails = () => {
                       <tr key={item.id}>
                         <td className="py-3 px-3 font-monospace text-nowrap" style={{ fontSize: '0.85rem' }}>
                           {formatDate(item.date)}
-                        </td>
-                        <td className="py-3 px-3 text-nowrap">
-                          {item.orderId ? (
-                            <Link 
-                              to={`/orders/${item.orderId}`} 
-                              className="text-decoration-none fw-bold"
-                              onClick={() => setShowPaidHistoryModal(false)}
-                            >
-                              #{item.orderNo}
-                            </Link>
-                          ) : (
-                            <span>#{item.orderNo}</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-3 text-nowrap">
-                          <Badge 
-                            bg={item.type === 'Advance' ? 'info' : 'primary'} 
-                            className="bg-opacity-10 text-dark fw-semibold"
-                            style={{ fontSize: '0.75rem' }}
-                          >
-                            {item.type}
-                          </Badge>
                         </td>
                         <td className="py-3 px-3 text-nowrap">
                           <span className="badge bg-light text-secondary border">
@@ -622,7 +602,7 @@ const ClientDetails = () => {
                   </tbody>
                   <tfoot className="bg-light fw-bold">
                     <tr>
-                      <td colSpan={4} className="py-3 px-3 text-end text-muted text-uppercase" style={{ fontSize: '0.8rem' }}>
+                      <td colSpan={2} className="py-3 px-3 text-end text-muted text-uppercase" style={{ fontSize: '0.8rem' }}>
                         Total Paid:
                       </td>
                       <td className="py-3 px-3 text-end text-success fs-6">

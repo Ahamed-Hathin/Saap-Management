@@ -1153,11 +1153,8 @@ const Quotation = () => {
               </Form.Group>
             )}
 
-            <div className="d-flex justify-content-between align-items-center mb-3 border-top pt-3">
+            <div className="mb-3 border-top pt-3">
               <h6 className="fw-bold mb-0">Quotation Items</h6>
-              <Button variant="outline-primary" size="sm" onClick={addItem}>
-                <Plus size={16} /> Add Item
-              </Button>
             </div>
 
             {formData.items.map((item, index) => (
@@ -1223,6 +1220,12 @@ const Quotation = () => {
                 </Row>
               </div>
             ))}
+
+            <div className="d-flex justify-content-end mb-3">
+              <Button variant="outline-primary" size="sm" onClick={addItem}>
+                <Plus size={16} /> Add Item
+              </Button>
+            </div>
           </Form>
         </Modal.Body>
         <Modal.Footer>

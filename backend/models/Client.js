@@ -17,6 +17,14 @@ const clientSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    paymentHistory: [
+      {
+        amount: { type: Number, required: true },
+        method: { type: String, default: 'Cash' },
+        date: { type: Date, default: Date.now },
+        remarks: { type: String, default: '' },
+      }
+    ],
   },
   {
     timestamps: true,

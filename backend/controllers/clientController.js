@@ -184,6 +184,38 @@ const getClientOrders = async (req, res) => {
 
     const pendingBalance = totalBilled - totalPaid;
 
+    if (!client.paymentHistory || client.paymentHistory.length === 0) {
+      const grouped = new Map();
+      orders.forEach(order => {
+        if (order.balancePayments && Array.isArray(order.balancePayments)) {
+          order.balancePayments.forEach(bp => {
+            const bpAmt = Number(bp.amount) || 0;
+            if (bpAmt > 0) {
+              const d = new Date(bp.date || order.updatedAt || order.createdAt);
+              const timeKey = Math.floor(d.getTime() / 10000); // 10-second window
+              const methodKey = (bp.method && bp.method !== 'None') ? bp.method : (order.paymentMethod || 'Cash');
+              const remarkKey = bp.remarks || bp.remark || order.remarks || 'Pay All';
+              const key = `${timeKey}_${methodKey}`;
+              if (grouped.has(key)) {
+                grouped.get(key).amount += bpAmt;
+              } else {
+                grouped.set(key, {
+                  amount: bpAmt,
+                  method: methodKey,
+                  date: d,
+                  remarks: remarkKey
+                });
+              }
+            }
+          });
+        }
+      });
+      if (grouped.size > 0) {
+        client.paymentHistory = Array.from(grouped.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
+        await client.save();
+      }
+    }
+
     res.json({
       client,
       summary: {
@@ -206,7 +238,8 @@ const payAllClientOrders = async (req, res) => {
       return res.status(404).json({ message: 'Client not found' });
     }
 
-    const { payments, paymentMethod } = req.body;
+    const { payments, paymentMethod, remarks, remark } = req.body;
+    const paymentRemark = remarks || remark || 'Pay All';
     
     let remainingPayments = payments ? [...payments] : [{ amount: Number.MAX_SAFE_INTEGER, method: paymentMethod || 'Cash' }];
 
@@ -237,7 +270,8 @@ const payAllClientOrders = async (req, res) => {
             order.balancePayments.push({
               amount: paymentAmount,
               date: new Date(),
-              method: currentPayment.method || 'Cash'
+              method: currentPayment.method || 'Cash',
+              remarks: currentPayment.remarks || paymentRemark
             });
             order.balanceAmount = (order.balanceAmount || 0) + paymentAmount;
             pendingAmount -= paymentAmount;
@@ -258,7 +292,35 @@ const payAllClientOrders = async (req, res) => {
       }
     }
 
-    res.json({ message: 'Payments cleared successfully', totalPaidNow });
+    // Record Pay All in client.paymentHistory
+    if (!client.paymentHistory) {
+      client.paymentHistory = [];
+    }
+    const paymentDate = new Date();
+    if (payments && Array.isArray(payments) && payments.length > 0) {
+      payments.forEach(p => {
+        const amt = Number(p.amount) || 0;
+        if (amt > 0) {
+          client.paymentHistory.push({
+            amount: amt,
+            method: p.method || paymentMethod || 'Cash',
+            date: paymentDate,
+            remarks: p.remarks || paymentRemark
+          });
+        }
+      });
+    } else if (totalPaidNow > 0) {
+      client.paymentHistory.push({
+        amount: totalPaidNow,
+        method: paymentMethod || 'Cash',
+        date: paymentDate,
+        remarks: paymentRemark
+      });
+    }
+
+    await client.save();
+
+    res.json({ message: 'Payments cleared successfully', totalPaidNow, paymentHistory: client.paymentHistory });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
