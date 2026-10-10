@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Layout from '../components/Layout';
-import { Row, Col, Card, Button, Table, Modal, Form, Spinner } from 'react-bootstrap';
+import { Row, Col, Card, Button, Table, Modal, Form, Spinner, ButtonGroup } from 'react-bootstrap';
 import { Package, Plus, Minus, Edit2, Trash2, Image as ImageIcon } from 'lucide-react';
 import api from '../services/api';
 import Swal from 'sweetalert2';
@@ -8,6 +8,7 @@ import Swal from 'sweetalert2';
 const ManageStack = () => {
   const [stacks, setStacks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all'); // 'all' | 'available' | 'no-stock'
   const [showModal, setShowModal] = useState(false);
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -253,9 +254,26 @@ const ManageStack = () => {
     });
   };
 
+  const isAvailable = (stack) => {
+    const total = Number(stack.totalStack) || 0;
+    const sizesTotal = stack.sizes && Array.isArray(stack.sizes)
+      ? stack.sizes.reduce((sum, s) => sum + (Number(s.quantity) || 0), 0)
+      : 0;
+    return total > 0 || sizesTotal > 0;
+  };
+
+  const availableCount = stacks.filter(isAvailable).length;
+  const noStockCount = stacks.length - availableCount;
+
+  const filteredStacks = stacks.filter(stack => {
+    if (filter === 'available') return isAvailable(stack);
+    if (filter === 'no-stock') return !isAvailable(stack);
+    return true;
+  });
+
   return (
     <Layout>
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
           <h2 className="mb-0 fw-bold text-dark d-flex align-items-center">
             <Package size={28} className="me-2 text-primary" />
@@ -263,9 +281,39 @@ const ManageStack = () => {
           </h2>
           <p className="text-muted mb-0">Track and manage your inventory</p>
         </div>
-        <Button variant="primary" onClick={() => handleShow()} className="d-flex align-items-center gap-2 fw-medium shadow-sm rounded-pill px-4">
-          <Plus size={18} /> Add Stack
-        </Button>
+
+        <div className="d-flex align-items-center gap-3 flex-wrap">
+          <ButtonGroup className="shadow-sm rounded-pill bg-white p-1 border">
+            <Button 
+              variant={filter === 'all' ? 'primary' : 'light'} 
+              className={`px-3 py-2 rounded-pill border-0 fw-semibold ${filter === 'all' ? 'shadow-sm text-white' : 'text-muted bg-transparent'}`}
+              onClick={() => setFilter('all')}
+              style={{ fontSize: '0.85rem' }}
+            >
+              All ({stacks.length})
+            </Button>
+            <Button 
+              variant={filter === 'available' ? 'primary' : 'light'} 
+              className={`px-3 py-2 rounded-pill border-0 fw-semibold ${filter === 'available' ? 'shadow-sm text-white' : 'text-muted bg-transparent'}`}
+              onClick={() => setFilter('available')}
+              style={{ fontSize: '0.85rem' }}
+            >
+              Available Stock ({availableCount})
+            </Button>
+            <Button 
+              variant={filter === 'no-stock' ? 'primary' : 'light'} 
+              className={`px-3 py-2 rounded-pill border-0 fw-semibold ${filter === 'no-stock' ? 'shadow-sm text-white' : 'text-muted bg-transparent'}`}
+              onClick={() => setFilter('no-stock')}
+              style={{ fontSize: '0.85rem' }}
+            >
+              No Stock ({noStockCount})
+            </Button>
+          </ButtonGroup>
+
+          <Button variant="primary" onClick={() => handleShow()} className="d-flex align-items-center gap-2 fw-medium shadow-sm rounded-pill px-4 py-2">
+            <Plus size={18} /> Add Stack
+          </Button>
+        </div>
       </div>
 
       <Card className="border-0 shadow-sm rounded-4 overflow-hidden">
@@ -274,15 +322,31 @@ const ManageStack = () => {
             <div className="text-center p-5">
               <Spinner animation="border" variant="primary" />
             </div>
-          ) : stacks.length === 0 ? (
+          ) : filteredStacks.length === 0 ? (
             <div className="text-center p-5 text-muted">
               <Package size={48} className="mb-3 text-light" />
-              <h5>No items found in stack</h5>
-              <p>Click "Add Stack" to get started.</p>
+              <h5>
+                {stacks.length === 0 
+                  ? 'No items found in stack' 
+                  : filter === 'available' 
+                    ? 'No available stock items' 
+                    : filter === 'no-stock'
+                      ? 'No items with zero stock'
+                      : 'No items found'}
+              </h5>
+              <p>
+                {stacks.length === 0 
+                  ? 'Click "Add Stack" to get started.' 
+                  : filter === 'available'
+                    ? 'All items currently have zero stock.'
+                    : filter === 'no-stock'
+                      ? 'All items currently have stock available.'
+                      : ''}
+              </p>
             </div>
           ) : (
             <Row xs={1} md={2} lg={3} className="g-4 p-4">
-              {stacks.map(stack => (
+              {filteredStacks.map(stack => (
                 <Col key={stack._id}>
                   <Card className="h-100 border-0 shadow-sm rounded-4 overflow-hidden" style={{ transition: 'transform 0.2s' }}>
                     <div

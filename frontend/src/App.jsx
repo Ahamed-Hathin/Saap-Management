@@ -42,7 +42,14 @@ const PrivateRoute = ({ children, role, excludeUser, requiredPage }) => {
   
   if (user.role === 'Admin') return children;
 
-  if (requiredPage && (!user.accessiblePages || !user.accessiblePages.includes(requiredPage))) {
+  const hasPageAccess = (page) => {
+    if (!user.accessiblePages) return false;
+    if (user.accessiblePages.includes(page)) return true;
+    if (page === 'Stock Management' && user.accessiblePages.includes('Manage Stock')) return true;
+    return false;
+  };
+
+  if (requiredPage && !hasPageAccess(requiredPage)) {
     return (
       <div className="p-5 text-center">
         <h4>Unauthorized Access</h4>
@@ -89,7 +96,9 @@ function App() {
         <Route path="/admin/tasks" element={<PrivateRoute role="Admin"><Tasks /></PrivateRoute>} />
         <Route path="/admin/expenses" element={<PrivateRoute role="Admin"><ManageExpenses /></PrivateRoute>} />
         <Route path="/admin/expenses/history/:name" element={<PrivateRoute role="Admin"><ExpenseHistory /></PrivateRoute>} />
-        <Route path="/admin/stack" element={<PrivateRoute role="Admin"><ManageStack /></PrivateRoute>} />
+        <Route path="/admin/stack" element={<PrivateRoute requiredPage="Stock Management"><ManageStack /></PrivateRoute>} />
+        <Route path="/stock" element={<PrivateRoute requiredPage="Stock Management"><ManageStack /></PrivateRoute>} />
+        <Route path="/stack" element={<PrivateRoute requiredPage="Stock Management"><ManageStack /></PrivateRoute>} />
         <Route path="/admin/my-attendance" element={<PrivateRoute role="Admin"><MyAttendance /></PrivateRoute>} />
         <Route path="/admin/attendance" element={<PrivateRoute role="Admin"><AttendanceDashboard /></PrivateRoute>} />
         <Route path="/admin/attendance/overall" element={<PrivateRoute role="Admin"><OverallMonthlyAttendance /></PrivateRoute>} />

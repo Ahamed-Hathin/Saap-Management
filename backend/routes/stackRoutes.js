@@ -7,18 +7,18 @@ const {
   deleteStack,
   uploadStackImage,
 } = require('../controllers/stackController');
-const { protect, admin } = require('../middleware/authMiddleware');
+const { protect, stockAccess } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
 router.route('/')
-  .get(protect, getStacks)
-  .post(protect, admin, createStack);
+  .get(protect, stockAccess, getStacks)
+  .post(protect, stockAccess, createStack);
 
 router.route('/:id')
-  .put(protect, admin, updateStack)
-  .delete(protect, admin, deleteStack);
+  .put(protect, stockAccess, updateStack)
+  .delete(protect, stockAccess, deleteStack);
 
 router.route('/:id/upload')
-  .post(protect, admin, upload.single('image'), uploadStackImage);
+  .post(protect, stockAccess, upload.single('image'), uploadStackImage);
 
 module.exports = router;

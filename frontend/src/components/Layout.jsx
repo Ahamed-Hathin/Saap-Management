@@ -102,6 +102,11 @@ const Layout = ({ children }) => {
               <FileText className="me-3" size={20} /> Quotation
             </NavLink>
           )}
+          {(user.accessiblePages && (user.accessiblePages.includes('Stock Management') || user.accessiblePages.includes('Manage Stock'))) && (
+            <NavLink to="/admin/stack" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
+              <Package className="me-3" size={20} /> Manage Stock
+            </NavLink>
+          )}
           {(!user.accessiblePages || user.accessiblePages.includes('Settings')) && (
             <NavLink to="/employee/settings" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setShowMobileMenu(false)}>
               <Settings className="me-3" size={20} /> Settings

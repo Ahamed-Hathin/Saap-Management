@@ -31,7 +31,7 @@ const ManageEmployees = () => {
     fetchEmployees();
   }, []);
 
-  const availablePages = ['Orders', 'Tasks', 'Clients', 'Quotation', 'Settings', 'Time Tracking', 'Other Employees'];
+  const availablePages = ['Orders', 'Tasks', 'Clients', 'Quotation', 'Settings', 'Time Tracking', 'Other Employees', 'Stock Management'];
 
   const handlePageToggle = (page) => {
     setFormData(prev => {

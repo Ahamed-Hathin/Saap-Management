@@ -35,4 +35,18 @@ const admin = (req, res, next) => {
   }
 };
 
-module.exports = { protect, admin };
+const stockAccess = (req, res, next) => {
+  if (
+    req.user &&
+    (req.user.role === 'Admin' ||
+      (Array.isArray(req.user.accessiblePages) &&
+        (req.user.accessiblePages.includes('Stock Management') ||
+          req.user.accessiblePages.includes('Manage Stock'))))
+  ) {
+    next();
+  } else {
+    res.status(403).json({ message: 'Not authorized for stock management' });
+  }
+};
+
+module.exports = { protect, admin, stockAccess };

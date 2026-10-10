@@ -58,11 +58,15 @@ const ClientDetails = () => {
         return;
       }
 
-      const paymentRemark = payAllRemark.trim() || 'Pay All';
+      const paymentRemark = payAllRemark.trim();
       setLoading(true);
       await api.post(`/clients/${id}/pay-all`, { 
-        payments: validPayments,
-        remarks: paymentRemark 
+        payments: validPayments.map(p => ({
+          ...p,
+          remarks: paymentRemark
+        })),
+        remarks: paymentRemark,
+        remark: paymentRemark
       });
       setShowPayAllModal(false);
       await fetchClientOrders();
@@ -145,48 +149,113 @@ const ClientDetails = () => {
 
   const { client, summary, orders } = data;
 
-  const getPaidHistory = () => {
-    if (client?.paymentHistory && client.paymentHistory.length > 0) {
-      return [...client.paymentHistory]
-        .map((item, idx) => ({
-          id: item._id || `ph-${idx}`,
-          date: item.date,
-          amount: Number(item.amount) || 0,
-          method: item.method || 'Cash',
-          remarks: item.remarks || ''
-        }))
-        .sort((a, b) => new Date(b.date) - new Date(a.date));
+  const sanitizePaymentHistory = (historyList) => {
+    if (!historyList || !Array.isArray(historyList) || historyList.length === 0) {
+      return [];
     }
 
-    // Fallback for legacy balance payments (grouped so they are not split order-wise)
-    const groupedPayments = new Map();
-    (orders || []).forEach((order) => {
-      if (order.balancePayments && Array.isArray(order.balancePayments)) {
-        order.balancePayments.forEach((bp, idx) => {
-          const bpAmt = Number(bp.amount) || 0;
-          if (bpAmt > 0) {
-            const d = new Date(bp.date || order.updatedAt || order.createdAt);
-            const timeKey = Math.floor(d.getTime() / 10000);
-            const methodKey = (bp.method && bp.method !== 'None') ? bp.method : (order.paymentMethod || 'Cash');
-            const remarkKey = bp.remarks || bp.remark || order.remarks || 'Pay All';
-            const key = `${timeKey}_${methodKey}`;
-            if (groupedPayments.has(key)) {
-              groupedPayments.get(key).amount += bpAmt;
-            } else {
-              groupedPayments.set(key, {
-                id: `bp-group-${key}-${idx}`,
+    const getLocalDateKey = (date) => {
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return 'unknown';
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+
+    const byDate = new Map();
+
+    historyList.forEach((item, idx) => {
+      const rawDate = item.date ? new Date(item.date) : new Date();
+      const d = isNaN(rawDate.getTime()) ? new Date() : rawDate;
+      const dateKey = getLocalDateKey(d);
+      const amount = Number(item.amount) || 0;
+      if (amount <= 0) return;
+
+      let method = (item.method || '').trim();
+      if (method.toLowerCase() === 'none') {
+        method = '';
+      }
+
+      const remarks = (item.remarks !== undefined && item.remarks !== null)
+        ? String(item.remarks).trim()
+        : (item.remark ? String(item.remark).trim() : '');
+
+      if (!byDate.has(dateKey)) {
+        byDate.set(dateKey, []);
+      }
+      byDate.get(dateKey).push({
+        id: item._id || item.id || `ph-${idx}`,
+        date: d,
+        amount,
+        method,
+        remarks
+      });
+    });
+
+    const result = [];
+
+    byDate.forEach((items, dateKey) => {
+      const validMethod = items.find(i => i.method && i.method.toLowerCase() !== 'none')?.method || 'Cash';
+      const customRemark = items.find(i => i.remarks && i.remarks.toLowerCase() !== 'pay all')?.remarks;
+
+      const mergedMap = new Map();
+
+      items.forEach((item) => {
+        const finalMethod = item.method || validMethod;
+        const finalRemarks = item.remarks || customRemark || '';
+        const key = `${finalMethod}___${finalRemarks}`;
+
+        if (mergedMap.has(key)) {
+          mergedMap.get(key).amount += item.amount;
+          if (new Date(item.date) > new Date(mergedMap.get(key).date)) {
+            mergedMap.get(key).date = item.date;
+          }
+        } else {
+          mergedMap.set(key, {
+            id: item.id || `merged-${dateKey}-${key}`,
+            date: item.date,
+            amount: item.amount,
+            method: finalMethod,
+            remarks: finalRemarks
+          });
+        }
+      });
+
+      mergedMap.forEach(mergedItem => {
+        result.push(mergedItem);
+      });
+    });
+
+    return result.sort((a, b) => new Date(b.date) - new Date(a.date));
+  };
+
+  const getPaidHistory = () => {
+    const rawHistory = client?.paymentHistory || [];
+    let list = [...rawHistory];
+
+    if (list.length === 0 && orders && orders.length > 0) {
+      const orderPayments = [];
+      orders.forEach((order) => {
+        if (order.balancePayments && Array.isArray(order.balancePayments)) {
+          order.balancePayments.forEach((bp, idx) => {
+            const bpAmt = Number(bp.amount) || 0;
+            if (bpAmt > 0) {
+              const d = new Date(bp.date || order.updatedAt || order.createdAt);
+              const methodKey = (bp.method && bp.method !== 'None') ? bp.method : (order.paymentMethod && order.paymentMethod !== 'None' ? order.paymentMethod : '');
+              const remarkKey = bp.remarks || bp.remark || order.remarks || '';
+              orderPayments.push({
+                id: `bp-group-${idx}`,
                 date: d,
                 amount: bpAmt,
                 method: methodKey,
                 remarks: remarkKey
               });
             }
-          }
-        });
-      }
-    });
+          });
+        }
+      });
+      list = orderPayments;
+    }
 
-    return Array.from(groupedPayments.values()).sort((a, b) => new Date(b.date) - new Date(a.date));
+    return sanitizePaymentHistory(list);
   };
 
   return (

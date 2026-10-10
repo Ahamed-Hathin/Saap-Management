@@ -157,6 +157,84 @@ const deleteClient = async (req, res) => {
   }
 };
 
+const sanitizePaymentHistory = (historyList) => {
+  if (!historyList || !Array.isArray(historyList) || historyList.length === 0) {
+    return [];
+  }
+
+  const getLocalDateKey = (date) => {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return 'unknown';
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const byDate = new Map();
+
+  historyList.forEach((item, idx) => {
+    const rawDate = item.date ? new Date(item.date) : new Date();
+    const d = isNaN(rawDate.getTime()) ? new Date() : rawDate;
+    const dateKey = getLocalDateKey(d);
+    const amount = Number(item.amount) || 0;
+    if (amount <= 0) return;
+
+    let method = (item.method || '').trim();
+    if (method.toLowerCase() === 'none') {
+      method = '';
+    }
+
+    const remarks = (item.remarks !== undefined && item.remarks !== null)
+      ? String(item.remarks).trim()
+      : (item.remark ? String(item.remark).trim() : '');
+
+    if (!byDate.has(dateKey)) {
+      byDate.set(dateKey, []);
+    }
+    byDate.get(dateKey).push({
+      _id: item._id,
+      date: d,
+      amount,
+      method,
+      remarks
+    });
+  });
+
+  const result = [];
+
+  byDate.forEach((items, dateKey) => {
+    const validMethod = items.find(i => i.method && i.method.toLowerCase() !== 'none')?.method || 'Cash';
+    const customRemark = items.find(i => i.remarks && i.remarks.toLowerCase() !== 'pay all')?.remarks;
+
+    const mergedMap = new Map();
+
+    items.forEach((item) => {
+      const finalMethod = item.method || validMethod;
+      const finalRemarks = item.remarks || customRemark || '';
+      const key = `${finalMethod}___${finalRemarks}`;
+
+      if (mergedMap.has(key)) {
+        mergedMap.get(key).amount += item.amount;
+        if (new Date(item.date) > new Date(mergedMap.get(key).date)) {
+          mergedMap.get(key).date = item.date;
+        }
+      } else {
+        mergedMap.set(key, {
+          _id: item._id,
+          date: item.date,
+          amount: item.amount,
+          method: finalMethod,
+          remarks: finalRemarks
+        });
+      }
+    });
+
+    mergedMap.forEach(mergedItem => {
+      result.push(mergedItem);
+    });
+  });
+
+  return result.sort((a, b) => new Date(b.date) - new Date(a.date));
+};
+
 const getClientOrders = async (req, res) => {
   try {
     const client = await Client.findById(req.params.id);
@@ -185,35 +263,32 @@ const getClientOrders = async (req, res) => {
     const pendingBalance = totalBilled - totalPaid;
 
     if (!client.paymentHistory || client.paymentHistory.length === 0) {
-      const grouped = new Map();
+      const orderPayments = [];
       orders.forEach(order => {
         if (order.balancePayments && Array.isArray(order.balancePayments)) {
           order.balancePayments.forEach(bp => {
             const bpAmt = Number(bp.amount) || 0;
             if (bpAmt > 0) {
               const d = new Date(bp.date || order.updatedAt || order.createdAt);
-              const timeKey = Math.floor(d.getTime() / 10000); // 10-second window
-              const methodKey = (bp.method && bp.method !== 'None') ? bp.method : (order.paymentMethod || 'Cash');
-              const remarkKey = bp.remarks || bp.remark || order.remarks || 'Pay All';
-              const key = `${timeKey}_${methodKey}`;
-              if (grouped.has(key)) {
-                grouped.get(key).amount += bpAmt;
-              } else {
-                grouped.set(key, {
-                  amount: bpAmt,
-                  method: methodKey,
-                  date: d,
-                  remarks: remarkKey
-                });
-              }
+              const methodKey = (bp.method && bp.method !== 'None') ? bp.method : (order.paymentMethod && order.paymentMethod !== 'None' ? order.paymentMethod : '');
+              const remarkKey = bp.remarks || bp.remark || order.remarks || '';
+              orderPayments.push({
+                amount: bpAmt,
+                method: methodKey,
+                date: d,
+                remarks: remarkKey
+              });
             }
           });
         }
       });
-      if (grouped.size > 0) {
-        client.paymentHistory = Array.from(grouped.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
+      if (orderPayments.length > 0) {
+        client.paymentHistory = sanitizePaymentHistory(orderPayments);
         await client.save();
       }
+    } else {
+      client.paymentHistory = sanitizePaymentHistory(client.paymentHistory);
+      await client.save();
     }
 
     res.json({
@@ -239,7 +314,7 @@ const payAllClientOrders = async (req, res) => {
     }
 
     const { payments, paymentMethod, remarks, remark } = req.body;
-    const paymentRemark = remarks || remark || 'Pay All';
+    const paymentRemark = remarks !== undefined ? String(remarks).trim() : (remark !== undefined ? String(remark).trim() : '');
     
     let remainingPayments = payments ? [...payments] : [{ amount: Number.MAX_SAFE_INTEGER, method: paymentMethod || 'Cash' }];
 
@@ -270,8 +345,8 @@ const payAllClientOrders = async (req, res) => {
             order.balancePayments.push({
               amount: paymentAmount,
               date: new Date(),
-              method: currentPayment.method || 'Cash',
-              remarks: currentPayment.remarks || paymentRemark
+              method: (currentPayment.method && currentPayment.method !== 'None') ? currentPayment.method : (paymentMethod || 'Cash'),
+              remarks: currentPayment.remarks !== undefined ? currentPayment.remarks : paymentRemark
             });
             order.balanceAmount = (order.balanceAmount || 0) + paymentAmount;
             pendingAmount -= paymentAmount;
@@ -301,23 +376,27 @@ const payAllClientOrders = async (req, res) => {
       payments.forEach(p => {
         const amt = Number(p.amount) || 0;
         if (amt > 0) {
+          const itemMethod = (p.method && p.method !== 'None') ? p.method : (paymentMethod && paymentMethod !== 'None' ? paymentMethod : 'Cash');
+          const itemRemark = p.remarks !== undefined ? String(p.remarks).trim() : paymentRemark;
           client.paymentHistory.push({
             amount: amt,
-            method: p.method || paymentMethod || 'Cash',
+            method: itemMethod,
             date: paymentDate,
-            remarks: p.remarks || paymentRemark
+            remarks: itemRemark
           });
         }
       });
     } else if (totalPaidNow > 0) {
+      const chosenMethod = (paymentMethod && paymentMethod !== 'None') ? paymentMethod : 'Cash';
       client.paymentHistory.push({
         amount: totalPaidNow,
-        method: paymentMethod || 'Cash',
+        method: chosenMethod,
         date: paymentDate,
         remarks: paymentRemark
       });
     }
 
+    client.paymentHistory = sanitizePaymentHistory(client.paymentHistory);
     await client.save();
 
     res.json({ message: 'Payments cleared successfully', totalPaidNow, paymentHistory: client.paymentHistory });
