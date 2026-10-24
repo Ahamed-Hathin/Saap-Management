@@ -182,9 +182,13 @@ const sanitizePaymentHistory = (historyList) => {
       method = '';
     }
 
-    const remarks = (item.remarks !== undefined && item.remarks !== null)
+    let remarks = (item.remarks !== undefined && item.remarks !== null)
       ? String(item.remarks).trim()
       : (item.remark ? String(item.remark).trim() : '');
+
+    if (remarks.toLowerCase() === 'pay all') {
+      remarks = '';
+    }
 
     if (!byDate.has(dateKey)) {
       byDate.set(dateKey, []);
@@ -202,13 +206,12 @@ const sanitizePaymentHistory = (historyList) => {
 
   byDate.forEach((items, dateKey) => {
     const validMethod = items.find(i => i.method && i.method.toLowerCase() !== 'none')?.method || 'Cash';
-    const customRemark = items.find(i => i.remarks && i.remarks.toLowerCase() !== 'pay all')?.remarks;
 
     const mergedMap = new Map();
 
     items.forEach((item) => {
       const finalMethod = item.method || validMethod;
-      const finalRemarks = item.remarks || customRemark || '';
+      const finalRemarks = item.remarks || '';
       const key = `${finalMethod}___${finalRemarks}`;
 
       if (mergedMap.has(key)) {
@@ -271,7 +274,10 @@ const getClientOrders = async (req, res) => {
             if (bpAmt > 0) {
               const d = new Date(bp.date || order.updatedAt || order.createdAt);
               const methodKey = (bp.method && bp.method !== 'None') ? bp.method : (order.paymentMethod && order.paymentMethod !== 'None' ? order.paymentMethod : '');
-              const remarkKey = bp.remarks || bp.remark || order.remarks || '';
+              let remarkKey = (bp.remarks !== undefined && bp.remarks !== null) ? String(bp.remarks).trim() : (bp.remark ? String(bp.remark).trim() : '');
+              if (remarkKey.toLowerCase() === 'pay all') {
+                remarkKey = '';
+              }
               orderPayments.push({
                 amount: bpAmt,
                 method: methodKey,
@@ -314,9 +320,22 @@ const payAllClientOrders = async (req, res) => {
     }
 
     const { payments, paymentMethod, remarks, remark } = req.body;
-    const paymentRemark = remarks !== undefined ? String(remarks).trim() : (remark !== undefined ? String(remark).trim() : '');
+    let paymentRemark = remarks !== undefined ? String(remarks).trim() : (remark !== undefined ? String(remark).trim() : '');
+    if (paymentRemark.toLowerCase() === 'pay all') {
+      paymentRemark = '';
+    }
     
-    let remainingPayments = payments ? [...payments] : [{ amount: Number.MAX_SAFE_INTEGER, method: paymentMethod || 'Cash' }];
+    const originalPayments = (payments && Array.isArray(payments) && payments.length > 0)
+      ? payments.map(p => ({
+          amount: Number(p.amount) || 0,
+          method: (p.method && p.method !== 'None') ? p.method : (paymentMethod && paymentMethod !== 'None' ? paymentMethod : 'Cash'),
+          remarks: (p.remarks !== undefined && p.remarks !== null) ? String(p.remarks).trim() : paymentRemark
+        }))
+      : [];
+
+    let remainingPayments = originalPayments.length > 0 
+      ? originalPayments.map(p => ({ ...p })) 
+      : [{ amount: Number.MAX_SAFE_INTEGER, method: paymentMethod || 'Cash', remarks: paymentRemark }];
 
     const orders = await Order.find(getClientOrderQuery(client)).sort({ createdAt: 1 }); // Sort oldest first so they get paid first
 
@@ -345,7 +364,7 @@ const payAllClientOrders = async (req, res) => {
             order.balancePayments.push({
               amount: paymentAmount,
               date: new Date(),
-              method: (currentPayment.method && currentPayment.method !== 'None') ? currentPayment.method : (paymentMethod || 'Cash'),
+              method: currentPayment.method || 'Cash',
               remarks: currentPayment.remarks !== undefined ? currentPayment.remarks : paymentRemark
             });
             order.balanceAmount = (order.balanceAmount || 0) + paymentAmount;
@@ -372,17 +391,16 @@ const payAllClientOrders = async (req, res) => {
       client.paymentHistory = [];
     }
     const paymentDate = new Date();
-    if (payments && Array.isArray(payments) && payments.length > 0) {
-      payments.forEach(p => {
-        const amt = Number(p.amount) || 0;
-        if (amt > 0) {
-          const itemMethod = (p.method && p.method !== 'None') ? p.method : (paymentMethod && paymentMethod !== 'None' ? paymentMethod : 'Cash');
-          const itemRemark = p.remarks !== undefined ? String(p.remarks).trim() : paymentRemark;
+    if (originalPayments.length > 0) {
+      originalPayments.forEach((p, idx) => {
+        const remainingAmt = remainingPayments[idx] ? remainingPayments[idx].amount : 0;
+        const paidAmt = p.amount - remainingAmt;
+        if (paidAmt > 0) {
           client.paymentHistory.push({
-            amount: amt,
-            method: itemMethod,
+            amount: paidAmt,
+            method: p.method,
             date: paymentDate,
-            remarks: itemRemark
+            remarks: p.remarks
           });
         }
       });

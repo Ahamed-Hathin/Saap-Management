@@ -4,17 +4,10 @@ import { Card, Table, Button, Modal, Form, Alert, Badge, Dropdown } from 'react-
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { Plus, Trash2, Download, Check, ArrowRight, ArrowLeft } from 'lucide-react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import Swal from 'sweetalert2';
-import * as pdfjsLib from 'pdfjs-dist';
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
 import { formatDate } from '../utils/formatDate';
 import html2canvas from 'html2canvas';
 import logoImg from '../assets/Sapp Logo.jpg.jpeg';
-
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 const WhatsAppIcon = ({ size = 16, color = "currentColor", className = "" }) => (
   <svg 
@@ -311,9 +304,9 @@ const ClientOrders = () => {
 
   const getInvoiceBlob = async (order) => {
     // 1. If order already has invoiceImage, attempt to fetch it as blob
-    if (order.invoiceImage && order.invoiceImage.startsWith('http')) {
+    if (order.invoiceImage) {
       try {
-        const res = await fetch(order.invoiceImage);
+        const res = await fetch(getImageUrl(order.invoiceImage));
         if (res.ok) {
           const blob = await res.blob();
           if (blob && blob.size > 0) return blob;
@@ -333,7 +326,11 @@ const ClientOrders = () => {
               scale: 2,
               useCORS: true,
               logging: false,
-              backgroundColor: '#ffffff'
+              backgroundColor: '#ffffff',
+              width: 380,
+              windowWidth: 380,
+              x: 0,
+              y: 0
             });
             canvas.toBlob((blob) => {
               setDownloadInvoice(null);
@@ -348,7 +345,7 @@ const ClientOrders = () => {
           setDownloadInvoice(null);
           resolve(null);
         }
-      }, 100);
+      }, 50);
     });
   };
 
@@ -642,6 +639,26 @@ const ClientOrders = () => {
   const statusOptions = ['Pending', 'Processing', 'Printing', 'Ready To Dispatch', 'Delivered', 'Cancelled'];
 
   const handleDownloadPDF = async (order, index) => {
+    if (order.invoiceImage) {
+      try {
+        const res = await fetch(getImageUrl(order.invoiceImage));
+        if (res.ok) {
+          const blob = await res.blob();
+          if (blob && blob.size > 0) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = `Invoice_${order.serialNumber || 'Order'}_${(order.clientName || 'Client').replace(/\s+/g, '_')}.png`;
+            link.href = url;
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Direct invoice download fallback:', err);
+      }
+    }
+
     setDownloadInvoice(order);
 
     setTimeout(async () => {
@@ -652,7 +669,11 @@ const ClientOrders = () => {
             useCORS: true,
             allowTaint: true,
             logging: false,
-            backgroundColor: '#ffffff'
+            backgroundColor: '#ffffff',
+            width: 380,
+            windowWidth: 380,
+            x: 0,
+            y: 0
           });
           canvas.toBlob((blob) => {
             if (blob) {
@@ -1765,7 +1786,7 @@ const ClientOrders = () => {
 
       {/* Hidden Download Container */}
       {downloadInvoice && (
-        <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
+        <div style={{ position: 'fixed', left: '-9999px', top: '0', zIndex: -100, pointerEvents: 'none' }}>
             <div 
               ref={invoiceRef}
               style={{

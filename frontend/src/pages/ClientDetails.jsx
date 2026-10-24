@@ -174,9 +174,13 @@ const ClientDetails = () => {
         method = '';
       }
 
-      const remarks = (item.remarks !== undefined && item.remarks !== null)
+      let remarks = (item.remarks !== undefined && item.remarks !== null)
         ? String(item.remarks).trim()
         : (item.remark ? String(item.remark).trim() : '');
+
+      if (remarks.toLowerCase() === 'pay all') {
+        remarks = '';
+      }
 
       if (!byDate.has(dateKey)) {
         byDate.set(dateKey, []);
@@ -194,13 +198,12 @@ const ClientDetails = () => {
 
     byDate.forEach((items, dateKey) => {
       const validMethod = items.find(i => i.method && i.method.toLowerCase() !== 'none')?.method || 'Cash';
-      const customRemark = items.find(i => i.remarks && i.remarks.toLowerCase() !== 'pay all')?.remarks;
 
       const mergedMap = new Map();
 
       items.forEach((item) => {
         const finalMethod = item.method || validMethod;
-        const finalRemarks = item.remarks || customRemark || '';
+        const finalRemarks = item.remarks || '';
         const key = `${finalMethod}___${finalRemarks}`;
 
         if (mergedMap.has(key)) {
@@ -240,7 +243,10 @@ const ClientDetails = () => {
             if (bpAmt > 0) {
               const d = new Date(bp.date || order.updatedAt || order.createdAt);
               const methodKey = (bp.method && bp.method !== 'None') ? bp.method : (order.paymentMethod && order.paymentMethod !== 'None' ? order.paymentMethod : '');
-              const remarkKey = bp.remarks || bp.remark || order.remarks || '';
+              let remarkKey = (bp.remarks !== undefined && bp.remarks !== null) ? String(bp.remarks).trim() : (bp.remark ? String(bp.remark).trim() : '');
+              if (remarkKey.toLowerCase() === 'pay all') {
+                remarkKey = '';
+              }
               orderPayments.push({
                 id: `bp-group-${idx}`,
                 date: d,
@@ -530,7 +536,7 @@ const ClientDetails = () => {
               <Form.Label className="small fw-semibold text-muted">Remark</Form.Label>
               <Form.Control
                 type="text"
-                placeholder="Enter remark (e.g. Pay All)"
+                placeholder="Enter remark"
                 value={payAllRemark}
                 onChange={(e) => setPayAllRemark(e.target.value)}
                 className="bg-light"
@@ -662,9 +668,7 @@ const ClientDetails = () => {
                         <td className="py-3 px-3" style={{ maxWidth: '240px', wordBreak: 'break-word', fontSize: '0.85rem' }}>
                           {item.remarks ? (
                             <span className="text-dark">{item.remarks}</span>
-                          ) : (
-                            <span className="text-muted">-</span>
-                          )}
+                          ) : null}
                         </td>
                       </tr>
                     ))}
