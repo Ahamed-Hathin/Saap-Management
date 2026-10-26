@@ -722,10 +722,8 @@ const ClientOrders = () => {
     const deliveredOrders = clientOrdersList.filter(o => (o.status || '').trim().toLowerCase() === 'delivered');
     const pendingOrders = clientOrdersList.filter(o => (o.status || '').trim().toLowerCase() !== 'delivered');
 
-    let currentSNo = 1;
-
     const formatOrderToCsvRow = (order) => {
-      const sNo = currentSNo++;
+      const sNo = order.serialNumber !== undefined && order.serialNumber !== null ? order.serialNumber : '';
       
       const escapeCsv = (str, forceString = false) => {
         if (str === null || str === undefined) return '""';

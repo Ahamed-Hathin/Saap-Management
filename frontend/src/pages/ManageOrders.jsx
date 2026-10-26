@@ -694,10 +694,8 @@ const ManageOrders = () => {
     // Pending orders from CRM started to till date
     const pendingOrders = walkInOrders.filter(o => (o.status || '').trim().toLowerCase() !== 'delivered');
 
-    let currentSNo = 1;
-
     const formatOrderToCsvRow = (order) => {
-      const sNo = currentSNo++;
+      const sNo = order.serialNumber !== undefined && order.serialNumber !== null ? order.serialNumber : '';
       
       const escapeCsv = (str, forceString = false) => {
         if (str === null || str === undefined) return '""';
