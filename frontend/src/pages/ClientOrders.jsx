@@ -302,11 +302,55 @@ const ClientOrders = () => {
     }
   };
 
+  const generateInvoiceCanvas = async (element) => {
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.left = '-9999px';
+    iframe.style.top = '0';
+    iframe.style.width = '450px';
+    iframe.style.height = '1500px';
+    iframe.style.border = 'none';
+    iframe.style.visibility = 'hidden';
+    document.body.appendChild(iframe);
+
+    try {
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      doc.open();
+      doc.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <style>
+              * { box-sizing: border-box; margin: 0; padding: 0; }
+              body { background: #ffffff; margin: 0; padding: 0; }
+            </style>
+          </head>
+          <body>
+            ${element.outerHTML}
+          </body>
+        </html>
+      `);
+      doc.close();
+
+      const target = doc.body.firstElementChild;
+      const canvas = await html2canvas(target, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        logging: false
+      });
+      return canvas;
+    } finally {
+      if (iframe.parentNode) {
+        document.body.removeChild(iframe);
+      }
+    }
+  };
+
   const getInvoiceBlob = async (order) => {
     // 1. If order already has invoiceImage, attempt to fetch it as blob
-    if (order.invoiceImage) {
+    if (order.invoiceImage && order.invoiceImage.startsWith('http')) {
       try {
-        const res = await fetch(getImageUrl(order.invoiceImage));
+        const res = await fetch(order.invoiceImage);
         if (res.ok) {
           const blob = await res.blob();
           if (blob && blob.size > 0) return blob;
@@ -322,16 +366,7 @@ const ClientOrders = () => {
       setTimeout(async () => {
         try {
           if (invoiceRef.current) {
-            const canvas = await html2canvas(invoiceRef.current, {
-              scale: 2,
-              useCORS: true,
-              logging: false,
-              backgroundColor: '#ffffff',
-              width: 380,
-              windowWidth: 380,
-              x: 0,
-              y: 0
-            });
+            const canvas = await generateInvoiceCanvas(invoiceRef.current);
             canvas.toBlob((blob) => {
               setDownloadInvoice(null);
               resolve(blob);
@@ -639,42 +674,12 @@ const ClientOrders = () => {
   const statusOptions = ['Pending', 'Processing', 'Printing', 'Ready To Dispatch', 'Delivered', 'Cancelled'];
 
   const handleDownloadPDF = async (order, index) => {
-    if (order.invoiceImage) {
-      try {
-        const res = await fetch(getImageUrl(order.invoiceImage));
-        if (res.ok) {
-          const blob = await res.blob();
-          if (blob && blob.size > 0) {
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.download = `Invoice_${order.serialNumber || 'Order'}_${(order.clientName || 'Client').replace(/\s+/g, '_')}.png`;
-            link.href = url;
-            link.click();
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn('Direct invoice download fallback:', err);
-      }
-    }
-
     setDownloadInvoice(order);
 
     setTimeout(async () => {
       if (invoiceRef.current) {
         try {
-          const canvas = await html2canvas(invoiceRef.current, {
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            logging: false,
-            backgroundColor: '#ffffff',
-            width: 380,
-            windowWidth: 380,
-            x: 0,
-            y: 0
-          });
+          const canvas = await generateInvoiceCanvas(invoiceRef.current);
           canvas.toBlob((blob) => {
             if (blob) {
               const url = URL.createObjectURL(blob);
@@ -1786,7 +1791,7 @@ const ClientOrders = () => {
 
       {/* Hidden Download Container */}
       {downloadInvoice && (
-        <div style={{ position: 'fixed', left: '-9999px', top: '0', zIndex: -100, pointerEvents: 'none' }}>
+        <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
             <div 
               ref={invoiceRef}
               style={{
