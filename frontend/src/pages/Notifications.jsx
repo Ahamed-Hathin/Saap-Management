@@ -217,53 +217,57 @@ const Notifications = () => {
       {/* Header Bar */}
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
         <div>
-          <div className="d-flex align-items-center gap-2">
-            <h2 className="mb-0 fw-bold text-dark tracking-tight">Notifications</h2>
+          <div className="d-flex align-items-center gap-2 flex-wrap">
+            <h2 className="mb-0 fw-bold text-dark tracking-tight" style={{ fontSize: 'clamp(1.4rem, 4vw, 1.85rem)' }}>
+              Notifications
+            </h2>
             {unreadCount > 0 && (
-              <Badge bg="danger" pill style={{ fontSize: '0.8rem', padding: '0.35em 0.7em' }}>
+              <Badge bg="danger" pill style={{ fontSize: '0.75rem', padding: '0.35em 0.7em' }}>
                 {unreadCount} unread
               </Badge>
             )}
           </div>
-          <p className="text-muted mt-1 mb-0" style={{ fontSize: '0.9rem' }}>
+          <p className="text-muted mt-1 mb-0" style={{ fontSize: '0.85rem' }}>
             Latest notifications are listed first at the top
           </p>
         </div>
 
         {/* Filter Controls & Actions */}
-        <div className="d-flex flex-wrap gap-2 align-items-center">
-          <div className="d-flex flex-wrap gap-2 align-items-center bg-white rounded-3 shadow-sm border px-3 py-1">
-            <Filter size={16} className="text-muted" />
-            <Form.Select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="border-0 shadow-none bg-transparent fw-medium text-dark"
-              style={{ width: 'auto', minWidth: '150px', cursor: 'pointer', height: '38px', fontSize: '0.9rem' }}
-            >
-              <option value="all">All Time</option>
-              <option value="today">Today</option>
-              <option value="yesterday">Yesterday</option>
-              <option value="this_week">This Week</option>
-              <option value="this_month">This Month</option>
-              <option value="custom">Custom Date Range</option>
-            </Form.Select>
+        <div className="d-flex flex-wrap gap-2 align-items-center w-100 w-md-auto">
+          <div className="d-flex flex-wrap gap-2 align-items-center bg-white rounded-3 shadow-sm border px-3 py-1 flex-grow-1 flex-md-grow-0 w-100 w-sm-auto">
+            <div className="d-flex align-items-center gap-2 flex-grow-1 flex-sm-grow-0">
+              <Filter size={16} className="text-muted flex-shrink-0" />
+              <Form.Select
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                className="border-0 shadow-none bg-transparent fw-medium text-dark flex-grow-1"
+                style={{ width: 'auto', minWidth: '140px', cursor: 'pointer', height: '38px', fontSize: '0.88rem' }}
+              >
+                <option value="all">All Time</option>
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="this_week">This Week</option>
+                <option value="this_month">This Month</option>
+                <option value="custom">Custom Date Range</option>
+              </Form.Select>
+            </div>
 
             {filter === 'custom' && (
-              <div className="d-flex gap-2 border-start ps-3 ms-1 align-items-center flex-wrap">
+              <div className="d-flex gap-2 border-top border-sm-top-0 border-sm-start pt-2 pt-sm-0 ps-sm-3 ms-sm-1 align-items-center flex-wrap w-100 w-sm-auto">
                 <Form.Control
                   type="date"
                   value={customStartDate}
                   onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="border-0 bg-transparent shadow-none text-secondary"
-                  style={{ width: '135px', fontSize: '0.85rem' }}
+                  className="border-0 bg-transparent shadow-none text-secondary flex-grow-1"
+                  style={{ minWidth: '125px', maxWidth: '140px', fontSize: '0.82rem' }}
                 />
                 <span className="text-muted small">to</span>
                 <Form.Control
                   type="date"
                   value={customEndDate}
                   onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="border-0 bg-transparent shadow-none text-secondary"
-                  style={{ width: '135px', fontSize: '0.85rem' }}
+                  className="border-0 bg-transparent shadow-none text-secondary flex-grow-1"
+                  style={{ minWidth: '125px', maxWidth: '140px', fontSize: '0.82rem' }}
                 />
               </div>
             )}
@@ -273,8 +277,8 @@ const Notifications = () => {
             <Button
               variant="outline-primary"
               onClick={handleMarkAllRead}
-              className="d-flex align-items-center gap-2 rounded-3 shadow-sm"
-              style={{ height: '44px', fontWeight: 600, fontSize: '0.85rem' }}
+              className="d-flex align-items-center justify-content-center gap-2 rounded-3 shadow-sm flex-grow-1 flex-md-grow-0"
+              style={{ height: '42px', fontWeight: 600, fontSize: '0.85rem' }}
             >
               <CheckCheck size={18} /> Mark all read
             </Button>
@@ -313,7 +317,7 @@ const Notifications = () => {
                   <div
                     key={item._id}
                     onClick={() => handleNotificationClick(item)}
-                    className="p-3 p-md-4 border-bottom d-flex align-items-start justify-content-between gap-3 text-decoration-none"
+                    className="p-3 p-md-4 border-bottom text-decoration-none"
                     style={{
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
@@ -328,15 +332,14 @@ const Notifications = () => {
                         : '#ffffff';
                     }}
                   >
-                    {/* Left: Category Icon + Content */}
-                    <div className="d-flex align-items-start gap-3 flex-grow-1" style={{ minWidth: 0 }}>
-                      {/* Icon */}
+                    <div className="d-flex align-items-start gap-3">
+                      {/* Left Category Icon */}
                       <div
                         className="d-flex align-items-center justify-content-center flex-shrink-0 mt-1"
                         style={{
-                          width: '44px',
-                          height: '44px',
-                          borderRadius: '14px',
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '12px',
                           backgroundColor: visual.bg,
                           color: visual.color,
                         }}
@@ -344,104 +347,108 @@ const Notifications = () => {
                         {visual.icon}
                       </div>
 
-                      {/* Content */}
+                      {/* Content Body */}
                       <div className="flex-grow-1" style={{ minWidth: 0 }}>
-                        <div className="d-flex align-items-center gap-2 flex-wrap mb-1">
-                          <span
-                            className={`text-dark ${!item.isRead ? 'fw-bold' : 'fw-semibold'}`}
-                            style={{ fontSize: '0.98rem' }}
-                          >
-                            {item.title}
-                          </span>
-                          {!item.isRead && (
-                            <Badge
-                              bg="primary"
-                              pill
-                              style={{ fontSize: '0.65rem', padding: '0.25em 0.55em' }}
+                        {/* Title Row + Actions */}
+                        <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start gap-2 mb-1">
+                          <div className="d-flex align-items-center gap-2 flex-wrap" style={{ minWidth: 0 }}>
+                            <span
+                              className={`text-dark ${!item.isRead ? 'fw-bold' : 'fw-semibold'}`}
+                              style={{ fontSize: '0.94rem', wordBreak: 'break-word' }}
                             >
-                              New
-                            </Badge>
-                          )}
-                          <span
-                            className="badge text-secondary border bg-light"
-                            style={{ fontSize: '0.7rem', fontWeight: 500 }}
-                          >
-                            {visual.badge}
-                          </span>
+                              {item.title}
+                            </span>
+                            {!item.isRead && (
+                              <Badge
+                                bg="primary"
+                                pill
+                                style={{ fontSize: '0.62rem', padding: '0.25em 0.55em' }}
+                              >
+                                New
+                              </Badge>
+                            )}
+                            <span
+                              className="badge text-secondary border bg-light"
+                              style={{ fontSize: '0.68rem', fontWeight: 500 }}
+                            >
+                              {visual.badge}
+                            </span>
+                          </div>
+
+                          {/* Action Buttons Toolbar */}
+                          <div className="d-flex align-items-center gap-1 gap-sm-2 flex-shrink-0 ms-auto ms-sm-0">
+                            {!item.isRead && (
+                              <span
+                                title="Unread"
+                                style={{
+                                  width: '8px',
+                                  height: '8px',
+                                  borderRadius: '50%',
+                                  backgroundColor: '#4f46e5',
+                                  display: 'inline-block',
+                                  marginRight: '4px',
+                                }}
+                              />
+                            )}
+
+                            {item.link && (
+                              <Button
+                                variant="light"
+                                size="sm"
+                                className="text-primary border p-1 rounded-2"
+                                title="Open Link"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleNotificationClick(item);
+                                }}
+                              >
+                                <ExternalLink size={15} />
+                              </Button>
+                            )}
+
+                            {!item.isRead && (
+                              <Button
+                                variant="light"
+                                size="sm"
+                                className="text-success border p-1 rounded-2"
+                                title="Mark as read"
+                                onClick={(e) => handleMarkAsRead(item._id, e)}
+                              >
+                                <CheckCheck size={15} />
+                              </Button>
+                            )}
+
+                            <Button
+                              variant="light"
+                              size="sm"
+                              className="text-danger border p-1 rounded-2"
+                              title="Delete notification"
+                              onClick={(e) => handleDeleteNotification(item._id, e)}
+                            >
+                              <Trash2 size={15} />
+                            </Button>
+                          </div>
                         </div>
 
                         {/* Description Message */}
                         <p
                           className="text-secondary mb-2"
-                          style={{ fontSize: '0.88rem', lineHeight: 1.4 }}
+                          style={{ fontSize: '0.86rem', lineHeight: 1.45, wordBreak: 'break-word' }}
                         >
                           {item.message}
                         </p>
 
                         {/* Exact Time & Relative Time */}
-                        <div className="d-flex align-items-center gap-3 text-muted small flex-wrap">
-                          <span className="d-inline-flex align-items-center gap-1" style={{ fontSize: '0.8rem' }}>
-                            <Clock size={13} className="text-secondary" />
+                        <div className="d-flex align-items-center gap-2 gap-sm-3 text-muted small flex-wrap">
+                          <span className="d-inline-flex align-items-center gap-1" style={{ fontSize: '0.78rem' }}>
+                            <Clock size={12} className="text-secondary" />
                             {formatExactDateTime(item.createdAt)}
                           </span>
-                          <span className="text-primary fw-medium" style={{ fontSize: '0.8rem' }}>
+                          <span className="text-primary fw-medium" style={{ fontSize: '0.78rem' }}>
                             ({formatTimeAgo(item.createdAt)})
                           </span>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Right: Unread Dot & Actions */}
-                    <div className="d-flex align-items-center gap-2 flex-shrink-0 ms-2">
-                      {!item.isRead && (
-                        <span
-                          title="Unread"
-                          style={{
-                            width: '9px',
-                            height: '9px',
-                            borderRadius: '50%',
-                            backgroundColor: '#4f46e5',
-                            display: 'inline-block',
-                          }}
-                        />
-                      )}
-
-                      {item.link && (
-                        <Button
-                          variant="light"
-                          size="sm"
-                          className="text-primary border p-1 rounded-2"
-                          title="Open Link"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleNotificationClick(item);
-                          }}
-                        >
-                          <ExternalLink size={16} />
-                        </Button>
-                      )}
-
-                      {!item.isRead && (
-                        <Button
-                          variant="light"
-                          size="sm"
-                          className="text-success border p-1 rounded-2"
-                          title="Mark as read"
-                          onClick={(e) => handleMarkAsRead(item._id, e)}
-                        >
-                          <CheckCheck size={16} />
-                        </Button>
-                      )}
-
-                      <Button
-                        variant="light"
-                        size="sm"
-                        className="text-danger border p-1 rounded-2"
-                        title="Delete notification"
-                        onClick={(e) => handleDeleteNotification(item._id, e)}
-                      >
-                        <Trash2 size={16} />
-                      </Button>
                     </div>
                   </div>
                 );

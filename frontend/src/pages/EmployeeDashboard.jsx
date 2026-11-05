@@ -400,16 +400,18 @@ const EmployeeDashboard = () => {
               Pending Payment
             </Button>
           </div>
-          <Button variant="primary" onClick={handleShow} className="d-flex align-items-center text-nowrap">
-            <Plus size={18} className="me-2" /> Create Order
-          </Button>
-          <NotificationBell align="end" />
+          <div className="d-flex align-items-center gap-2 flex-wrap">
+            <Button variant="primary" onClick={handleShow} className="d-flex align-items-center text-nowrap">
+              <Plus size={18} className="me-2" /> Create Order
+            </Button>
+            <NotificationBell align="end" />
+          </div>
         </div>
       </div>
 
       {unreadCount > 0 && notifications.some(n => !n.isRead) && (
         <div
-          className="alert border-0 shadow-sm d-flex align-items-center justify-content-between mb-4 p-3 rounded-4"
+          className="alert border-0 shadow-sm d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3 mb-4 p-3 rounded-4"
           style={{
             background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
             borderLeft: '5px solid #4f46e5',
@@ -440,7 +442,7 @@ const EmployeeDashboard = () => {
               </div>
             </div>
           </div>
-          <div className="d-flex align-items-center gap-2 ms-3 flex-shrink-0">
+          <div className="d-flex align-items-center gap-2 flex-wrap flex-shrink-0">
             {notifications.find(n => !n.isRead)?.link && (
               <Button
                 size="sm"

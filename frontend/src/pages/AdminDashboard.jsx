@@ -223,8 +223,8 @@ const AdminDashboard = () => {
             {formatDate()}
           </p>
         </div>
-        <div className="d-flex flex-column flex-sm-row gap-3 align-items-sm-center">
-          <div className="d-flex gap-2 align-items-center">
+        <div className="d-flex flex-column flex-sm-row gap-3 align-items-start align-items-sm-center">
+          <div className="d-flex flex-wrap gap-2 align-items-center">
             <button 
               onClick={handleQuickTimeTrack} 
               className={`btn btn-${currentAction.btnClass} d-flex align-items-center justify-content-center gap-2 border-0 shadow-sm`} 

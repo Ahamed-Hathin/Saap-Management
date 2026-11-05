@@ -141,7 +141,7 @@ const Layout = ({ children }) => {
               <Navbar.Brand className="brand fw-bold m-0">SAPP Creation</Navbar.Brand>
             </div>
             <div className="d-flex gap-2 align-items-center">
-              {user?.role === 'Employee' && <NotificationBell align="end" />}
+              {user && <NotificationBell align="end" />}
               <Button variant="link" className="p-0 text-secondary d-md-none ms-1" onClick={() => setShowMobileMenu(true)}>
                 <Menu size={24} />
               </Button>
