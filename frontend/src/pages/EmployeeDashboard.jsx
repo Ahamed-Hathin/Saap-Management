@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import Layout from '../components/Layout';
 import { Row, Col, Card, Table, Badge, Button, Modal, Form, Alert } from 'react-bootstrap';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { ShoppingBag, CheckCircle, Clock, Plus, Search, Trash2, Download, Check, ArrowRight, ArrowLeft } from 'lucide-react';
+import { ShoppingBag, CheckCircle, Clock, Plus, Search, Trash2, Download, Check, ArrowRight, ArrowLeft, ClipboardList } from 'lucide-react';
+import { NotificationContext } from '../context/NotificationContext';
+import NotificationBell from '../components/NotificationBell';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -19,6 +21,8 @@ import logoImg from '../assets/Sapp Logo.jpg.jpeg';
 
 const EmployeeDashboard = () => {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const { notifications, unreadCount, markAsRead } = useContext(NotificationContext);
   const location = useLocation();
   const { id } = useParams();
   const [orders, setOrders] = useState([]);
@@ -399,8 +403,74 @@ const EmployeeDashboard = () => {
           <Button variant="primary" onClick={handleShow} className="d-flex align-items-center text-nowrap">
             <Plus size={18} className="me-2" /> Create Order
           </Button>
+          <NotificationBell align="end" />
         </div>
       </div>
+
+      {unreadCount > 0 && notifications.some(n => !n.isRead) && (
+        <div
+          className="alert border-0 shadow-sm d-flex align-items-center justify-content-between mb-4 p-3 rounded-4"
+          style={{
+            background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
+            borderLeft: '5px solid #4f46e5',
+          }}
+        >
+          <div className="d-flex align-items-center gap-3">
+            <div
+              className="p-2 bg-white rounded-3 shadow-sm d-flex align-items-center justify-content-center flex-shrink-0"
+              style={{ width: '42px', height: '42px' }}
+            >
+              {notifications.find(n => !n.isRead)?.type === 'task' ? (
+                <ClipboardList size={22} className="text-warning" />
+              ) : (
+                <ShoppingBag size={22} className="text-primary" />
+              )}
+            </div>
+            <div>
+              <div className="d-flex align-items-center gap-2 flex-wrap">
+                <span className="fw-bold text-dark">
+                  {notifications.find(n => !n.isRead)?.title}
+                </span>
+                <Badge bg="primary" pill style={{ fontSize: '0.7rem' }}>
+                  {unreadCount} New
+                </Badge>
+              </div>
+              <div className="text-secondary small mt-1">
+                {notifications.find(n => !n.isRead)?.message}
+              </div>
+            </div>
+          </div>
+          <div className="d-flex align-items-center gap-2 ms-3 flex-shrink-0">
+            {notifications.find(n => !n.isRead)?.link && (
+              <Button
+                size="sm"
+                variant="primary"
+                className="px-3 rounded-3 shadow-sm"
+                onClick={() => {
+                  const unread = notifications.find(n => !n.isRead);
+                  if (unread) {
+                    markAsRead(unread._id);
+                    navigate(unread.link);
+                  }
+                }}
+              >
+                View
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="light"
+              className="text-muted px-2 rounded-3"
+              onClick={() => {
+                const unread = notifications.find(n => !n.isRead);
+                if (unread) markAsRead(unread._id);
+              }}
+            >
+              Dismiss
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Card className="dashboard-card border-0 mb-4">
         <Card.Body className="p-0">

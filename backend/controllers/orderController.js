@@ -1,5 +1,8 @@
 const Order = require('../models/Order');
 const Expense = require('../models/Expense');
+const Notification = require('../models/Notification');
+const User = require('../models/User');
+const notifyAdmins = require('../utils/notifyAdmins');
 
 const createOrder = async (req, res) => {
   try {
@@ -63,6 +66,34 @@ const createOrder = async (req, res) => {
     });
 
     const createdOrder = await order.save();
+
+    // If order was created by staff/employee, notify admins
+    if (req.user.role === 'Employee') {
+      await notifyAdmins({
+        senderId: req.user._id,
+        type: 'order',
+        title: 'New Order Received',
+        message: `Order #${createdOrder.serialNumber || ''} (${createdOrder.clientName}) created by ${req.user.name}`,
+        link: `/orders/${createdOrder._id}`,
+      });
+    }
+
+    if (assignedEmployeeId && assignedEmployeeId.toString() !== req.user._id.toString()) {
+      try {
+        await Notification.create({
+          recipient: assignedEmployeeId,
+          sender: req.user._id,
+          type: 'order',
+          title: 'New Order Assigned',
+          message: `Order #${createdOrder.serialNumber || ''} (${createdOrder.clientName} - ${createdOrder.cardType}) has been assigned to you.`,
+          link: `/orders/${createdOrder._id}`,
+          isRead: false,
+        });
+      } catch (notifErr) {
+        console.error('Error creating order notification:', notifErr);
+      }
+    }
+
     res.status(201).json(createdOrder);
   } catch (error) {
     res.status(400).json({ message: error.message || 'Error creating order' });
@@ -128,6 +159,30 @@ const updateOrderStatus = async (req, res) => {
       order.totalAmount = req.body.totalAmount !== undefined ? req.body.totalAmount : order.totalAmount;
       order.paymentMethod = req.body.paymentMethod || order.paymentMethod;
       order.printingCompany = req.body.printingCompany || order.printingCompany;
+
+      if (req.user.role === 'Admin' && req.body.assignedEmployee) {
+        const oldAssignee = order.assignedEmployee?._id?.toString() || order.assignedEmployee?.toString();
+        const newAssignee = req.body.assignedEmployee.toString();
+        if (oldAssignee !== newAssignee) {
+          order.assignedEmployee = req.body.assignedEmployee;
+          if (newAssignee !== req.user._id.toString()) {
+            try {
+              await Notification.create({
+                recipient: newAssignee,
+                sender: req.user._id,
+                type: 'order',
+                title: 'Order Assigned',
+                message: `Order #${order.serialNumber || ''} (${order.clientName} - ${order.cardType}) has been assigned to you.`,
+                link: `/orders/${order._id}`,
+                isRead: false,
+              });
+            } catch (notifErr) {
+              console.error('Error creating reassignment notification:', notifErr);
+            }
+          }
+        }
+      }
+
       const updatedOrder = await order.save();
       res.json(updatedOrder);
     } else {

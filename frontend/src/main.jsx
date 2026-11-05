@@ -4,6 +4,7 @@ import App from './App.jsx'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import './index.css'
 import { AuthProvider } from './context/AuthContext.jsx'
+import { NotificationProvider } from './context/NotificationContext.jsx'
 import { registerSW } from 'virtual:pwa-register'
 
 // Automatically register the service worker
@@ -26,7 +27,9 @@ document.addEventListener('wheel', () => {
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <AuthProvider>
-      <App />
+      <NotificationProvider>
+        <App />
+      </NotificationProvider>
     </AuthProvider>
   </React.StrictMode>,
 )

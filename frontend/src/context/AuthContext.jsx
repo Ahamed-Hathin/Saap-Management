@@ -27,7 +27,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      if (user && user.role === 'Employee') {
+        await api.post('/auth/logout');
+      }
+    } catch (e) {
+      // continue logout even if network request fails
+    }
     setUser(null);
     localStorage.removeItem('userInfo');
   };

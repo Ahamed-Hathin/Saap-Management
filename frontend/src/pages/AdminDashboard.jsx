@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
+import NotificationBell from '../components/NotificationBell';
 import { Row, Col, Card, Form, ProgressBar, Table, Badge, Modal } from 'react-bootstrap';
 import api from '../services/api';
 import Swal from 'sweetalert2';
@@ -223,7 +224,7 @@ const AdminDashboard = () => {
           </p>
         </div>
         <div className="d-flex flex-column flex-sm-row gap-3 align-items-sm-center">
-          <div className="d-flex gap-2">
+          <div className="d-flex gap-2 align-items-center">
             <button 
               onClick={handleQuickTimeTrack} 
               className={`btn btn-${currentAction.btnClass} d-flex align-items-center justify-content-center gap-2 border-0 shadow-sm`} 
@@ -238,6 +239,7 @@ const AdminDashboard = () => {
             <button onClick={() => navigate('/admin/tasks')} className="btn btn-light d-flex align-items-center justify-content-center gap-2 border shadow-sm" style={{ fontWeight: 600, color: '#4f46e5', height: '42px', padding: '0 16px' }}>
               <CheckCircle size={18} /> <span className="d-none d-sm-inline">Tasks</span>
             </button>
+            <NotificationBell align="end" />
           </div>
           <div className="d-flex flex-wrap gap-2 align-items-center bg-white rounded shadow-sm border px-2">
             <Form.Select 

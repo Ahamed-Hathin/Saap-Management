@@ -4,6 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Container, Row, Col, Navbar, Nav, Button, Modal, Offcanvas, Collapse } from 'react-bootstrap';
 import { LayoutDashboard, Users, ShoppingCart, LogOut, Settings, ClipboardList, UserCheck, Receipt, Package, FileText, Menu, Clock, ChevronDown, ChevronRight } from 'lucide-react';
+import NotificationBell from './NotificationBell';
 
 const Layout = ({ children }) => {
   const { user, logout } = useContext(AuthContext);
@@ -127,7 +128,10 @@ const Layout = ({ children }) => {
       <Row className="g-0 h-100 flex-nowrap">
         <Col md={2} className="sidebar p-4 d-none d-md-block d-flex flex-column h-100 overflow-y-auto">
           <div>
-            <h4 className="brand mb-5">SAPP Creation</h4>
+            <div className="d-flex justify-content-between align-items-center mb-5">
+              <h4 className="brand m-0">SAPP Creation</h4>
+              {user?.role === 'Employee' && <NotificationBell align="start" />}
+            </div>
             {renderNavLinks()}
           </div>
         </Col>
@@ -136,7 +140,8 @@ const Layout = ({ children }) => {
             <div className="d-flex align-items-center">
               <Navbar.Brand className="brand fw-bold m-0">SAPP Creation</Navbar.Brand>
             </div>
-            <div className="d-flex gap-3 align-items-center">
+            <div className="d-flex gap-2 align-items-center">
+              {user?.role === 'Employee' && <NotificationBell align="end" />}
               <Button variant="link" className="p-0 text-secondary d-md-none ms-1" onClick={() => setShowMobileMenu(true)}>
                 <Menu size={24} />
               </Button>

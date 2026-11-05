@@ -1,4 +1,5 @@
 const Task = require('../models/Task');
+const Notification = require('../models/Notification');
 
 // @desc    Get all tasks for Admin or specific tasks for Employee
 // @route   GET /api/tasks
@@ -50,6 +51,23 @@ const createTask = async (req, res) => {
     });
 
     const createdTask = await task.save();
+
+    if (targetAssignee && targetAssignee.toString() !== req.user._id.toString()) {
+      try {
+        await Notification.create({
+          recipient: targetAssignee,
+          sender: req.user._id,
+          type: 'task',
+          title: 'New Task Assigned',
+          message: `Admin assigned you a new task: "${title}".`,
+          link: '/employee/tasks',
+          isRead: false,
+        });
+      } catch (notifErr) {
+        console.error('Error creating task notification:', notifErr);
+      }
+    }
+
     res.status(201).json(createdTask);
   } catch (error) {
     res.status(500).json({ message: 'Error creating task', error: error.message });

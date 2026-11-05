@@ -2,6 +2,7 @@ const Attendance = require('../models/Attendance');
 const User = require('../models/User');
 const SalarySetting = require('../models/SalarySetting');
 const Holiday = require('../models/Holiday');
+const notifyAdmins = require('../utils/notifyAdmins');
 
 const getLocalDateString = () => {
   const now = new Date();
@@ -118,6 +119,17 @@ exports.checkIn = async (req, res) => {
       } else {
         attendance = await Attendance.create(updateData);
       }
+
+      if (req.user.role === 'Employee') {
+        const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        await notifyAdmins({
+          senderId: req.user._id,
+          type: 'employee',
+          title: 'Staff Checked In',
+          message: `${req.user.name} checked in at ${timeStr}.${isLate ? ' (Late)' : ''}`,
+          link: '/admin/attendance',
+        });
+      }
       
       return res.status(201).json(attendance);
     } else if (attendance.checkIn) {
@@ -143,6 +155,17 @@ exports.startLunch = async (req, res) => {
     attendance.lunchStart = new Date();
     attendance.status = 'Lunch Break';
     await attendance.save();
+
+    if (req.user.role === 'Employee') {
+      const timeStr = attendance.lunchStart.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      await notifyAdmins({
+        senderId: req.user._id,
+        type: 'employee',
+        title: 'Staff on Lunch Break',
+        message: `${req.user.name} started lunch break at ${timeStr}.`,
+        link: '/admin/attendance',
+      });
+    }
     
     res.json(attendance);
   } catch (error) {
@@ -169,6 +192,16 @@ exports.endLunch = async (req, res) => {
     attendance.status = 'Working After Lunch';
     
     await attendance.save();
+
+    if (req.user.role === 'Employee') {
+      await notifyAdmins({
+        senderId: req.user._id,
+        type: 'employee',
+        title: 'Staff Back from Lunch',
+        message: `${req.user.name} signed in after lunch (${attendance.lunchDuration || 0} mins).`,
+        link: '/admin/attendance',
+      });
+    }
     
     res.json(attendance);
   } catch (error) {
@@ -216,6 +249,17 @@ exports.checkOut = async (req, res) => {
     attendance.status = isEarly ? 'Early Exit' : 'Completed';
     
     await attendance.save();
+
+    if (req.user.role === 'Employee') {
+      const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      await notifyAdmins({
+        senderId: req.user._id,
+        type: 'employee',
+        title: 'Staff Checked Out',
+        message: `${req.user.name} checked out at ${timeStr} (${Math.floor(attendance.workingMinutes / 60)}h ${attendance.workingMinutes % 60}m worked).`,
+        link: '/admin/attendance',
+      });
+    }
     
     const attObj = attendance.toObject();
     attObj.hoursPerDay = hoursPerDay;
@@ -248,6 +292,17 @@ exports.pauseTracking = async (req, res) => {
     attendance.pauses.push({ start: new Date() });
     attendance.status = 'Paused';
     await attendance.save();
+
+    if (req.user.role === 'Employee') {
+      const timeStr = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      await notifyAdmins({
+        senderId: req.user._id,
+        type: 'employee',
+        title: 'Staff on Break',
+        message: `${req.user.name} took a break at ${timeStr}.`,
+        link: '/admin/attendance',
+      });
+    }
     
     res.json(attendance);
   } catch (error) {
@@ -274,6 +329,16 @@ exports.resumeTracking = async (req, res) => {
     
     attendance.status = attendance.lunchEnd ? 'Working After Lunch' : 'Working';
     await attendance.save();
+
+    if (req.user.role === 'Employee') {
+      await notifyAdmins({
+        senderId: req.user._id,
+        type: 'employee',
+        title: 'Staff Back from Break',
+        message: `${req.user.name} signed in after break.`,
+        link: '/admin/attendance',
+      });
+    }
     
     res.json(attendance);
   } catch (error) {
