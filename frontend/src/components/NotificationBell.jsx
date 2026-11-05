@@ -132,11 +132,7 @@ const NotificationBell = ({ align = 'end' }) => {
 
   const handleViewAll = () => {
     setIsOpen(false);
-    if (user.role === 'Admin') {
-      navigate('/admin/orders');
-    } else {
-      navigate('/employee/orders');
-    }
+    navigate('/notifications');
   };
 
   return (

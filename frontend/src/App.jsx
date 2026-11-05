@@ -22,6 +22,7 @@ import MyAttendance from './pages/MyAttendance';
 import MonthlyAttendance from './pages/MonthlyAttendance';
 import OverallMonthlyAttendance from './pages/OverallMonthlyAttendance';
 import SalaryAutomate from './pages/SalaryAutomate';
+import Notifications from './pages/Notifications';
 
 const PrivateRoute = ({ children, role, excludeUser, requiredPage }) => {
   const { user, loading, logout } = useContext(AuthContext);
@@ -119,6 +120,7 @@ function App() {
         <Route path="/client-orders" element={<PrivateRoute requiredPage="Clients"><ClientOrders /></PrivateRoute>} />
         <Route path="/orders/:id" element={<PrivateRoute><OrderDetails /></PrivateRoute>} />
         <Route path="/quotation" element={<PrivateRoute requiredPage="Quotation"><Quotation /></PrivateRoute>} />
+        <Route path="/notifications" element={<PrivateRoute><Notifications /></PrivateRoute>} />
         
         {/* Catch-all Route */}
         <Route path="*" element={<Navigate to="/" replace />} />

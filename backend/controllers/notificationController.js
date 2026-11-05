@@ -1,15 +1,58 @@
 const Notification = require('../models/Notification');
 
-// @desc    Get all notifications for logged-in user
+// @desc    Get all notifications for logged-in user (with optional date filters)
 // @route   GET /api/notifications
 // @access  Private
 const getNotifications = async (req, res) => {
   try {
-    const notifications = await Notification.find({ recipient: req.user._id })
+    const { filter, startDate, endDate, limit } = req.query;
+
+    let query = { recipient: req.user._id };
+    const now = new Date();
+
+    if (filter === 'custom' && startDate && endDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      query.createdAt = { $gte: start, $lte: end };
+    } else if (filter === 'today') {
+      const startOfDay = new Date(now);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(now);
+      endOfDay.setHours(23, 59, 59, 999);
+      query.createdAt = { $gte: startOfDay, $lte: endOfDay };
+    } else if (filter === 'yesterday') {
+      const startOfYesterday = new Date(now);
+      startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+      startOfYesterday.setHours(0, 0, 0, 0);
+      const endOfYesterday = new Date(now);
+      endOfYesterday.setDate(endOfYesterday.getDate() - 1);
+      endOfYesterday.setHours(23, 59, 59, 999);
+      query.createdAt = { $gte: startOfYesterday, $lte: endOfYesterday };
+    } else if (filter === 'this_week' || filter === 'weekly') {
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(startOfWeek.getDate() - 7);
+      startOfWeek.setHours(0, 0, 0, 0);
+      query.createdAt = { $gte: startOfWeek };
+    } else if (filter === 'this_month' || filter === 'monthly') {
+      const startOfMonth = new Date(now);
+      startOfMonth.setDate(startOfMonth.getDate() - 30);
+      startOfMonth.setHours(0, 0, 0, 0);
+      query.createdAt = { $gte: startOfMonth };
+    }
+
+    let notifQuery = Notification.find(query)
       .populate('sender', 'name username')
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .lean();
+      .sort({ createdAt: -1 });
+
+    if (limit && Number(limit) > 0) {
+      notifQuery = notifQuery.limit(Number(limit));
+    } else if (!filter) {
+      notifQuery = notifQuery.limit(50);
+    }
+
+    const notifications = await notifQuery.lean();
 
     const unreadCount = await Notification.countDocuments({
       recipient: req.user._id,
