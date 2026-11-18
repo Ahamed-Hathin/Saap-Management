@@ -292,17 +292,6 @@ exports.pauseTracking = async (req, res) => {
     attendance.pauses.push({ start: new Date() });
     attendance.status = 'Paused';
     await attendance.save();
-
-    if (req.user.role === 'Employee') {
-      const timeStr = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-      await notifyAdmins({
-        senderId: req.user._id,
-        type: 'employee',
-        title: 'Staff on Break',
-        message: `${req.user.name} took a break at ${timeStr}.`,
-        link: '/admin/attendance',
-      });
-    }
     
     res.json(attendance);
   } catch (error) {
@@ -329,16 +318,6 @@ exports.resumeTracking = async (req, res) => {
     
     attendance.status = attendance.lunchEnd ? 'Working After Lunch' : 'Working';
     await attendance.save();
-
-    if (req.user.role === 'Employee') {
-      await notifyAdmins({
-        senderId: req.user._id,
-        type: 'employee',
-        title: 'Staff Back from Break',
-        message: `${req.user.name} signed in after break.`,
-        link: '/admin/attendance',
-      });
-    }
     
     res.json(attendance);
   } catch (error) {

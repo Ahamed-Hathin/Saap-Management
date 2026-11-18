@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Layout from '../components/Layout';
+import NotificationBell from '../components/NotificationBell';
 import { Card, Table, Button, Modal, Form, Alert, Badge, Dropdown } from 'react-bootstrap';
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
@@ -798,7 +799,7 @@ const ClientOrders = () => {
           <p className="text-muted mb-0 small">Track and manage all permanent client orders</p>
         </div>
         <div className="d-flex flex-column align-items-stretch align-items-sm-end gap-2">
-          <div className="d-flex gap-2 w-100 justify-content-sm-end">
+          <div className="d-flex flex-wrap gap-2 w-100 justify-content-sm-end align-items-center">
             <Link to="/admin/orders" className="flex-grow-1 flex-sm-grow-0 text-decoration-none">
               <Button variant="outline-info" className="d-flex align-items-center justify-content-center text-nowrap shadow-sm w-100 h-100">
                 Walk-in Orders
@@ -810,6 +811,7 @@ const ClientOrders = () => {
             <Button variant="primary" onClick={handleShow} className="d-flex align-items-center justify-content-center text-nowrap shadow-sm flex-grow-1 flex-sm-grow-0">
               <Plus size={18} className="me-2" /> Create Order
             </Button>
+            <NotificationBell align="end" />
           </div>
           <Form.Control
             type="search"
