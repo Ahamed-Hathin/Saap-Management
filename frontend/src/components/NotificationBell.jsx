@@ -28,7 +28,24 @@ const formatTimeAgo = (dateStr) => {
   if (diffInHours < 24) return `${diffInHours}h ago`;
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 7) return `${diffInDays}d ago`;
-  return date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+  return date.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric' });
+};
+
+const formatNotificationMessage = (item) => {
+  if (!item || !item.message) return '';
+  if (item.type === 'employee' && item.createdAt) {
+    const istTime = new Date(item.createdAt).toLocaleTimeString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+    return item.message.replace(
+      /\b(at\s+)\d{1,2}:\d{2}(?::\d{2})?\s*(?:am|pm)?/i,
+      `at ${istTime}`
+    );
+  }
+  return item.message;
 };
 
 // Maps notification type and content to matching visual theme (icon, background, color)
@@ -375,7 +392,7 @@ const NotificationBell = ({ align = 'end' }) => {
                           className="text-muted text-truncate mt-1"
                           style={{ fontSize: '0.76rem', lineHeight: 1.2 }}
                         >
-                          {item.message}
+                          {formatNotificationMessage(item)}
                         </div>
                       </div>
                     </div>

@@ -34,23 +34,42 @@ const formatTimeAgo = (dateStr) => {
   if (diffInHours < 24) return `${diffInHours}h ago`;
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 7) return `${diffInDays}d ago`;
-  return date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+  return date.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric' });
 };
 
 const formatExactDateTime = (dateStr) => {
   if (!dateStr) return '';
   const d = new Date(dateStr);
   const dateFormatted = d.toLocaleDateString('en-IN', {
+    timeZone: 'Asia/Kolkata',
     day: '2-digit',
     month: 'short',
     year: 'numeric',
   });
   const timeFormatted = d.toLocaleTimeString('en-IN', {
+    timeZone: 'Asia/Kolkata',
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,
   });
   return `${dateFormatted} at ${timeFormatted}`;
+};
+
+const formatNotificationMessage = (item) => {
+  if (!item || !item.message) return '';
+  if (item.type === 'employee' && item.createdAt) {
+    const istTime = new Date(item.createdAt).toLocaleTimeString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+    return item.message.replace(
+      /\b(at\s+)\d{1,2}:\d{2}(?::\d{2})?\s*(?:am|pm)?/i,
+      `at ${istTime}`
+    );
+  }
+  return item.message;
 };
 
 const getNotificationVisual = (item) => {
@@ -435,7 +454,7 @@ const Notifications = () => {
                           className="text-secondary mb-2"
                           style={{ fontSize: '0.86rem', lineHeight: 1.45, wordBreak: 'break-word' }}
                         >
-                          {item.message}
+                          {formatNotificationMessage(item)}
                         </p>
 
                         {/* Exact Time & Relative Time */}

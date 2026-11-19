@@ -1,5 +1,14 @@
 const Notification = require('../models/Notification');
 
+const formatISTTime = (d) => {
+  return new Date(d).toLocaleTimeString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+};
+
 // @desc    Get all notifications for logged-in user (with optional date filters)
 // @route   GET /api/notifications
 // @access  Private
@@ -8,37 +17,31 @@ const getNotifications = async (req, res) => {
     const { filter, startDate, endDate, limit } = req.query;
 
     let query = { recipient: req.user._id };
-    const now = new Date();
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 
     if (filter === 'custom' && startDate && endDate) {
-      const start = new Date(startDate);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
+      const start = new Date(`${startDate}T00:00:00.000+05:30`);
+      const end = new Date(`${endDate}T23:59:59.999+05:30`);
       query.createdAt = { $gte: start, $lte: end };
     } else if (filter === 'today') {
-      const startOfDay = new Date(now);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(now);
-      endOfDay.setHours(23, 59, 59, 999);
+      const startOfDay = new Date(`${todayStr}T00:00:00.000+05:30`);
+      const endOfDay = new Date(`${todayStr}T23:59:59.999+05:30`);
       query.createdAt = { $gte: startOfDay, $lte: endOfDay };
     } else if (filter === 'yesterday') {
-      const startOfYesterday = new Date(now);
-      startOfYesterday.setDate(startOfYesterday.getDate() - 1);
-      startOfYesterday.setHours(0, 0, 0, 0);
-      const endOfYesterday = new Date(now);
-      endOfYesterday.setDate(endOfYesterday.getDate() - 1);
-      endOfYesterday.setHours(23, 59, 59, 999);
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const yesterdayStr = yesterday.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+      const startOfYesterday = new Date(`${yesterdayStr}T00:00:00.000+05:30`);
+      const endOfYesterday = new Date(`${yesterdayStr}T23:59:59.999+05:30`);
       query.createdAt = { $gte: startOfYesterday, $lte: endOfYesterday };
     } else if (filter === 'this_week' || filter === 'weekly') {
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(startOfWeek.getDate() - 7);
-      startOfWeek.setHours(0, 0, 0, 0);
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const weekAgoStr = weekAgo.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+      const startOfWeek = new Date(`${weekAgoStr}T00:00:00.000+05:30`);
       query.createdAt = { $gte: startOfWeek };
     } else if (filter === 'this_month' || filter === 'monthly') {
-      const startOfMonth = new Date(now);
-      startOfMonth.setDate(startOfMonth.getDate() - 30);
-      startOfMonth.setHours(0, 0, 0, 0);
+      const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const monthAgoStr = monthAgo.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+      const startOfMonth = new Date(`${monthAgoStr}T00:00:00.000+05:30`);
       query.createdAt = { $gte: startOfMonth };
     }
 
@@ -52,7 +55,19 @@ const getNotifications = async (req, res) => {
       notifQuery = notifQuery.limit(50);
     }
 
-    const notifications = await notifQuery.lean();
+    const rawNotifications = await notifQuery.lean();
+
+    const notifications = rawNotifications.map((n) => {
+      if (n.message && n.type === 'employee' && n.createdAt) {
+        // Ensure any time in the message text is strictly formatted in IST
+        const updatedMessage = n.message.replace(
+          /\b(at\s+)\d{1,2}:\d{2}(?::\d{2})?\s*(?:am|pm)?/i,
+          (match, p1) => p1 + formatISTTime(n.createdAt)
+        );
+        return { ...n, message: updatedMessage };
+      }
+      return n;
+    });
 
     const unreadCount = await Notification.countDocuments({
       recipient: req.user._id,

@@ -4,28 +4,34 @@ const SalarySetting = require('../models/SalarySetting');
 const Holiday = require('../models/Holiday');
 const notifyAdmins = require('../utils/notifyAdmins');
 
+const formatISTTime = (date = new Date()) => {
+  return new Date(date).toLocaleTimeString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+};
+
 const getLocalDateString = () => {
-  const now = new Date();
-  const offset = now.getTimezoneOffset() * 60000;
-  const localISOTime = new Date(now.getTime() - offset).toISOString().split('T')[0];
-  return localISOTime;
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 };
 
 const isLateCheckIn = (dateStr, checkInDate) => {
   const checkInTime = new Date(checkInDate);
-  const cutoff = new Date(`${dateStr}T10:15:00`);
+  const cutoff = new Date(`${dateStr}T10:15:00+05:30`);
   return checkInTime > cutoff;
 };
 
 const isEarlyCheckOut = (dateStr, checkOutDate) => {
   const checkOutTime = new Date(checkOutDate);
-  const cutoff = new Date(`${dateStr}T20:45:00`);
+  const cutoff = new Date(`${dateStr}T20:45:00+05:30`);
   return checkOutTime < cutoff;
 };
 
 const autoMarkAbsentAndLate = async (dateStr) => {
   const now = new Date();
-  const cutoff = new Date(`${dateStr}T10:15:00`);
+  const cutoff = new Date(`${dateStr}T10:15:00+05:30`);
   
   // Check if today is a company holiday
   const holiday = await Holiday.findOne({ date: dateStr });
@@ -121,7 +127,7 @@ exports.checkIn = async (req, res) => {
       }
 
       if (req.user.role === 'Employee') {
-        const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        const timeStr = formatISTTime(now);
         await notifyAdmins({
           senderId: req.user._id,
           type: 'employee',
@@ -157,7 +163,7 @@ exports.startLunch = async (req, res) => {
     await attendance.save();
 
     if (req.user.role === 'Employee') {
-      const timeStr = attendance.lunchStart.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      const timeStr = formatISTTime(attendance.lunchStart);
       await notifyAdmins({
         senderId: req.user._id,
         type: 'employee',
@@ -251,7 +257,7 @@ exports.checkOut = async (req, res) => {
     await attendance.save();
 
     if (req.user.role === 'Employee') {
-      const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      const timeStr = formatISTTime(now);
       await notifyAdmins({
         senderId: req.user._id,
         type: 'employee',
@@ -574,7 +580,7 @@ exports.adminUpdateAttendance = async (req, res) => {
 
     // Determine late check-in
     if (attendance.checkIn) {
-      const cutoff = new Date(`${date}T10:15:00`);
+      const cutoff = new Date(`${date}T10:15:00+05:30`);
       attendance.isLate = attendance.checkIn > cutoff;
     } else {
       attendance.isLate = false;
